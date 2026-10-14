@@ -500,14 +500,14 @@ public final class StorageManager: ObservableObject {
                         TaskItem(text: "Bikin to-do list", isCompleted: true),
                         TaskItem(text: "Putar lagu di radio Spotify", isCompleted: false)
                     ],
-                    color: .yellow,
+                    color: .lime,
                     x: 20,
                     y: 20
                 ),
                 StickyNote(
-                    title: "Ide Kreatif 💡",
+                    title: "SANS Design ✳",
                     tasks: [
-                        TaskItem(text: "Ganti tema ke Kos-kosan", isCompleted: false),
+                        TaskItem(text: "Electric Blue & Lime Accent", isCompleted: true),
                         TaskItem(text: "Taruh foto favorit di dinding", isCompleted: false)
                     ],
                     color: .pink,
@@ -530,7 +530,7 @@ public final class StorageManager: ObservableObject {
     
     public func addStickyNote() {
         let colors: [NoteColor] = NoteColor.allCases
-        let randomColor = colors.randomElement() ?? .yellow
+        let randomColor = colors.randomElement() ?? .lime
         let newNote = StickyNote(
             title: "Catatan Baru",
             tasks: [TaskItem(text: "Ketik tugas di sini...")],

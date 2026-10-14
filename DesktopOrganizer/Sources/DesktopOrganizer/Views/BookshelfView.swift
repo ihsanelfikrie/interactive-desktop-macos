@@ -104,11 +104,7 @@ public struct BookshelfView: View {
     }
     
     private var dropPromptText: String {
-        switch theme {
-        case .library: return "Simpan File Jadi Buku di Rak"
-        case .kos: return "Simpan File Jadi Map & Kardus"
-        case .garden: return "Tanam Folder Jadi Pot Bunga"
-        }
+        return "Simpan File Jadi Buku di Rak SANS"
     }
     
     @ViewBuilder
@@ -165,78 +161,73 @@ struct ShelfItemView: View {
     }
     
     var body: some View {
-        Group {
-            if theme == .kos {
-                kosRepresentation
-            } else if theme == .garden {
-                gardenRepresentation
-            } else {
-                libraryRepresentation
-            }
-        }
-        .contentShape(Rectangle())
-        .onTapGesture(count: 2) {
-            NSWorkspace.shared.open(url)
-        }
-        .onTapGesture(count: 1) {
-            NSWorkspace.shared.open(url)
-        }
-        .contextMenu {
-            Button("Buka") {
+        sansRepresentation
+            .contentShape(Rectangle())
+            .onTapGesture(count: 2) {
                 NSWorkspace.shared.open(url)
             }
-            Button("Tampilkan di Finder") {
-                storage.openInFinder(url: url)
+            .onTapGesture(count: 1) {
+                NSWorkspace.shared.open(url)
             }
-            Divider()
-            Button("Kembalikan ke Desktop") {
-                storage.restoreBookshelfItemToDesktop(itemURL: url)
+            .contextMenu {
+                Button("Buka") {
+                    NSWorkspace.shared.open(url)
+                }
+                Button("Tampilkan di Finder") {
+                    storage.openInFinder(url: url)
+                }
+                Divider()
+                Button("Kembalikan ke Desktop") {
+                    storage.restoreBookshelfItemToDesktop(itemURL: url)
+                }
+                Button("Buang ke Tempat Sampah", role: .destructive) {
+                    storage.removeBookshelfItem(itemURL: url)
+                }
             }
-            Button("Buang ke Tempat Sampah", role: .destructive) {
-                storage.removeBookshelfItem(itemURL: url)
-            }
-        }
-        .help(url.lastPathComponent)
+            .help(url.lastPathComponent)
     }
     
-    // Library Theme: Book Spine or Archive Box
-    private var libraryRepresentation: some View {
+    // SANS Creative Studio: Book Spine or Archive Box
+    private var sansRepresentation: some View {
         VStack(spacing: 1) {
             if isDirectory {
-                // Archive Box
+                // SANS Archive Box
                 ZStack {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Color(red: 0.78, green: 0.68, blue: 0.52))
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(SANSColors.cleanWhite)
+                        .overlay(RoundedRectangle(cornerRadius: 3).stroke(SANSColors.border, lineWidth: 1))
                         .frame(width: 28, height: 38)
                         .overlay(
                             VStack {
-                                Rectangle().fill(Color.white.opacity(0.4)).frame(height: 1).padding(.top, 3)
+                                Rectangle().fill(SANSColors.lime).frame(height: 3).padding(.top, 2)
                                 Spacer()
                             }
                         )
-                    Text("ARCH")
+                    Text("SANS")
                         .font(.system(size: 6, weight: .bold))
-                        .foregroundColor(Color(red: 0.4, green: 0.25, blue: 0.15))
+                        .foregroundColor(SANSColors.primaryBlue)
                 }
             } else {
-                // Book Spine
+                // SANS Book Spine
                 let hash = abs(url.lastPathComponent.hashValue)
                 let bookColors: [Color] = [
-                    Color(red: 0.72, green: 0.18, blue: 0.18),
-                    Color(red: 0.18, green: 0.35, blue: 0.68),
-                    Color(red: 0.20, green: 0.55, blue: 0.32),
-                    Color(red: 0.80, green: 0.58, blue: 0.18),
-                    Color(red: 0.50, green: 0.25, blue: 0.60)
+                    SANSColors.primaryBlue,
+                    SANSColors.lime,
+                    SANSColors.pink,
+                    SANSColors.cleanWhite,
+                    SANSColors.darkIndigo
                 ]
                 let color = bookColors[hash % bookColors.count]
+                let isLight = (color == SANSColors.lime || color == SANSColors.cleanWhite)
                 let h = CGFloat(30 + (hash % 14))
                 
-                RoundedRectangle(cornerRadius: 1.5)
+                RoundedRectangle(cornerRadius: 2)
                     .fill(color)
+                    .overlay(RoundedRectangle(cornerRadius: 2).stroke(SANSColors.dark.opacity(0.15), lineWidth: 1))
                     .frame(width: 10, height: h)
                     .overlay(
                         VStack {
-                            Rectangle().fill(Color.white.opacity(0.5)).frame(height: 1).padding(.top, 2)
+                            Rectangle().fill(isLight ? SANSColors.dark.opacity(0.25) : SANSColors.cleanWhite.opacity(0.5)).frame(height: 1).padding(.top, 2)
                             Spacer()
                         }
                     )
@@ -244,83 +235,7 @@ struct ShelfItemView: View {
             
             Text(url.deletingPathExtension().lastPathComponent)
                 .font(.system(size: 6, weight: .semibold))
-                .foregroundColor(.white)
-                .lineLimit(1)
-                .frame(width: 28)
-        }
-    }
-    
-    // Kos Room Theme: Plastic File or Indomie Box
-    private var kosRepresentation: some View {
-        VStack(spacing: 1) {
-            if isDirectory {
-                if let boxImg = AssetLoader.image(named: "kos-folder-0-0") {
-                    Image(nsImage: boxImg)
-                        .resizable()
-                        .interpolation(.none)
-                        .scaledToFit()
-                        .frame(width: 30, height: 36)
-                } else {
-                    Image(systemName: "archivebox.fill")
-                        .font(.system(size: 22))
-                        .foregroundColor(.brown)
-                }
-            } else {
-                let hash = abs(url.lastPathComponent.hashValue) % 6
-                if let fileImg = AssetLoader.image(named: "kos-file-\(hash)") {
-                    Image(nsImage: fileImg)
-                        .resizable()
-                        .interpolation(.none)
-                        .scaledToFit()
-                        .frame(width: 18, height: 32)
-                } else {
-                    Image(systemName: "doc.fill")
-                        .font(.system(size: 20))
-                        .foregroundColor(.cyan)
-                }
-            }
-            
-            Text(url.deletingPathExtension().lastPathComponent)
-                .font(.system(size: 6, weight: .semibold))
-                .foregroundColor(.white)
-                .lineLimit(1)
-                .frame(width: 28)
-        }
-    }
-    
-    // Garden Theme: Seed Packet or Flower Pot
-    private var gardenRepresentation: some View {
-        VStack(spacing: 1) {
-            if isDirectory {
-                if let potImg = AssetLoader.image(named: "garden-folder-0-0") {
-                    Image(nsImage: potImg)
-                        .resizable()
-                        .interpolation(.none)
-                        .scaledToFit()
-                        .frame(width: 26, height: 34)
-                } else {
-                    Image(systemName: "shippingbox.fill")
-                        .font(.system(size: 22))
-                        .foregroundColor(.orange)
-                }
-            } else {
-                let hash = abs(url.lastPathComponent.hashValue) % 6
-                if let seedImg = AssetLoader.image(named: "garden-file-\(hash)") {
-                    Image(nsImage: seedImg)
-                        .resizable()
-                        .interpolation(.none)
-                        .scaledToFit()
-                        .frame(width: 16, height: 28)
-                } else {
-                    Image(systemName: "leaf.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(.green)
-                }
-            }
-            
-            Text(url.deletingPathExtension().lastPathComponent)
-                .font(.system(size: 6, weight: .semibold))
-                .foregroundColor(.white)
+                .foregroundColor(SANSColors.cleanWhite)
                 .lineLimit(1)
                 .frame(width: 28)
         }

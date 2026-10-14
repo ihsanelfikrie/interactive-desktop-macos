@@ -1,79 +1,52 @@
 import SwiftUI
 import AppKit
 
+// MARK: - SANS Design System Palette (100% Flat & High Contrast)
+public struct SANSColors {
+    /// Primary 60%: Electric Blue (#120CD6) - Background utama khas SANS, bold & profesional
+    public static let primaryBlue = Color(red: 18/255.0, green: 12/255.0, blue: 214/255.0)
+    
+    /// Secondary 30%: Clean White (#FFFFFF) - Container, dropzone, card
+    public static let cleanWhite = Color(red: 255/255.0, green: 255/255.0, blue: 255/255.0)
+    
+    /// Accent 1 (10%): Hijau Stabilo / Lime (#E5FD5F) - Highlight kata kunci, pill badge, sticky note
+    public static let lime = Color(red: 229/255.0, green: 253/255.0, blue: 95/255.0)
+    
+    /// Accent 2 (10%): Pink / Magenta (#F908E0) - Tombol aksi, marker, badge penting
+    public static let pink = Color(red: 249/255.0, green: 8/255.0, blue: 224/255.0)
+    
+    /// Text Primary: Hitam Pekat (#111111) - Teks utama di atas background terang
+    public static let dark = Color(red: 17/255.0, green: 17/255.0, blue: 17/255.0)
+    
+    /// Base Canvas: Dark Indigo (#0D0B18) - Canvas dasar HTML/Body
+    public static let darkIndigo = Color(red: 13/255.0, green: 11/255.0, blue: 24/255.0)
+    
+    /// Neutral Surface: Soft Surface (#F5F5F5) - Area input, backdrop netral
+    public static let surface = Color(red: 245/255.0, green: 245/255.0, blue: 245/255.0)
+    
+    /// Divider / Border: Border Gray (#E5E7EB) - Garis pemisah tipis flat
+    public static let border = Color(red: 229/255.0, green: 231/255.0, blue: 235/255.0)
+}
+
 public enum RoomTheme: String, CaseIterable, Identifiable, Codable {
     case library = "library"
-    case kos = "kos"
-    case garden = "garden"
     
     public var id: String { rawValue }
     
     public var displayName: String {
-        switch self {
-        case .library: return "Library"
-        case .kos: return "Kos Room"
-        case .garden: return "Garden"
-        }
+        return "SANS Creative Studio"
     }
     
     public var description: String {
-        switch self {
-        case .library:
-            return "A classic reading room. Files become books, folders become archive boxes."
-        case .kos:
-            return "An Indonesian boarding-house room. Folders are noodle cartons, files hide under the mattress."
-        case .garden:
-            return "A pixel-art garden. Folders are flower pots that grow as they fill up."
-        }
+        return "100% Flat & Kontras Tinggi. Electric Blue (#120CD6), Clean White, Hijau Stabilo, dan Pink."
     }
     
-    public var backgroundImageName: String {
-        switch self {
-        case .library: return "background"
-        case .kos: return "kos-background"
-        case .garden: return "garden-background"
-        }
-    }
-    
-    public var matImageName: String {
-        switch self {
-        case .library: return "rug"
-        case .kos: return "kos-mat"
-        case .garden: return "garden-mat"
-        }
-    }
-    
-    public var lumpImageName: String {
-        switch self {
-        case .library: return "kos-lump" // fallback lump
-        case .kos: return "kos-lump"
-        case .garden: return "garden-lump"
-        }
-    }
-    
-    public var pileImageName: String {
-        switch self {
-        case .library: return "kos-pile" // fallback pile
-        case .kos: return "kos-pile"
-        case .garden: return "garden-pile"
-        }
-    }
-    
-    public var radioOffImageName: String {
-        switch self {
-        case .library: return "kos-radio"
-        case .kos: return "kos-radio"
-        case .garden: return "garden-radio"
-        }
-    }
-    
-    public var radioOnImageName: String {
-        switch self {
-        case .library: return "kos-radio-on"
-        case .kos: return "kos-radio-on"
-        case .garden: return "garden-radio-on"
-        }
-    }
+    public var backgroundImageName: String { "background" }
+    public var matImageName: String { "rug" }
+    public var lumpImageName: String { "rug" }
+    public var pileImageName: String { "rug" }
+    public var radioOffImageName: String { "radio" }
+    public var radioOnImageName: String { "radio" }
 }
 
 public final class AssetLoader {
@@ -110,12 +83,11 @@ public final class AssetLoader {
             return img
         }
         
-        // 3. Check inside Resources subfolder / DesktopOrganizer_DesktopOrganizer.bundle
+        // 3. Check inside Resources subfolder / Custom Desktop Mac.app
         let main = Bundle.main.bundleURL
         let checks = [
             main.appendingPathComponent("Contents/Resources/\(cleanName).png"),
             main.appendingPathComponent("Contents/Resources/DesktopOrganizer_DesktopOrganizer.bundle/Contents/Resources/\(cleanName).png"),
-            main.deletingLastPathComponent().appendingPathComponent("DesktopOrganizer_DesktopOrganizer.bundle/Contents/Resources/\(cleanName).png"),
             URL(fileURLWithPath: "Sources/DesktopOrganizer/Resources/\(cleanName).png")
         ]
         

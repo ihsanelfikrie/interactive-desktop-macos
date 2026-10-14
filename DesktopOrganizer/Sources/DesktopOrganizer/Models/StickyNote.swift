@@ -1,30 +1,61 @@
 import SwiftUI
 
 public enum NoteColor: String, CaseIterable, Codable {
-    case yellow
+    case lime
     case pink
-    case green
+    case white
     case blue
-    case purple
+    case surface
     
     public var background: Color {
         switch self {
-        case .yellow: return Color(red: 1.0, green: 0.95, blue: 0.65)
-        case .pink:   return Color(red: 1.0, green: 0.78, blue: 0.85)
-        case .green:  return Color(red: 0.78, green: 0.95, blue: 0.80)
-        case .blue:   return Color(red: 0.75, green: 0.90, blue: 1.0)
-        case .purple: return Color(red: 0.90, green: 0.82, blue: 0.98)
+        case .lime:    return SANSColors.lime
+        case .pink:    return SANSColors.pink
+        case .white:   return SANSColors.cleanWhite
+        case .blue:    return SANSColors.primaryBlue
+        case .surface: return SANSColors.surface
         }
     }
     
     public var headerColor: Color {
         switch self {
-        case .yellow: return Color(red: 0.95, green: 0.88, blue: 0.50)
-        case .pink:   return Color(red: 0.95, green: 0.70, blue: 0.78)
-        case .green:  return Color(red: 0.70, green: 0.88, blue: 0.72)
-        case .blue:   return Color(red: 0.68, green: 0.82, blue: 0.95)
-        case .purple: return Color(red: 0.82, green: 0.72, blue: 0.92)
+        case .lime:    return Color(red: 210/255.0, green: 235/255.0, blue: 80/255.0)
+        case .pink:    return Color(red: 225/255.0, green: 5/255.0, blue: 200/255.0)
+        case .white:   return SANSColors.border
+        case .blue:    return Color(red: 14/255.0, green: 9/255.0, blue: 175/255.0)
+        case .surface: return Color(red: 235/255.0, green: 235/255.0, blue: 235/255.0)
         }
+    }
+    
+    public var textColor: Color {
+        switch self {
+        case .lime, .white, .surface:
+            return SANSColors.dark
+        case .pink, .blue:
+            return SANSColors.cleanWhite
+        }
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let raw = try container.decode(String.self)
+        switch raw.lowercased() {
+        case "pink", "purple":
+            self = .pink
+        case "blue":
+            self = .blue
+        case "white":
+            self = .white
+        case "surface", "gray":
+            self = .surface
+        default:
+            self = .lime
+        }
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(self.rawValue)
     }
 }
 
@@ -53,7 +84,7 @@ public struct StickyNote: Identifiable, Codable, Equatable {
         id: UUID = UUID(),
         title: String = "Catatan",
         tasks: [TaskItem] = [],
-        color: NoteColor = .yellow,
+        color: NoteColor = .lime,
         x: CGFloat = 40,
         y: CGFloat = 40,
         rotation: Double = 0.0

@@ -55,13 +55,14 @@ public struct CorkboardView: View {
                                 Text("Memo")
                                     .font(.system(size: 10, weight: .bold))
                             }
-                            .foregroundColor(Color(red: 0.30, green: 0.20, blue: 0.08))
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 4)
+                            .foregroundColor(SANSColors.dark)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
                             .background(
                                 Capsule()
-                                    .fill(Color(red: 0.98, green: 0.84, blue: 0.32))
-                                    .shadow(color: .black.opacity(0.35), radius: 3, y: 2)
+                                    .fill(SANSColors.lime)
+                                    .overlay(Capsule().stroke(SANSColors.dark.opacity(0.15), lineWidth: 1))
+                                    .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
                             )
                         }
                         .buttonStyle(.plain)
@@ -90,15 +91,16 @@ public struct StickyNoteCardView: View {
         VStack(alignment: .leading, spacing: 3) {
             // Pushpin & Title Header
             HStack(spacing: 4) {
-                // Pushpin icon
+                // SANS Pushpin
                 Circle()
-                    .fill(Color(red: 0.88, green: 0.20, blue: 0.20))
-                    .frame(width: 7, height: 7)
-                    .shadow(color: .black.opacity(0.4), radius: 1, x: 1, y: 1)
+                    .fill(SANSColors.pink)
+                    .frame(width: 8, height: 8)
+                    .overlay(Circle().stroke(Color.white.opacity(0.8), lineWidth: 1))
+                    .shadow(color: .black.opacity(0.3), radius: 1, x: 0.5, y: 0.5)
                 
                 TextField("Judul Memo", text: $note.title)
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(Color.black.opacity(0.85))
+                    .foregroundColor(note.color.textColor)
                     .textFieldStyle(.plain)
                     .onChange(of: note.title) { _ in onSave() }
                 
@@ -129,14 +131,14 @@ public struct StickyNoteCardView: View {
                         }) {
                             Image(systemName: note.tasks[idx].isCompleted ? "checkmark.square.fill" : "square")
                                 .font(.system(size: 9))
-                                .foregroundColor(note.tasks[idx].isCompleted ? .green : .black.opacity(0.5))
+                                .foregroundColor(note.tasks[idx].isCompleted ? SANSColors.lime : note.color.textColor.opacity(0.6))
                         }
                         .buttonStyle(.plain)
                         .help(note.tasks[idx].isCompleted ? "Tandai Belum Selesai" : "Tandai Selesai")
                         
                         TextField("Tugas...", text: $note.tasks[idx].text)
                             .font(.system(size: 9))
-                            .foregroundColor(note.tasks[idx].isCompleted ? .black.opacity(0.4) : .black.opacity(0.85))
+                            .foregroundColor(note.tasks[idx].isCompleted ? note.color.textColor.opacity(0.4) : note.color.textColor)
                             .strikethrough(note.tasks[idx].isCompleted)
                             .textFieldStyle(.plain)
                             .onChange(of: note.tasks[idx].text) { _ in onSave() }
@@ -178,7 +180,8 @@ public struct StickyNoteCardView: View {
         .background(
             RoundedRectangle(cornerRadius: 4)
                 .fill(cardColor)
-                .shadow(color: .black.opacity(0.25), radius: 3, x: 2, y: 3)
+                .overlay(RoundedRectangle(cornerRadius: 4).stroke(SANSColors.dark.opacity(0.12), lineWidth: 1))
+                .shadow(color: .black.opacity(0.18), radius: 2, x: 1, y: 2)
         )
     }
     

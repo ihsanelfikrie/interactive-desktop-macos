@@ -230,19 +230,11 @@ public struct MagicCarpetView: View {
     }
     
     private var carpetColor: Color {
-        switch theme {
-        case .library: return Color(red: 0.52, green: 0.12, blue: 0.18)
-        case .kos: return Color(red: 0.18, green: 0.42, blue: 0.68)
-        case .garden: return Color(red: 0.82, green: 0.25, blue: 0.25)
-        }
+        SANSColors.pink
     }
     
     private var borderRimColor: Color {
-        switch theme {
-        case .library: return Color(red: 0.88, green: 0.72, blue: 0.32)
-        case .kos: return Color(red: 0.95, green: 0.95, blue: 0.95)
-        case .garden: return Color(red: 1.0, green: 0.90, blue: 0.70)
-        }
+        SANSColors.lime
     }
 }
 

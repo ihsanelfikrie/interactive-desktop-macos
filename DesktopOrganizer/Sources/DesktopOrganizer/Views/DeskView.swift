@@ -94,11 +94,7 @@ public struct DeskView: View {
     }
     
     private var deskColor: Color {
-        switch theme {
-        case .library: return Color(red: 0.36, green: 0.22, blue: 0.13)
-        case .kos: return Color(red: 0.82, green: 0.72, blue: 0.58)
-        case .garden: return Color(red: 0.42, green: 0.28, blue: 0.16)
-        }
+        Color(red: 0.36, green: 0.22, blue: 0.13)
     }
     
     private var drawerColor: Color {

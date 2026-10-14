@@ -59,11 +59,12 @@ public struct ThemePickerView: View {
                         .padding(.vertical, 6)
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(SANSColors.primaryBlue)
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 16)
         }
-        .frame(width: 640)
+        .frame(width: 320)
         .background(Color(NSColor.windowBackgroundColor))
     }
 }
@@ -76,19 +77,19 @@ struct ThemeCardView: View {
     var body: some View {
         Button(action: onSelect) {
             VStack(alignment: .leading, spacing: 8) {
-                // Miniature Pixel-Art Preview Box
+                // Miniature Preview Box
                 ZStack {
                     if let img = AssetLoader.image(named: theme.backgroundImageName) {
                         Image(nsImage: img)
                             .resizable()
                             .interpolation(.none)
                             .aspectRatio(contentMode: .fill)
-                            .frame(width: 160, height: 100)
+                            .frame(width: 240, height: 130)
                             .clipped()
                     } else {
                         RoundedRectangle(cornerRadius: 6)
                             .fill(Color.gray.opacity(0.3))
-                            .frame(height: 100)
+                            .frame(height: 130)
                     }
                 }
                 .cornerRadius(6)
@@ -106,13 +107,13 @@ struct ThemeCardView: View {
                 Spacer()
             }
             .padding(10)
-            .frame(width: 180, height: 220)
+            .frame(width: 260, height: 240)
             .background(
                 RoundedRectangle(cornerRadius: 10)
                     .fill(Color(NSColor.controlBackgroundColor))
                     .overlay(
                         RoundedRectangle(cornerRadius: 10)
-                            .stroke(isSelected ? Color.blue : Color.gray.opacity(0.2), lineWidth: isSelected ? 3 : 1)
+                            .stroke(isSelected ? SANSColors.primaryBlue : Color.gray.opacity(0.2), lineWidth: isSelected ? 3 : 1)
                     )
             )
             .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
