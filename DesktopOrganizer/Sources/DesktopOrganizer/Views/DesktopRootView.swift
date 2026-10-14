@@ -27,27 +27,18 @@ public struct DesktopRootView: View {
                 
                 // Corkboard Notes (Center Wall: Sticky notes & Add Memo inside wooden frame)
                 CorkboardView()
-                    .frame(width: w * 0.370, height: h * 0.293)
-                    .position(x: w * 0.549, y: h * 0.236)
+                    .frame(width: w * 0.375, height: h * 0.280)
+                    .position(x: w * 0.443, y: h * 0.241)
                 
                 // Live Analog Wall Clock (Hour, minute, and second hands moving in real time)
-                AnalogWallClockView(currentDate: appState.currentDate)
+                AnalogWallClockView()
                     .frame(width: w * 0.080, height: w * 0.080)
                     .position(x: w * 0.7025, y: h * 0.2010)
                 
-                // Wall Calendar (Click to open Calendar.app)
-                Button(action: {
-                    if let calURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.iCal") {
-                        NSWorkspace.shared.openApplication(at: calURL, configuration: NSWorkspace.OpenConfiguration())
-                    }
-                }) {
-                    Color.clear
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .frame(width: w * 0.055, height: h * 0.080)
-                .position(x: w * 0.7020, y: h * 0.3200)
-                .help("Kalender: Klik untuk membuka aplikasi Calendar macOS")
+                // Live Wall Calendar (Date, Month, Day of week - Desktop Organizer parity)
+                WallCalendarView()
+                    .frame(width: w * 0.0544, height: h * 0.1020)
+                    .position(x: w * 0.7022, y: h * 0.3318)
                 
                 // Desk Lamp Hot Zone (Over the illustrated green Banker's Lamp)
                 Button(action: {

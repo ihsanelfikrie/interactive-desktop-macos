@@ -77,9 +77,11 @@ public final class AppState: ObservableObject {
             self?.isLowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
         }
         
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+        let t = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.currentDate = Date()
         }
+        RunLoop.main.add(t, forMode: .common)
+        self.timer = t
     }
 }
 
