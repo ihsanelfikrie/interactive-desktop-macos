@@ -123,10 +123,6 @@ public struct BookshelfView: View {
                 shelfRow(shelfIndex: 4, width: w * 0.88)
                     .position(x: w * 0.48, y: h * 0.900)
                 
-                // Sliding Library Ladder (scaled to bookcase height, draggable across track)
-                LadderView(shelfHeight: h)
-                    .position(x: min(w * 0.78, max(w * 0.12, appState.ladderX)), y: h * 0.50)
-                
                 // Item Count Badge (Top-right of bookcase)
                 VStack {
                     HStack {
@@ -337,35 +333,6 @@ struct ShelfItemView: View {
                 .zIndex(10)
             }
         }
-    }
-}
-
-// MARK: - Leaning & Sliding Ladder View
-struct LadderView: View {
-    @ObservedObject var appState = AppState.shared
-    let shelfHeight: CGFloat
-    
-    var body: some View {
-        Group {
-            if let ladderImg = AssetLoader.image(named: "ladder") {
-                Image(nsImage: ladderImg)
-                    .resizable()
-                    .interpolation(.none)
-                    .scaledToFit()
-                    .frame(height: shelfHeight * 0.94)
-            } else {
-                Rectangle()
-                    .fill(Color(red: 0.45, green: 0.28, blue: 0.16))
-                    .frame(width: 28, height: shelfHeight * 0.94)
-            }
-        }
-        .gesture(
-            DragGesture()
-                .onChanged { val in
-                    appState.ladderX += val.translation.width
-                }
-        )
-        .help("Geser tangga ke kiri atau kanan")
     }
 }
 
