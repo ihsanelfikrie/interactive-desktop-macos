@@ -1,0 +1,25 @@
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+
+# Swift Package Manager & Build Artifacts
+.build/
+*/.build/
+DesktopOrganizer/.build/
+*.app/
+DesktopOrganizer.app/
+DerivedData/
+
+# Xcode & IDE
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+*.xcuserstate
+
+# Temporary & Swap files
+*.swp
+*~
+.spotlight-V100
+.Trashes
