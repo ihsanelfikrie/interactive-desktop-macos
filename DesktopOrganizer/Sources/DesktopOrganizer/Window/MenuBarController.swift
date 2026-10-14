@@ -103,7 +103,7 @@ public final class MenuBarController {
         alert.addButton(withTitle: "Kembalikan")
         alert.addButton(withTitle: "Batal")
         if alert.runModal() == .alertFirstButtonReturn {
-            StorageManager.shared.restoreAllCarpetItems()
+            StorageManager.shared.restoreEverything()
         }
     }
     

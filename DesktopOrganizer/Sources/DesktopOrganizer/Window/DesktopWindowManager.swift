@@ -34,6 +34,7 @@ public final class DesktopWindowManager: ObservableObject {
         window.backgroundColor = .black
         window.ignoresMouseEvents = false
         window.acceptsMouseMovedEvents = true
+        window.isMovableByWindowBackground = false
         
         // Ensure it joins all spaces and behaves nicely with Mission Control
         window.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]

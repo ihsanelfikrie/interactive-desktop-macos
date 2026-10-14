@@ -215,10 +215,56 @@ public final class StorageManager: ObservableObject {
     public func addBookshelfItem(from sourceURL: URL) {
         let destURL = safeDestinationURL(in: bookshelfDirectory, originalName: sourceURL.lastPathComponent)
         do {
-            try FileManager.default.copyItem(at: sourceURL, to: destURL)
+            try FileManager.default.moveItem(at: sourceURL, to: destURL)
+            setOriginAttribute(destURL: destURL, originPath: sourceURL.path)
             refreshBookshelf()
         } catch {
-            print("Gagal menambah buku ke rak: \(error)")
+            if (try? FileManager.default.copyItem(at: sourceURL, to: destURL)) != nil {
+                setOriginAttribute(destURL: destURL, originPath: sourceURL.path)
+                try? FileManager.default.removeItem(at: sourceURL)
+                refreshBookshelf()
+            }
+        }
+    }
+    
+    public func restoreBookshelfItemToDesktop(itemURL: URL) {
+        let destinationFolder: URL
+        if let originPath = getOriginPath(for: itemURL) {
+            let parent = URL(fileURLWithPath: originPath).deletingLastPathComponent()
+            if FileManager.default.fileExists(atPath: parent.path) {
+                destinationFolder = parent
+            } else {
+                destinationFolder = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Desktop", isDirectory: true)
+            }
+        } else {
+            destinationFolder = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Desktop", isDirectory: true)
+        }
+        
+        let destURL = safeDestinationURL(in: destinationFolder, originalName: itemURL.lastPathComponent)
+        do {
+            try FileManager.default.moveItem(at: itemURL, to: destURL)
+            refreshBookshelf()
+        } catch {
+            print("Gagal mengembalikan buku ke desktop: \(error)")
+        }
+    }
+    
+    public func restoreAllBookshelfItems() {
+        for item in bookshelfItems {
+            restoreBookshelfItemToDesktop(itemURL: item)
+        }
+    }
+    
+    public func removeBookshelfItem(itemURL: URL) {
+        _ = moveToTrash(url: itemURL)
+    }
+    
+    public func restoreEverything() {
+        restoreAllBookshelfItems()
+        restoreAllCarpetItems()
+        for (slot, url) in photoSlots {
+            restoreBookshelfItemToDesktop(itemURL: url)
+            removePhoto(slotIndex: slot)
         }
     }
     

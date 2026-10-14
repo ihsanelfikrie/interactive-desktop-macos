@@ -7,69 +7,31 @@ public struct CorkboardView: View {
     
     public var body: some View {
         ZStack(alignment: .topLeading) {
-            // Wooden outer frame
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color(red: 0.42, green: 0.26, blue: 0.15))
-                .shadow(color: .black.opacity(0.35), radius: 6, x: 2, y: 4)
+            // Transparent hit area for the wall corkboard zone
+            Color.clear
             
-            // Corkboard surface
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(red: 0.77, green: 0.60, blue: 0.42))
-                .overlay(
-                    // Subtle cork texture dots
-                    ZStack {
-                        Circle()
-                            .fill(Color.black.opacity(0.04))
-                            .frame(width: 4, height: 4)
-                            .offset(x: -80, y: -40)
-                        Circle()
-                            .fill(Color.black.opacity(0.04))
-                            .frame(width: 6, height: 6)
-                            .offset(x: 100, y: 30)
-                        Circle()
-                            .fill(Color.black.opacity(0.04))
-                            .frame(width: 5, height: 5)
-                            .offset(x: 40, y: -70)
-                    }
-                )
-                .padding(10)
-            
-            // Pushpins at four corners of the frame
-            ZStack {
-                Circle().fill(Color(red: 0.85, green: 0.70, blue: 0.20)).frame(width: 10, height: 10).offset(x: 16, y: 16)
-                Circle().fill(Color(red: 0.85, green: 0.70, blue: 0.20)).frame(width: 10, height: 10).offset(x: 414, y: 16)
-                Circle().fill(Color(red: 0.85, green: 0.70, blue: 0.20)).frame(width: 10, height: 10).offset(x: 16, y: 254)
-                Circle().fill(Color(red: 0.85, green: 0.70, blue: 0.20)).frame(width: 10, height: 10).offset(x: 414, y: 254)
-            }
-            
-            // Sticky Notes Container
-            ZStack(alignment: .topLeading) {
-                ForEach($storage.stickyNotes) { $note in
-                    StickyNoteCardView(note: $note) {
-                        storage.removeStickyNote(id: note.id)
-                    } onSave: {
-                        storage.saveStickyNotes()
-                    }
-                    .offset(x: note.x, y: note.y)
-                    .rotationEffect(.degrees(note.rotation))
-                    .gesture(
-                        DragGesture()
-                            .onChanged { value in
-                                note.x += value.translation.width
-                                note.y += value.translation.height
-                                // clamp within board boundaries
-                                note.x = max(15, min(note.x, 260))
-                                note.y = max(15, min(note.y, 110))
-                            }
-                            .onEnded { _ in
-                                storage.saveStickyNotes()
-                            }
-                    )
+            // Pinned Sticky Notes
+            ForEach($storage.stickyNotes) { $note in
+                StickyNoteCardView(note: $note) {
+                    storage.removeStickyNote(id: note.id)
+                } onSave: {
+                    storage.saveStickyNotes()
                 }
+                .offset(x: note.x, y: note.y)
+                .rotationEffect(.degrees(note.rotation))
+                .gesture(
+                    DragGesture()
+                        .onChanged { value in
+                            note.x += value.translation.width
+                            note.y += value.translation.height
+                        }
+                        .onEnded { _ in
+                            storage.saveStickyNotes()
+                        }
+                )
             }
-            .frame(width: 440, height: 280)
             
-            // Add Note '+' button on bottom right corner of corkboard
+            // Add Note '+' Button (Floating at bottom-right of corkboard wall)
             VStack {
                 Spacer()
                 HStack {
@@ -79,146 +41,139 @@ public struct CorkboardView: View {
                             storage.addStickyNote()
                         }
                     }) {
-                        ZStack {
-                            Circle()
-                                .fill(Color(red: 0.98, green: 0.80, blue: 0.25))
-                                .frame(width: 34, height: 34)
-                                .shadow(color: .black.opacity(0.3), radius: 3, y: 2)
-                            Image(systemName: "plus")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundColor(Color(red: 0.35, green: 0.25, blue: 0.10))
+                        HStack(spacing: 5) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 14, weight: .bold))
+                            Text("Tambah Memo")
+                                .font(.system(size: 11, weight: .semibold))
                         }
+                        .foregroundColor(Color(red: 0.25, green: 0.18, blue: 0.08))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(
+                            Capsule()
+                                .fill(Color(red: 0.98, green: 0.82, blue: 0.28))
+                                .shadow(color: .black.opacity(0.35), radius: 4, y: 2)
+                        )
                     }
                     .buttonStyle(.plain)
-                    .padding(18)
-                    .help("Tambah Catatan Baru")
+                    .help("Tambah Memo / Tugas Baru ke Dinding")
+                    .padding(8)
                 }
             }
         }
-        .frame(width: 440, height: 280)
     }
 }
 
-// MARK: - Individual Sticky Note Card
-struct StickyNoteCardView: View {
-    @ObservedObject var appState = AppState.shared
+// MARK: - Sticky Note Card View
+public struct StickyNoteCardView: View {
     @Binding var note: StickyNote
     var onDelete: () -> Void
     var onSave: () -> Void
     
-    var isAddingTask: Bool {
-        appState.addingTaskForNoteId == note.id
+    public init(note: Binding<StickyNote>, onDelete: @escaping () -> Void, onSave: @escaping () -> Void) {
+        self._note = note
+        self.onDelete = onDelete
+        self.onSave = onSave
     }
     
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            // Pin icon & Header bar
+    public var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            // Pushpin & Header
             HStack {
-                // Red thumbtack
+                // Little red pushpin
                 Circle()
-                    .fill(Color.red)
+                    .fill(Color(red: 0.85, green: 0.20, blue: 0.20))
                     .frame(width: 8, height: 8)
-                    .shadow(color: .black.opacity(0.3), radius: 1, y: 1)
+                    .shadow(color: .black.opacity(0.4), radius: 1.5, x: 1, y: 1)
                 
-                TextField("Judul Catatan", text: $note.title)
-                    .font(.system(size: 12, weight: .bold))
+                TextField("Judul Memo", text: $note.title)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(Color.black.opacity(0.85))
                     .textFieldStyle(.plain)
                     .onChange(of: note.title) { _ in onSave() }
                 
                 Spacer()
                 
                 Button(action: onDelete) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(.black.opacity(0.5))
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(.black.opacity(0.35))
                 }
                 .buttonStyle(.plain)
+                .help("Hapus Memo")
             }
-            .padding(.horizontal, 8)
-            .padding(.top, 8)
-            .padding(.bottom, 2)
+            .padding(.horizontal, 6)
+            .padding(.top, 6)
             
             Divider()
-                .background(Color.black.opacity(0.1))
-                .padding(.horizontal, 6)
+                .background(Color.black.opacity(0.12))
+                .padding(.horizontal, 4)
             
-            // Tasks list
-            VStack(alignment: .leading, spacing: 4) {
-                ForEach($note.tasks) { $task in
-                    HStack(spacing: 6) {
+            // Task List
+            VStack(alignment: .leading, spacing: 3) {
+                ForEach(0..<note.tasks.count, id: \.self) { idx in
+                    HStack(spacing: 5) {
                         Button(action: {
-                            task.isCompleted.toggle()
+                            note.tasks[idx].isCompleted.toggle()
                             onSave()
                         }) {
-                            Image(systemName: task.isCompleted ? "checkmark.square.fill" : "square")
-                                .font(.system(size: 12))
-                                .foregroundColor(task.isCompleted ? .green : .black.opacity(0.6))
-                        }
-                        .buttonStyle(.plain)
-                        
-                        TextField("Tugas", text: $task.text)
-                            .font(.system(size: 11))
-                            .textFieldStyle(.plain)
-                            .strikethrough(task.isCompleted)
-                            .foregroundColor(task.isCompleted ? .secondary : .primary)
-                            .onChange(of: task.text) { _ in onSave() }
-                        
-                        Button(action: {
-                            note.tasks.removeAll(where: { $0.id == task.id })
-                            onSave()
-                        }) {
-                            Image(systemName: "minus.circle")
+                            Image(systemName: note.tasks[idx].isCompleted ? "checkmark.square.fill" : "square")
                                 .font(.system(size: 10))
-                                .foregroundColor(.red.opacity(0.5))
+                                .foregroundColor(note.tasks[idx].isCompleted ? .green : .black.opacity(0.5))
                         }
                         .buttonStyle(.plain)
-                    }
-                }
-                
-                if isAddingTask {
-                    HStack(spacing: 6) {
-                        Image(systemName: "circle.dashed")
-                            .font(.system(size: 12))
-                            .foregroundColor(.secondary)
-                        TextField("Ketik to-do baru...", text: Binding(
-                            get: { appState.newTaskText },
-                            set: { appState.newTaskText = $0 }
-                        ))
-                        .font(.system(size: 11))
-                        .textFieldStyle(.plain)
-                        .onSubmit {
-                            let trimmed = appState.newTaskText.trimmingCharacters(in: .whitespaces)
-                            if !trimmed.isEmpty {
-                                note.tasks.append(TaskItem(text: trimmed))
-                                appState.newTaskText = ""
-                                appState.addingTaskForNoteId = nil
+                        .help(note.tasks[idx].isCompleted ? "Tandai Belum Selesai" : "Tandai Selesai")
+                        
+                        TextField("Tugas...", text: $note.tasks[idx].text)
+                            .font(.system(size: 10))
+                            .foregroundColor(note.tasks[idx].isCompleted ? .black.opacity(0.4) : .black.opacity(0.85))
+                            .strikethrough(note.tasks[idx].isCompleted)
+                            .textFieldStyle(.plain)
+                            .onChange(of: note.tasks[idx].text) { _ in onSave() }
+                        
+                        if note.tasks.count > 1 {
+                            Button(action: {
+                                note.tasks.remove(at: idx)
                                 onSave()
+                            }) {
+                                Image(systemName: "minus.circle")
+                                    .font(.system(size: 9))
+                                    .foregroundColor(.black.opacity(0.25))
                             }
+                            .buttonStyle(.plain)
                         }
                     }
                 }
                 
+                // Quick add task button
                 Button(action: {
-                    appState.newTaskText = ""
-                    appState.addingTaskForNoteId = note.id
+                    note.tasks.append(TaskItem(text: "Tugas baru", isCompleted: false))
+                    onSave()
                 }) {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 3) {
                         Image(systemName: "plus")
-                            .font(.system(size: 9))
-                        Text("Tambah to-do")
-                            .font(.system(size: 10))
+                            .font(.system(size: 8))
+                        Text("Tambah baris")
+                            .font(.system(size: 8))
                     }
-                    .foregroundColor(.blue.opacity(0.8))
+                    .foregroundColor(.black.opacity(0.45))
+                    .padding(.top, 2)
                 }
                 .buttonStyle(.plain)
-                .padding(.top, 2)
             }
-            .padding(.horizontal, 8)
-            .padding(.bottom, 8)
+            .padding(.horizontal, 6)
+            .padding(.bottom, 6)
         }
-        .frame(width: 175)
-        .background(note.color.background)
-        .cornerRadius(6)
-        .shadow(color: .black.opacity(0.2), radius: 4, x: 2, y: 3)
+        .frame(width: 150)
+        .background(
+            RoundedRectangle(cornerRadius: 4)
+                .fill(cardColor)
+                .shadow(color: .black.opacity(0.25), radius: 3, x: 2, y: 3)
+        )
+    }
+    
+    private var cardColor: Color {
+        note.color.background
     }
 }

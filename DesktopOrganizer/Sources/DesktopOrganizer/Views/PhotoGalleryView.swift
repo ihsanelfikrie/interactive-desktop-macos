@@ -7,26 +7,11 @@ public struct PhotoGalleryView: View {
     public init() {}
     
     public var body: some View {
-        VStack(spacing: 12) {
-            // Row 1
-            HStack(spacing: 12) {
-                PhotoFrameItemView(slotIndex: 0, width: 105, height: 105, frameColor: .black)
-                PhotoFrameItemView(slotIndex: 1, width: 135, height: 105, frameColor: Color(red: 0.45, green: 0.30, blue: 0.18))
-            }
-            
-            // Row 2
-            HStack(spacing: 12) {
-                PhotoFrameItemView(slotIndex: 2, width: 125, height: 95, frameColor: Color(red: 0.30, green: 0.20, blue: 0.15))
-                PhotoFrameItemView(slotIndex: 3, width: 115, height: 95, frameColor: .black)
-            }
-            
-            // Row 3
-            HStack(spacing: 12) {
-                PhotoFrameItemView(slotIndex: 4, width: 140, height: 85, frameColor: Color(red: 0.65, green: 0.52, blue: 0.25))
-                PhotoFrameItemView(slotIndex: 5, width: 100, height: 85, frameColor: Color(red: 0.35, green: 0.22, blue: 0.15))
-            }
+        HStack(spacing: 18) {
+            PhotoFrameItemView(slotIndex: 0, width: 125, height: 145, frameColor: Color(red: 0.28, green: 0.18, blue: 0.10))
+            PhotoFrameItemView(slotIndex: 1, width: 125, height: 145, frameColor: Color(red: 0.35, green: 0.25, blue: 0.16))
         }
-        .padding(8)
+        .padding(6)
     }
 }
 
