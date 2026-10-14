@@ -52,6 +52,8 @@ cat << 'EOF' > "$APP_DIR/Contents/Info.plist"
     <key>NSHumanReadableCopyright</key><string>Copyright © 2026 Ihsan Elfikrie. All rights reserved.</string>
     <key>CFBundleGetInfoString</key><string>Custom Desktop Mac 1.0, © 2026 Ihsan Elfikrie</string>
     <key>NSAppleEventsUsageDescription</key><string>Custom Desktop Mac menggeser ikon desktop yang tertutup lemari, pigura, atau karpet ke tempat kosong, dan mengontrol musik di Spotify.</string>
+    <key>NSDocumentsFolderUsageDescription</key><string>Custom Desktop Mac menyimpan buku, kardus arsip, dan album foto di Documents/DesktopRoom.</string>
+    <key>NSDesktopFolderUsageDescription</key><string>Custom Desktop Mac mengembalikan file dan merapikan ikon desktop Anda.</string>
 </dict>
 </plist>
 EOF

@@ -54,38 +54,14 @@ public struct DesktopRootView: View {
                 .frame(width: w * 0.075, height: h * 0.110)
                 .position(x: w * 0.472, y: h * 0.552)
                 
-                // Desk Radio Hot Zone (Over the illustrated retro radio on tabletop)
-                Button(action: {
-                    spotify.playPause()
-                }) {
-                    ZStack {
-                        Rectangle()
-                            .fill(Color.clear)
-                            .contentShape(Rectangle())
-                        
-                        if spotify.isPlaying {
-                            Text("♪ ♫")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundColor(.yellow)
-                                .offset(y: -22)
-                        }
-                    }
-                }
-                .buttonStyle(.plain)
-                .contextMenu {
-                    Button("Buka Spotify") { spotify.openSpotify() }
-                    Button(spotify.isPlaying ? "Jeda Lagu" : "Putar Lagu") { spotify.playPause() }
-                    Button("Lagu Berikutnya") { spotify.nextTrack() }
-                    Button("Lagu Sebelumnya") { spotify.previousTrack() }
-                }
-                .help("Radio: \(spotify.isPlaying ? "\(spotify.trackTitle) - \(spotify.artistName)" : "Klik untuk memutar Spotify")")
-                .frame(width: w * 0.065, height: h * 0.075)
-                .position(x: w * 0.415, y: h * 0.585)
+                // Desk Radio (Official vintage radio sitting on desk surface)
+                VintageRadioView()
+                    .position(x: w * 0.628, y: h * 0.490)
                 
-                // Desk Photo Frame (Small framed picture resting on right of desk)
+                // Desk Photo Frame (Framed photo resting on desk surface)
                 DeskPhotoFrameView()
                     .frame(width: w * 0.055, height: h * 0.070)
-                    .position(x: w * 0.548, y: h * 0.575)
+                    .position(x: w * 0.566, y: h * 0.485)
                 
                 // Photo Gallery (Right Wall: 6 photo frames matching official design)
                 PhotoGalleryView()
@@ -135,12 +111,9 @@ public struct DesktopRootView: View {
                     .zIndex(40)
                 }
                 
-                if appState.showHelpModal {
-                    ModalBackdrop(isPresented: $appState.showHelpModal) {
-                        HelpGuideModalView(isPresented: $appState.showHelpModal)
-                            .background(Color(NSColor.windowBackgroundColor))
-                            .cornerRadius(12)
-                            .shadow(color: .black.opacity(0.5), radius: 16, y: 8)
+                if appState.showSpotifyPopup {
+                    ModalBackdrop(isPresented: $appState.showSpotifyPopup) {
+                        SpotifyMiniPlayerView(isPresented: $appState.showSpotifyPopup)
                     }
                     .zIndex(40)
                 }

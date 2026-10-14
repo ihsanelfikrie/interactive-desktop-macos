@@ -32,9 +32,9 @@ public final class StorageManager: ObservableObject {
         let home = FileManager.default.homeDirectoryForCurrentUser
         // Exact official directory: Documents/DesktopRoom
         self.baseDirectory = home.appendingPathComponent("Documents/DesktopRoom", isDirectory: true)
-        self.photosDirectory = baseDirectory.appendingPathComponent("photos", isDirectory: true)
-        self.bookshelfDirectory = baseDirectory.appendingPathComponent("books", isDirectory: true)
-        self.carpetDirectory = baseDirectory.appendingPathComponent("rug", isDirectory: true)
+        self.photosDirectory = baseDirectory.appendingPathComponent("Album", isDirectory: true)
+        self.bookshelfDirectory = baseDirectory.appendingPathComponent("Rak", isDirectory: true)
+        self.carpetDirectory = baseDirectory.appendingPathComponent("Karpet", isDirectory: true)
         self.notesFileURL = baseDirectory.appendingPathComponent("notes.json")
         self.settingsFileURL = baseDirectory.appendingPathComponent("settings.json")
         self.layoutFileURL = baseDirectory.appendingPathComponent("layout.json")
@@ -54,6 +54,24 @@ public final class StorageManager: ObservableObject {
                 try? fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
             }
         }
+        
+        // Auto-merge legacy 'books', 'photos', and 'rug' folders if present
+        let legacyBooks = baseDirectory.appendingPathComponent("books", isDirectory: true)
+        let legacyPhotos = baseDirectory.appendingPathComponent("photos", isDirectory: true)
+        let legacyRug = baseDirectory.appendingPathComponent("rug", isDirectory: true)
+        
+        func mergeContents(from src: URL, to dst: URL) {
+            guard fileManager.fileExists(atPath: src.path),
+                  let items = try? fileManager.contentsOfDirectory(at: src, includingPropertiesForKeys: nil) else { return }
+            for item in items {
+                let target = safeDestinationURL(in: dst, originalName: item.lastPathComponent)
+                try? fileManager.moveItem(at: item, to: target)
+            }
+        }
+        
+        mergeContents(from: legacyBooks, to: bookshelfDirectory)
+        mergeContents(from: legacyPhotos, to: photosDirectory)
+        mergeContents(from: legacyRug, to: carpetDirectory)
     }
     
     // Migrate from old ~/DesktopOrganizer if user previously used it
@@ -435,16 +453,39 @@ public final class StorageManager: ObservableObject {
         
         var dict: [Int: URL] = [:]
         var imgDict: [Int: NSImage] = [:]
+        var unslotted: [URL] = []
+        
+        let validExtensions = Set(["jpg", "jpeg", "png", "webp", "heic", "tiff", "gif"])
         
         for file in contents {
+            let ext = file.pathExtension.lowercased()
+            guard validExtensions.contains(ext) else { continue }
+            
             let name = file.deletingPathExtension().lastPathComponent
             if name.hasPrefix("frame_"), let idxStr = name.components(separatedBy: "_").last, let idx = Int(idxStr) {
                 dict[idx] = file
                 if let image = NSImage(contentsOf: file) {
                     imgDict[idx] = image
                 }
+            } else {
+                unslotted.append(file)
             }
         }
+        
+        // Fill empty slots (0..6) with unslotted photos
+        unslotted.sort(by: { $0.lastPathComponent < $1.lastPathComponent })
+        var unslottedIdx = 0
+        for slot in 0...6 {
+            if dict[slot] == nil && unslottedIdx < unslotted.count {
+                let file = unslotted[unslottedIdx]
+                dict[slot] = file
+                if let image = NSImage(contentsOf: file) {
+                    imgDict[slot] = image
+                }
+                unslottedIdx += 1
+            }
+        }
+        
         DispatchQueue.main.async {
             self.photoSlots = dict
             self.cachedPhotos = imgDict

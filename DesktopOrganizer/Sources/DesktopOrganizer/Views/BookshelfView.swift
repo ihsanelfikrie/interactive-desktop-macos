@@ -102,28 +102,30 @@ public struct BookshelfView: View {
                     .allowsHitTesting(false)
                 }
                 
-                // 4 Interactive Shelf Levels (Flushed exactly onto the 4 illustrated wooden planks)
-                // Shelf 1 (top): plank at 0.180 * h
-                shelfRow(shelfIndex: 0, width: w)
-                    .position(x: w * 0.48, y: h * 0.135)
+                // 5 Interactive Shelf Levels (Flushed onto the 5 white shelf planks)
+                // Shelf 0 (top plank)
+                shelfRow(shelfIndex: 0, width: w * 0.90)
+                    .position(x: w * 0.48, y: h * 0.170)
                 
-                // Shelf 2: plank at 0.375 * h
-                shelfRow(shelfIndex: 1, width: w)
-                    .position(x: w * 0.48, y: h * 0.330)
+                // Shelf 1
+                shelfRow(shelfIndex: 1, width: w * 0.90)
+                    .position(x: w * 0.48, y: h * 0.320)
                 
-                // Shelf 3: plank at 0.570 * h
-                shelfRow(shelfIndex: 2, width: w)
-                    .position(x: w * 0.48, y: h * 0.525)
+                // Shelf 2
+                shelfRow(shelfIndex: 2, width: w * 0.90)
+                    .position(x: w * 0.48, y: h * 0.470)
                 
-                // Shelf 4: plank at 0.766 * h (Leaves room for illustrated plant on the right)
-                shelfRow(shelfIndex: 3, width: w * 0.75)
-                    .position(x: w * 0.38, y: h * 0.720)
+                // Shelf 3
+                shelfRow(shelfIndex: 3, width: w * 0.90)
+                    .position(x: w * 0.48, y: h * 0.620)
                 
-                // Sliding Library Ladder (scaled to full bookcase height, draggable across track)
-                if theme == .library {
-                    LadderView(shelfHeight: h)
-                        .position(x: min(w * 0.75, max(w * 0.12, appState.ladderX)), y: h * 0.50)
-                }
+                // Shelf 4 (bottom plank)
+                shelfRow(shelfIndex: 4, width: w * 0.88)
+                    .position(x: w * 0.48, y: h * 0.770)
+                
+                // Sliding Library Ladder (scaled to bookcase height, draggable across track)
+                LadderView(shelfHeight: h)
+                    .position(x: min(w * 0.78, max(w * 0.12, appState.ladderX)), y: h * 0.50)
                 
                 // Item Count Badge (Top-right of bookcase)
                 VStack {
@@ -153,18 +155,17 @@ public struct BookshelfView: View {
         }
     }
     
-    private var dropPromptText: String {
-        return "Simpan File Jadi Buku di Rak SANS"
-    }
-    
     @ViewBuilder
     private func shelfRow(shelfIndex: Int, width: CGFloat) -> some View {
         let items = storage.bookshelfItems
-        let itemsForThisShelf = items.enumerated().filter { $0.offset % 4 == shelfIndex }.map { $0.element }
+        let itemsPerShelf = 6
+        let startIndex = shelfIndex * itemsPerShelf
+        let endIndex = min(items.count, startIndex + itemsPerShelf)
+        let itemsForThisShelf = (startIndex < items.count) ? Array(items[startIndex..<endIndex]) : []
         
-        HStack(alignment: .bottom, spacing: 4) {
+        HStack(alignment: .bottom, spacing: 6) {
             if itemsForThisShelf.isEmpty {
-                // Subtle decorative ambient books when shelf is empty
+                // Subtle decorative ambient books when shelf has no user items
                 ambientBooks(shelfIndex: shelfIndex)
             } else {
                 ForEach(itemsForThisShelf, id: \.self) { url in
@@ -173,13 +174,13 @@ public struct BookshelfView: View {
             }
             Spacer()
         }
-        .frame(width: width, height: 65, alignment: .bottomLeading)
-        .padding(.horizontal, 8)
+        .frame(width: width, height: 60, alignment: .bottomLeading)
+        .padding(.horizontal, 10)
     }
     
     @ViewBuilder
     private func ambientBooks(shelfIndex: Int) -> some View {
-        let count = (shelfIndex == 1) ? 4 : (shelfIndex == 2 ? 6 : 3)
+        let count = (shelfIndex == 1) ? 4 : (shelfIndex == 2 ? 5 : (shelfIndex == 3 ? 3 : 2))
         let colors: [Color] = [
             Color(red: 0.70, green: 0.22, blue: 0.22),
             Color(red: 0.22, green: 0.38, blue: 0.65),
@@ -188,106 +189,153 @@ public struct BookshelfView: View {
             Color(red: 0.45, green: 0.25, blue: 0.55)
         ]
         
-        HStack(alignment: .bottom, spacing: 2) {
+        HStack(alignment: .bottom, spacing: 3) {
             ForEach(0..<count, id: \.self) { i in
-                let h = CGFloat(26 + (i * 6) % 18)
+                let h = CGFloat(28 + (i * 5) % 16)
                 let c = colors[(shelfIndex * 2 + i) % colors.count]
                 RoundedRectangle(cornerRadius: 1.5)
                     .fill(c.opacity(0.85))
-                    .frame(width: 7, height: h)
+                    .frame(width: 8, height: h)
             }
         }
     }
 }
 
-// MARK: - Individual Shelf Item (File / Folder representation)
+// MARK: - Individual Shelf Item (File becomes Book 📚, Folder becomes Archive Box 🗃️)
 struct ShelfItemView: View {
     @ObservedObject var storage = StorageManager.shared
+    @ObservedObject var appState = AppState.shared
     let url: URL
     let theme: RoomTheme
     
+    var isHovered: Bool {
+        appState.hoveredShelfURL == url
+    }
+    
     var isDirectory: Bool {
-        url.hasDirectoryPath || (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
+        var isDir: ObjCBool = false
+        FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
+        return isDir.boolValue
     }
     
     var body: some View {
-        sansRepresentation
-            .contentShape(Rectangle())
-            .onTapGesture(count: 2) {
+        Group {
+            if isDirectory {
+                archiveBoxRepresentation
+            } else {
+                bookRepresentation
+            }
+        }
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            if hovering {
+                appState.hoveredShelfURL = url
+            } else if appState.hoveredShelfURL == url {
+                appState.hoveredShelfURL = nil
+            }
+        }
+        .onTapGesture(count: 2) {
+            NSWorkspace.shared.open(url)
+        }
+        .onTapGesture(count: 1) {
+            NSWorkspace.shared.open(url)
+        }
+        .contextMenu {
+            Button("Buka") {
                 NSWorkspace.shared.open(url)
             }
-            .onTapGesture(count: 1) {
-                NSWorkspace.shared.open(url)
+            Button("Tampilkan di Finder") {
+                storage.openInFinder(url: url)
             }
-            .contextMenu {
-                Button("Buka") {
-                    NSWorkspace.shared.open(url)
-                }
-                Button("Tampilkan di Finder") {
-                    storage.openInFinder(url: url)
-                }
-                Divider()
-                Button("Kembalikan ke Desktop") {
-                    storage.restoreBookshelfItemToDesktop(itemURL: url)
-                }
-                Button("Buang ke Tempat Sampah", role: .destructive) {
-                    storage.removeBookshelfItem(itemURL: url)
-                }
+            Divider()
+            Button("Kembalikan ke Desktop") {
+                storage.restoreBookshelfItemToDesktop(itemURL: url)
             }
-            .help(url.lastPathComponent)
+            Button("Buang ke Tempat Sampah", role: .destructive) {
+                storage.removeBookshelfItem(itemURL: url)
+            }
+        }
+        .help(url.lastPathComponent)
     }
     
-    // SANS Creative Studio: Book Spine or Archive Box
-    private var sansRepresentation: some View {
-        VStack(spacing: 1) {
-            if isDirectory {
-                // SANS Archive Box
-                ZStack {
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(SANSColors.cleanWhite)
-                        .overlay(RoundedRectangle(cornerRadius: 3).stroke(SANSColors.border, lineWidth: 1))
-                        .frame(width: 28, height: 38)
-                        .overlay(
-                            VStack {
-                                Rectangle().fill(SANSColors.lime).frame(height: 3).padding(.top, 2)
-                                Spacer()
-                            }
-                        )
-                    Text("SANS")
-                        .font(.system(size: 6, weight: .bold))
-                        .foregroundColor(SANSColors.primaryBlue)
-                }
+    // File -> Authentic Book Spine Binder (using Desktop Organizer official asset)
+    private var bookRepresentation: some View {
+        let hash = abs(url.lastPathComponent.hashValue)
+        let colorIdx = hash % 6
+        let bookImgName = "file-\(colorIdx)"
+        
+        return ZStack(alignment: .bottom) {
+            if let img = AssetLoader.image(named: bookImgName) {
+                Image(nsImage: img)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .frame(height: 52)
+                    .shadow(color: .black.opacity(isHovered ? 0.4 : 0.2), radius: isHovered ? 4 : 2, y: 2)
             } else {
-                // SANS Book Spine
-                let hash = abs(url.lastPathComponent.hashValue)
-                let bookColors: [Color] = [
-                    SANSColors.primaryBlue,
-                    SANSColors.lime,
-                    SANSColors.pink,
-                    SANSColors.cleanWhite,
-                    SANSColors.darkIndigo
-                ]
-                let color = bookColors[hash % bookColors.count]
-                let isLight = (color == SANSColors.lime || color == SANSColors.cleanWhite)
-                let h = CGFloat(30 + (hash % 14))
-                
+                // High-fidelity procedural book fallback
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(color)
-                    .overlay(RoundedRectangle(cornerRadius: 2).stroke(SANSColors.dark.opacity(0.15), lineWidth: 1))
-                    .frame(width: 10, height: h)
-                    .overlay(
-                        VStack {
-                            Rectangle().fill(isLight ? SANSColors.dark.opacity(0.25) : SANSColors.cleanWhite.opacity(0.5)).frame(height: 1).padding(.top, 2)
-                            Spacer()
-                        }
-                    )
+                    .fill(SANSColors.primaryBlue)
+                    .frame(width: 14, height: 50)
             }
             
-            Text(url.deletingPathExtension().lastPathComponent)
-                .font(.system(size: 6, weight: .semibold))
-                .foregroundColor(SANSColors.cleanWhite)
-                .lineLimit(1)
-                .frame(width: 28)
+            // Hover title tooltip tag
+            if isHovered {
+                Text(url.deletingPathExtension().lastPathComponent)
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(RoundedRectangle(cornerRadius: 4).fill(Color.black.opacity(0.85)))
+                    .offset(y: -58)
+                    .allowsHitTesting(false)
+                    .zIndex(10)
+            }
+        }
+    }
+    
+    // Folder -> Authentic Cardboard Archive Box (using Desktop Organizer official asset)
+    private var archiveBoxRepresentation: some View {
+        let hash = abs(url.lastPathComponent.hashValue)
+        let colorIdx = hash % 6
+        let subItems = (try? FileManager.default.contentsOfDirectory(atPath: url.path))?.count ?? 0
+        let fullnessLevel = subItems == 0 ? 0 : (subItems <= 4 ? 1 : 2)
+        let folderImgName = "folder-\(colorIdx)-\(fullnessLevel)"
+        
+        return ZStack(alignment: .bottom) {
+            if let img = AssetLoader.image(named: folderImgName) {
+                Image(nsImage: img)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .frame(height: 48)
+                    .shadow(color: .black.opacity(isHovered ? 0.4 : 0.2), radius: isHovered ? 4 : 2, y: 2)
+            } else {
+                // High-fidelity procedural box fallback
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color(red: 0.72, green: 0.55, blue: 0.38))
+                    .frame(width: 38, height: 44)
+            }
+            
+            // Hover title and item count tooltip tag
+            if isHovered {
+                VStack(spacing: 2) {
+                    Text(url.lastPathComponent)
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    Text("\(subItems) item")
+                        .font(.system(size: 8))
+                        .foregroundColor(SANSColors.lime)
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(RoundedRectangle(cornerRadius: 4).fill(Color.black.opacity(0.85)))
+                .offset(y: -54)
+                .allowsHitTesting(false)
+                .zIndex(10)
+            }
         }
     }
 }

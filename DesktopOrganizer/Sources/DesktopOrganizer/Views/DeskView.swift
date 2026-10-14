@@ -171,30 +171,84 @@ struct DeskLampView: View {
     }
 }
 
+// MARK: - Animated Floating Music Notes
+struct FloatingNotesView: View {
+    var body: some View {
+        HStack(spacing: 5) {
+            Text("♪")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(SANSColors.lime)
+                .offset(y: -10)
+            
+            Text("♫")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(Color.yellow)
+                .offset(y: -17)
+            
+            Text("♩")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(SANSColors.pink)
+                .offset(y: -12)
+        }
+        .shadow(color: Color.yellow.opacity(0.8), radius: 3)
+    }
+}
+
 // MARK: - Vintage Radio (Spotify Opener & Player)
-struct VintageRadioView: View {
+public struct VintageRadioView: View {
     @ObservedObject var spotify = SpotifyService.shared
     @ObservedObject var appState = AppState.shared
     let action: () -> Void
     
-    var body: some View {
-        Button(action: action) {
-            ZStack {
-                let imgName = spotify.isPlaying ? appState.currentTheme.radioOnImageName : appState.currentTheme.radioOffImageName
+    public init(action: @escaping () -> Void = {}) {
+        self.action = action
+    }
+    
+    public var body: some View {
+        Button(action: {
+            spotify.playPause()
+        }) {
+            ZStack(alignment: .topTrailing) {
+                let imgName = spotify.isPlaying ? "radio-on" : "radio"
                 if let radioImg = AssetLoader.image(named: imgName) {
                     Image(nsImage: radioImg)
                         .resizable()
-                        .interpolation(.none)
+                        .interpolation(.high)
                         .scaledToFit()
-                        .frame(height: 52)
+                        .frame(width: 74, height: 44)
                         .shadow(color: .black.opacity(0.35), radius: 3, y: 2)
                 } else {
                     proceduralRadio
                 }
+                
+                if spotify.isPlaying {
+                    FloatingNotesView()
+                        .offset(x: -6, y: -22)
+                }
             }
         }
         .buttonStyle(.plain)
-        .help("Pemutar musik: klik untuk Spotify")
+        .contextMenu {
+            Button("Buka Pemutar Mini") {
+                withAnimation(.spring()) {
+                    appState.showSpotifyPopup.toggle()
+                }
+            }
+            Button("Buka Aplikasi Spotify") {
+                spotify.openSpotify()
+            }
+            Divider()
+            Button(spotify.isPlaying ? "Jeda (Pause)" : "Putar (Play)") {
+                spotify.playPause()
+            }
+            Button("Lagu Berikutnya") {
+                spotify.nextTrack()
+            }
+            Button("Lagu Sebelumnya") {
+                spotify.previousTrack()
+            }
+        }
+        .help(spotify.isPlaying ? "Radio: \(spotify.trackTitle) - \(spotify.artistName)" : "Radio Spotify: Klik untuk memutar lagu")
     }
     
     private var proceduralRadio: some View {

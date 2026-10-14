@@ -39,6 +39,7 @@ public final class AppState: ObservableObject {
     @Published public var isTrashTargeted: Bool = false
     @Published public var targetedPhotoSlot: Int? = nil
     @Published public var hoveredPhotoSlot: Int? = nil
+    @Published public var hoveredShelfURL: URL? = nil
     
     // Sticky Notes state
     @Published public var addingTaskForNoteId: UUID? = nil

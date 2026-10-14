@@ -117,21 +117,39 @@ public final class SpotifyService: ObservableObject {
     }
     
     public func playPause() {
-        runAppleScript("tell application \"Spotify\" to playpause")
+        runAppleScript("""
+        try
+            tell application id "com.spotify.client" to playpause
+        on error
+            tell application "Spotify" to playpause
+        end try
+        """)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
             self.checkStatus()
         }
     }
     
     public func nextTrack() {
-        runAppleScript("tell application \"Spotify\" to next track")
+        runAppleScript("""
+        try
+            tell application id "com.spotify.client" to next track
+        on error
+            tell application "Spotify" to next track
+        end try
+        """)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
             self.checkStatus()
         }
     }
     
     public func previousTrack() {
-        runAppleScript("tell application \"Spotify\" to previous track")
+        runAppleScript("""
+        try
+            tell application id "com.spotify.client" to previous track
+        on error
+            tell application "Spotify" to previous track
+        end try
+        """)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
             self.checkStatus()
         }
