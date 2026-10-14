@@ -19,18 +19,18 @@ public struct BookshelfView: View {
             ZStack(alignment: .topLeading) {
                 // Drop Target Area (Spans the entire bookcase interior)
                 Rectangle()
-                    .fill(appState.isBookshelfTargeted ? Color.blue.opacity(0.22) : Color.clear)
+                    .fill(appState.isBookshelfTargeted ? SANSColors.primaryBlue.opacity(0.18) : Color.clear)
                     .overlay(
                         Group {
                             if appState.isBookshelfTargeted {
                                 RoundedRectangle(cornerRadius: 6)
-                                    .stroke(Color.yellow, lineWidth: 3)
+                                    .stroke(SANSColors.lime, lineWidth: 3)
                                     .overlay(
                                         VStack(spacing: 6) {
                                             Image(systemName: "square.and.arrow.down.fill")
                                                 .font(.system(size: 32))
-                                                .foregroundColor(.yellow)
-                                            Text(dropPromptText)
+                                                .foregroundColor(SANSColors.lime)
+                                            Text("Simpan ke Rak Buku SANS")
                                                 .font(.system(size: 12, weight: .bold))
                                                 .foregroundColor(.white)
                                                 .shadow(color: .black, radius: 4)
@@ -40,6 +40,30 @@ public struct BookshelfView: View {
                         }
                     )
                     .contentShape(Rectangle())
+                    .onTapGesture {
+                        withAnimation(.spring()) {
+                            appState.showBookshelfDrawer = true
+                        }
+                    }
+                    .contextMenu {
+                        Button("Buka Rak Buku") {
+                            withAnimation(.spring()) {
+                                appState.showBookshelfDrawer = true
+                            }
+                        }
+                        Button("Tambah File/Folder...") {
+                            storage.pickBookshelfItem()
+                        }
+                        Button("Buka di Finder") {
+                            storage.openBaseFolder()
+                        }
+                        if !storage.bookshelfItems.isEmpty {
+                            Divider()
+                            Button("Kembalikan Semua ke Desktop") {
+                                storage.restoreAllBookshelfItems()
+                            }
+                        }
+                    }
                     .onDrop(of: [.fileURL], isTargeted: Binding(
                         get: { appState.isBookshelfTargeted },
                         set: { appState.isBookshelfTargeted = $0 }
@@ -51,6 +75,32 @@ public struct BookshelfView: View {
                         }
                         return true
                     }
+                
+                // Empty state prompt on shelf
+                if storage.bookshelfItems.isEmpty {
+                    VStack(spacing: 3) {
+                        Text("Tarik file ke sini")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.white)
+                        Text("jadi buku 📚")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundColor(SANSColors.lime)
+                        Text("Folder jadi kardus arsip 🗃️")
+                            .font(.system(size: 8, weight: .medium))
+                            .foregroundColor(SANSColors.cleanWhite.opacity(0.9))
+                    }
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(Color.black.opacity(0.72))
+                            .overlay(RoundedRectangle(cornerRadius: 6).stroke(SANSColors.lime.opacity(0.4), lineWidth: 1))
+                    )
+                    .shadow(color: .black.opacity(0.4), radius: 4, y: 2)
+                    .position(x: w * 0.48, y: h * 0.43)
+                    .allowsHitTesting(false)
+                }
                 
                 // 4 Interactive Shelf Levels (Flushed exactly onto the 4 illustrated wooden planks)
                 // Shelf 1 (top): plank at 0.180 * h

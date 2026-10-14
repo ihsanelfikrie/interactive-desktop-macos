@@ -7,9 +7,22 @@ public struct PhotoGalleryView: View {
     public init() {}
     
     public var body: some View {
-        HStack(spacing: 18) {
-            PhotoFrameItemView(slotIndex: 0, width: 125, height: 145, frameColor: Color(red: 0.28, green: 0.18, blue: 0.10))
-            PhotoFrameItemView(slotIndex: 1, width: 125, height: 145, frameColor: Color(red: 0.35, green: 0.25, blue: 0.16))
+        VStack(spacing: 12) {
+            // Row 1
+            HStack(spacing: 12) {
+                PhotoFrameItemView(slotIndex: 0, width: 130, height: 95, frameColor: SANSColors.cleanWhite)
+                PhotoFrameItemView(slotIndex: 1, width: 95, height: 95, frameColor: SANSColors.cleanWhite)
+            }
+            // Row 2
+            HStack(spacing: 12) {
+                PhotoFrameItemView(slotIndex: 2, width: 95, height: 95, frameColor: SANSColors.cleanWhite)
+                PhotoFrameItemView(slotIndex: 3, width: 130, height: 95, frameColor: SANSColors.cleanWhite)
+            }
+            // Row 3
+            HStack(spacing: 12) {
+                PhotoFrameItemView(slotIndex: 4, width: 130, height: 90, frameColor: SANSColors.cleanWhite)
+                PhotoFrameItemView(slotIndex: 5, width: 95, height: 90, frameColor: SANSColors.cleanWhite)
+            }
         }
         .padding(6)
     }
@@ -42,26 +55,26 @@ struct PhotoFrameItemView: View {
     
     var body: some View {
         ZStack {
-            // Outer Frame
+            // Outer Frame (SANS Clean White with subtle border)
             RoundedRectangle(cornerRadius: 4)
                 .fill(frameColor)
                 .overlay(
                     RoundedRectangle(cornerRadius: 4)
-                        .stroke(isTargeted ? Color.yellow : Color.white.opacity(0.18), lineWidth: isTargeted ? 3 : 1)
+                        .stroke(isTargeted ? SANSColors.lime : SANSColors.border, lineWidth: isTargeted ? 3 : 1)
                 )
-                .shadow(color: .black.opacity(0.35), radius: 4, x: 2, y: 3)
+                .shadow(color: .black.opacity(0.18), radius: 3, x: 1, y: 2)
             
             // White Matting / Margin
             RoundedRectangle(cornerRadius: 2)
-                .fill(Color.white)
-                .padding(6)
+                .fill(Color(white: 0.98))
+                .padding(5)
             
             // Photo Content
             if let image = cachedImage {
                 Image(nsImage: image)
                     .resizable()
                     .scaledToFill()
-                    .frame(width: width - 18, height: height - 18)
+                    .frame(width: max(20, width - 14), height: max(20, height - 14))
                     .clipped()
                     .contentShape(Rectangle())
                     .onTapGesture {
@@ -69,24 +82,24 @@ struct PhotoFrameItemView: View {
                             NSWorkspace.shared.open(url)
                         }
                     }
-                    .help("Klik untuk melihat foto")
+                    .help("Klik untuk melihat foto di Preview")
             } else {
                 // Empty state drop & click target
                 Button(action: {
                     storage.pickPhoto(forSlot: slotIndex)
                 }) {
-                    VStack(spacing: 4) {
+                    VStack(spacing: 3) {
                         Image(systemName: "photo.badge.plus")
-                            .font(.system(size: 16))
-                            .foregroundColor(isTargeted ? .yellow : .gray.opacity(0.7))
-                        Text("Drop / Klik Foto")
+                            .font(.system(size: 13))
+                            .foregroundColor(isTargeted ? SANSColors.lime : Color.gray.opacity(0.7))
+                        Text("Tarik Foto 🖼️")
                             .font(.system(size: 8, weight: .bold))
-                            .foregroundColor(isTargeted ? .yellow : .gray.opacity(0.8))
+                            .foregroundColor(isTargeted ? SANSColors.lime : Color.gray.opacity(0.8))
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 .buttonStyle(.plain)
-                .help("Klik untuk memilih foto atau drag foto ke sini")
+                .help("Tarik foto ke sini untuk dipajang atau klik untuk memilih file")
             }
             
             // Hover controls to remove photo
@@ -98,12 +111,13 @@ struct PhotoFrameItemView: View {
                             storage.removePhoto(slotIndex: slotIndex)
                         }) {
                             Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 14))
-                                .foregroundColor(.red)
+                                .font(.system(size: 12))
+                                .foregroundColor(SANSColors.pink)
                                 .background(Circle().fill(Color.white))
                         }
                         .buttonStyle(.plain)
                         .padding(4)
+                        .help("Hapus foto")
                     }
                     Spacer()
                 }

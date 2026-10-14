@@ -87,6 +87,11 @@ public struct DesktopRootView: View {
                     .frame(width: w * 0.055, height: h * 0.070)
                     .position(x: w * 0.548, y: h * 0.575)
                 
+                // Photo Gallery (Right Wall: 6 photo frames matching official design)
+                PhotoGalleryView()
+                    .frame(width: w * 0.170, height: h * 0.380)
+                    .position(x: w * 0.865, y: h * 0.320)
+                
                 // Woven Wastebasket / Trash Can (Floor beside desk)
                 BasketTrashHotZoneView()
                     .frame(width: w * 0.065, height: h * 0.115)
@@ -148,37 +153,64 @@ public struct DesktopRootView: View {
 struct DeskPhotoFrameView: View {
     @ObservedObject var storage = StorageManager.shared
     @ObservedObject var appState = AppState.shared
+    let slotIndex: Int = 6
     
     var photoURL: URL? {
-        storage.photoSlots[0]
+        storage.photoSlots[slotIndex]
     }
     
     var cachedImage: NSImage? {
-        storage.cachedPhotos[0]
+        storage.cachedPhotos[slotIndex]
     }
     
     var body: some View {
         ZStack {
             if let image = cachedImage {
-                Image(nsImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipped()
-                    .cornerRadius(2)
-                    .onTapGesture {
-                        if let url = photoURL {
-                            NSWorkspace.shared.open(url)
+                ZStack(alignment: .topTrailing) {
+                    Image(nsImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .clipped()
+                        .cornerRadius(3)
+                        .onTapGesture {
+                            if let url = photoURL {
+                                NSWorkspace.shared.open(url)
+                            }
                         }
+                        .help("Klik untuk melihat foto di Preview")
+                    
+                    Button(action: {
+                        storage.removePhoto(slotIndex: slotIndex)
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(SANSColors.pink)
+                            .background(Circle().fill(Color.white))
                     }
-                    .help("Klik untuk melihat foto")
+                    .buttonStyle(.plain)
+                    .padding(2)
+                    .help("Hapus foto dari meja")
+                }
             } else {
                 Button(action: {
-                    storage.pickPhoto(forSlot: 0)
+                    storage.pickPhoto(forSlot: slotIndex)
                 }) {
-                    Rectangle()
-                        .fill(Color.clear)
-                        .contentShape(Rectangle())
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(Color.white.opacity(0.85))
+                            .overlay(RoundedRectangle(cornerRadius: 3).stroke(SANSColors.border, lineWidth: 1))
+                            .shadow(color: .black.opacity(0.12), radius: 2)
+                        
+                        VStack(spacing: 2) {
+                            Image(systemName: "photo.badge.plus")
+                                .font(.system(size: 11))
+                                .foregroundColor(SANSColors.primaryBlue)
+                            Text("+ Foto")
+                                .font(.system(size: 7, weight: .bold))
+                                .foregroundColor(SANSColors.dark)
+                        }
+                    }
                 }
                 .buttonStyle(.plain)
                 .help("Klik atau drag foto ke sini untuk memajangnya di meja")
@@ -186,19 +218,19 @@ struct DeskPhotoFrameView: View {
         }
         .overlay(
             Group {
-                if appState.targetedPhotoSlot == 0 {
-                    RoundedRectangle(cornerRadius: 2)
-                        .stroke(Color.yellow, lineWidth: 2)
+                if appState.targetedPhotoSlot == slotIndex {
+                    RoundedRectangle(cornerRadius: 3)
+                        .stroke(SANSColors.lime, lineWidth: 2)
                 }
             }
         )
         .onDrop(of: [.fileURL], isTargeted: Binding(
-            get: { appState.targetedPhotoSlot == 0 },
-            set: { targeted in appState.targetedPhotoSlot = targeted ? 0 : nil }
+            get: { appState.targetedPhotoSlot == slotIndex },
+            set: { targeted in appState.targetedPhotoSlot = targeted ? slotIndex : nil }
         )) { providers in
             for provider in providers {
                 StorageManager.extractFileURL(from: provider) { url in
-                    storage.assignPhoto(sourceURL: url, slotIndex: 0)
+                    storage.assignPhoto(sourceURL: url, slotIndex: slotIndex)
                 }
             }
             return true
