@@ -12,130 +12,128 @@ public struct BookshelfView: View {
     }
     
     public var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            // Drop target hit area (transparent, aligned directly over illustrated bookshelf)
-            Rectangle()
-                .fill(appState.isBookshelfTargeted ? Color.blue.opacity(0.25) : Color.clear)
-                .overlay(
-                    Group {
-                        if appState.isBookshelfTargeted {
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.yellow, lineWidth: 3)
-                                .overlay(
-                                    VStack(spacing: 8) {
-                                        Image(systemName: "square.and.arrow.down.fill")
-                                            .font(.system(size: 36))
-                                            .foregroundColor(.yellow)
-                                        Text(dropPromptText)
-                                            .font(.system(size: 13, weight: .bold))
-                                            .foregroundColor(.white)
-                                            .shadow(color: .black, radius: 4)
-                                    }
-                                )
-                        }
-                    }
-                )
-                .contentShape(Rectangle())
-                .onDrop(of: [.fileURL], isTargeted: Binding(
-                    get: { appState.isBookshelfTargeted },
-                    set: { appState.isBookshelfTargeted = $0 }
-                )) { providers in
-                    for provider in providers {
-                        StorageManager.extractFileURL(from: provider) { url in
-                            storage.addBookshelfItem(from: url)
-                        }
-                    }
-                    return true
-                }
+        GeometryReader { geo in
+            let w = geo.size.width
+            let h = geo.size.height
             
-            // 4 Shelf Rows for Stored Items (aligned with the 4 illustrated shelves)
-            VStack(spacing: 0) {
-                ForEach(0..<4, id: \.self) { shelfIndex in
-                    VStack(spacing: 0) {
+            ZStack(alignment: .topLeading) {
+                // Drop Target Area (Spans the entire bookcase interior)
+                Rectangle()
+                    .fill(appState.isBookshelfTargeted ? Color.blue.opacity(0.22) : Color.clear)
+                    .overlay(
+                        Group {
+                            if appState.isBookshelfTargeted {
+                                RoundedRectangle(cornerRadius: 6)
+                                    .stroke(Color.yellow, lineWidth: 3)
+                                    .overlay(
+                                        VStack(spacing: 6) {
+                                            Image(systemName: "square.and.arrow.down.fill")
+                                                .font(.system(size: 32))
+                                                .foregroundColor(.yellow)
+                                            Text(dropPromptText)
+                                                .font(.system(size: 12, weight: .bold))
+                                                .foregroundColor(.white)
+                                                .shadow(color: .black, radius: 4)
+                                        }
+                                    )
+                            }
+                        }
+                    )
+                    .contentShape(Rectangle())
+                    .onDrop(of: [.fileURL], isTargeted: Binding(
+                        get: { appState.isBookshelfTargeted },
+                        set: { appState.isBookshelfTargeted = $0 }
+                    )) { providers in
+                        for provider in providers {
+                            StorageManager.extractFileURL(from: provider) { url in
+                                storage.addBookshelfItem(from: url)
+                            }
+                        }
+                        return true
+                    }
+                
+                // 4 Interactive Shelf Levels (Flushed exactly onto the 4 illustrated wooden planks)
+                // Shelf 1 (top): plank at 0.180 * h
+                shelfRow(shelfIndex: 0, width: w)
+                    .position(x: w * 0.48, y: h * 0.135)
+                
+                // Shelf 2: plank at 0.375 * h
+                shelfRow(shelfIndex: 1, width: w)
+                    .position(x: w * 0.48, y: h * 0.330)
+                
+                // Shelf 3: plank at 0.570 * h
+                shelfRow(shelfIndex: 2, width: w)
+                    .position(x: w * 0.48, y: h * 0.525)
+                
+                // Shelf 4: plank at 0.766 * h (Leaves room for illustrated plant on the right)
+                shelfRow(shelfIndex: 3, width: w * 0.75)
+                    .position(x: w * 0.38, y: h * 0.720)
+                
+                // Sliding Library Ladder (scaled to full bookcase height, draggable across track)
+                if theme == .library {
+                    LadderView(shelfHeight: h)
+                        .position(x: min(w * 0.75, max(w * 0.12, appState.ladderX)), y: h * 0.50)
+                }
+                
+                // Item Count Badge (Top-right of bookcase)
+                VStack {
+                    HStack {
                         Spacer()
-                        
-                        // Shelf contents row
-                        HStack(alignment: .bottom, spacing: 6) {
-                            shelfRowItems(shelfIndex: shelfIndex)
-                            Spacer()
+                        Button(action: {
+                            appState.showBookshelfDrawer = true
+                        }) {
+                            HStack(spacing: 3) {
+                                Image(systemName: "books.vertical.fill")
+                                    .font(.system(size: 9))
+                                Text("\(storage.bookshelfItems.count)")
+                                    .font(.system(size: 9, weight: .bold))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Capsule().fill(Color.black.opacity(0.65)))
                         }
-                        .padding(.horizontal, 14)
-                        .padding(.bottom, 6)
+                        .buttonStyle(.plain)
+                        .help("Buka Rak Buku di Laci / Finder")
+                        .padding(6)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-            }
-            
-            // Sliding Library Ladder (draggable horizontally across bookshelf rails)
-            if theme == .library {
-                LadderView()
-                    .padding(.bottom, 10)
-            }
-            
-            // Top Badge / Header Button to open Drawer
-            VStack {
-                HStack {
                     Spacer()
-                    Button(action: {
-                        appState.showBookshelfDrawer = true
-                    }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "books.vertical.fill")
-                                .font(.system(size: 10))
-                            Text("\(storage.bookshelfItems.count)")
-                                .font(.system(size: 10, weight: .bold))
-                        }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 3)
-                        .background(Capsule().fill(Color.black.opacity(0.65)))
-                        .shadow(color: .black.opacity(0.3), radius: 2)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Buka Rak Buku di Finder / Laci")
-                    .padding(8)
                 }
-                Spacer()
             }
         }
-        .help(shelfTooltip)
     }
     
     private var dropPromptText: String {
         switch theme {
         case .library: return "Simpan File Jadi Buku di Rak"
-        case .kos: return "Simpan File Jadi Map Plastik"
+        case .kos: return "Simpan File Jadi Map & Kardus"
         case .garden: return "Tanam Folder Jadi Pot Bunga"
         }
     }
     
-    private var shelfTooltip: String {
-        switch theme {
-        case .library: return "Rak Buku: Seret file ke sini untuk menyimpannya"
-        case .kos: return "Rak Kos: Seret file ke sini jadi map dan kardus"
-        case .garden: return "Taman Pixel: Seret folder ke sini jadi pot bunga"
-        }
-    }
-    
-    // Distribute actual stored items across the 4 shelves
     @ViewBuilder
-    private func shelfRowItems(shelfIndex: Int) -> some View {
+    private func shelfRow(shelfIndex: Int, width: CGFloat) -> some View {
         let items = storage.bookshelfItems
         let itemsForThisShelf = items.enumerated().filter { $0.offset % 4 == shelfIndex }.map { $0.element }
         
-        if itemsForThisShelf.isEmpty {
-            // Default ambient decorative books if shelf is empty
-            ambientBooks(shelfIndex: shelfIndex)
-        } else {
-            ForEach(itemsForThisShelf, id: \.self) { url in
-                ShelfItemView(url: url, theme: theme)
+        HStack(alignment: .bottom, spacing: 4) {
+            if itemsForThisShelf.isEmpty {
+                // Subtle decorative ambient books when shelf is empty
+                ambientBooks(shelfIndex: shelfIndex)
+            } else {
+                ForEach(itemsForThisShelf, id: \.self) { url in
+                    ShelfItemView(url: url, theme: theme)
+                }
             }
+            Spacer()
         }
+        .frame(width: width, height: 65, alignment: .bottomLeading)
+        .padding(.horizontal, 8)
     }
     
     @ViewBuilder
     private func ambientBooks(shelfIndex: Int) -> some View {
-        let count = (shelfIndex == 1) ? 4 : (shelfIndex == 2 ? 5 : 3)
+        let count = (shelfIndex == 1) ? 4 : (shelfIndex == 2 ? 6 : 3)
         let colors: [Color] = [
             Color(red: 0.70, green: 0.22, blue: 0.22),
             Color(red: 0.22, green: 0.38, blue: 0.65),
@@ -146,11 +144,11 @@ public struct BookshelfView: View {
         
         HStack(alignment: .bottom, spacing: 2) {
             ForEach(0..<count, id: \.self) { i in
-                let h = CGFloat(32 + (i * 7) % 20)
+                let h = CGFloat(26 + (i * 6) % 18)
                 let c = colors[(shelfIndex * 2 + i) % colors.count]
                 RoundedRectangle(cornerRadius: 1.5)
                     .fill(c.opacity(0.85))
-                    .frame(width: 8, height: h)
+                    .frame(width: 7, height: h)
             }
         }
     }
@@ -203,21 +201,21 @@ struct ShelfItemView: View {
     
     // Library Theme: Book Spine or Archive Box
     private var libraryRepresentation: some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 1) {
             if isDirectory {
                 // Archive Box
                 ZStack {
                     RoundedRectangle(cornerRadius: 2)
                         .fill(Color(red: 0.78, green: 0.68, blue: 0.52))
-                        .frame(width: 34, height: 44)
+                        .frame(width: 28, height: 38)
                         .overlay(
                             VStack {
-                                Rectangle().fill(Color.white.opacity(0.4)).frame(height: 1.5).padding(.top, 4)
+                                Rectangle().fill(Color.white.opacity(0.4)).frame(height: 1).padding(.top, 3)
                                 Spacer()
                             }
                         )
                     Text("ARCH")
-                        .font(.system(size: 7, weight: .bold))
+                        .font(.system(size: 6, weight: .bold))
                         .foregroundColor(Color(red: 0.4, green: 0.25, blue: 0.15))
                 }
             } else {
@@ -231,40 +229,40 @@ struct ShelfItemView: View {
                     Color(red: 0.50, green: 0.25, blue: 0.60)
                 ]
                 let color = bookColors[hash % bookColors.count]
-                let h = CGFloat(36 + (hash % 16))
+                let h = CGFloat(30 + (hash % 14))
                 
-                RoundedRectangle(cornerRadius: 2)
+                RoundedRectangle(cornerRadius: 1.5)
                     .fill(color)
-                    .frame(width: 14, height: h)
+                    .frame(width: 10, height: h)
                     .overlay(
                         VStack {
-                            Rectangle().fill(Color.white.opacity(0.5)).frame(height: 1.5).padding(.top, 3)
+                            Rectangle().fill(Color.white.opacity(0.5)).frame(height: 1).padding(.top, 2)
                             Spacer()
                         }
                     )
             }
             
             Text(url.deletingPathExtension().lastPathComponent)
-                .font(.system(size: 7, weight: .semibold))
+                .font(.system(size: 6, weight: .semibold))
                 .foregroundColor(.white)
                 .lineLimit(1)
-                .frame(width: 32)
+                .frame(width: 28)
         }
     }
     
     // Kos Room Theme: Plastic File or Indomie Box
     private var kosRepresentation: some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 1) {
             if isDirectory {
                 if let boxImg = AssetLoader.image(named: "kos-folder-0-0") {
                     Image(nsImage: boxImg)
                         .resizable()
                         .interpolation(.none)
                         .scaledToFit()
-                        .frame(width: 36, height: 40)
+                        .frame(width: 30, height: 36)
                 } else {
                     Image(systemName: "archivebox.fill")
-                        .font(.system(size: 26))
+                        .font(.system(size: 22))
                         .foregroundColor(.brown)
                 }
             } else {
@@ -274,35 +272,35 @@ struct ShelfItemView: View {
                         .resizable()
                         .interpolation(.none)
                         .scaledToFit()
-                        .frame(width: 22, height: 38)
+                        .frame(width: 18, height: 32)
                 } else {
                     Image(systemName: "doc.fill")
-                        .font(.system(size: 24))
+                        .font(.system(size: 20))
                         .foregroundColor(.cyan)
                 }
             }
             
             Text(url.deletingPathExtension().lastPathComponent)
-                .font(.system(size: 7, weight: .semibold))
+                .font(.system(size: 6, weight: .semibold))
                 .foregroundColor(.white)
                 .lineLimit(1)
-                .frame(width: 32)
+                .frame(width: 28)
         }
     }
     
     // Garden Theme: Seed Packet or Flower Pot
     private var gardenRepresentation: some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 1) {
             if isDirectory {
                 if let potImg = AssetLoader.image(named: "garden-folder-0-0") {
                     Image(nsImage: potImg)
                         .resizable()
                         .interpolation(.none)
                         .scaledToFit()
-                        .frame(width: 32, height: 38)
+                        .frame(width: 26, height: 34)
                 } else {
                     Image(systemName: "shippingbox.fill")
-                        .font(.system(size: 26))
+                        .font(.system(size: 22))
                         .foregroundColor(.orange)
                 }
             } else {
@@ -312,19 +310,19 @@ struct ShelfItemView: View {
                         .resizable()
                         .interpolation(.none)
                         .scaledToFit()
-                        .frame(width: 20, height: 34)
+                        .frame(width: 16, height: 28)
                 } else {
                     Image(systemName: "leaf.fill")
-                        .font(.system(size: 20))
+                        .font(.system(size: 18))
                         .foregroundColor(.green)
                 }
             }
             
             Text(url.deletingPathExtension().lastPathComponent)
-                .font(.system(size: 7, weight: .semibold))
+                .font(.system(size: 6, weight: .semibold))
                 .foregroundColor(.white)
                 .lineLimit(1)
-                .frame(width: 32)
+                .frame(width: 28)
         }
     }
 }
@@ -332,6 +330,7 @@ struct ShelfItemView: View {
 // MARK: - Leaning & Sliding Ladder View
 struct LadderView: View {
     @ObservedObject var appState = AppState.shared
+    let shelfHeight: CGFloat
     
     var body: some View {
         Group {
@@ -340,19 +339,17 @@ struct LadderView: View {
                     .resizable()
                     .interpolation(.none)
                     .scaledToFit()
-                    .frame(width: 48, height: 420)
+                    .frame(height: shelfHeight * 0.94)
             } else {
                 Rectangle()
                     .fill(Color(red: 0.45, green: 0.28, blue: 0.16))
-                    .frame(width: 32, height: 380)
+                    .frame(width: 28, height: shelfHeight * 0.94)
             }
         }
-        .offset(x: appState.ladderX)
         .gesture(
             DragGesture()
                 .onChanged { val in
                     appState.ladderX += val.translation.width
-                    appState.ladderX = max(0, min(180, appState.ladderX))
                 }
         )
         .help("Geser tangga ke kiri atau kanan")

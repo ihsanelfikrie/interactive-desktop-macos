@@ -14,85 +14,62 @@ public struct DesktopRootView: View {
             let h = geo.size.height
             
             ZStack(alignment: .topLeading) {
-                // 1. Pixel Art Room Background (Fills entire screen crisp and seamless)
+                // 1. Pixel Art Room Background (100% full screen)
                 ThemeBackgroundView(theme: appState.currentTheme, isNightMode: !appState.lampOn)
                     .frame(width: w, height: h)
                 
-                // 2. Interactive Hot Zones (Directly aligned with room pixel art)
+                // 2. Interactive Hot Zones (Mapped 1:1 onto the illustrated furniture)
                 
-                // Bookshelf Zone (Left Wall - 4 tiers of pixel art books/boxes & sliding ladder)
+                // Bookshelf (Left Wall: 4 shelves of books/boxes & sliding ladder)
                 BookshelfView(theme: appState.currentTheme)
-                    .frame(width: w * 0.19, height: h * 0.78)
-                    .position(x: w * 0.105, y: h * 0.49)
+                    .frame(width: w * 0.23, height: h * 0.64)
+                    .position(x: w * 0.145, y: h * 0.430)
                 
-                // Sticky Notes Board (Center Wall Corkboard)
+                // Corkboard Notes (Center Wall: Sticky notes & Add Memo inside wooden frame)
                 CorkboardView()
-                    .frame(width: w * 0.30, height: h * 0.38)
-                    .position(x: w * 0.39, y: h * 0.27)
+                    .frame(width: w * 0.370, height: h * 0.293)
+                    .position(x: w * 0.549, y: h * 0.236)
                 
-                // Wall Clock & Calendar (Upper Wall)
-                WallClockCalendarView()
-                    .frame(width: w * 0.10, height: h * 0.16)
-                    .position(x: w * 0.62, y: h * 0.14)
-                
-                // Photo Gallery Frames (Right Wall Frames)
-                PhotoGalleryView()
-                    .frame(width: w * 0.22, height: h * 0.36)
-                    .position(x: w * 0.79, y: h * 0.26)
-                
-                // Desk Lamp Hot Zone (Tabletop Lamp)
+                // Desk Lamp Hot Zone (Over the illustrated green Banker's Lamp)
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.35)) {
                         appState.lampOn.toggle()
                     }
                 }) {
                     ZStack {
-                        // Invisible tap target over the illustrated lamp
                         Rectangle()
                             .fill(Color.clear)
                             .contentShape(Rectangle())
                         
-                        // Subtle light glow when on
                         if appState.lampOn {
                             Circle()
-                                .fill(Color.yellow.opacity(0.18))
-                                .frame(width: 60, height: 60)
-                                .blur(radius: 10)
+                                .fill(Color.yellow.opacity(0.15))
+                                .frame(width: 45, height: 45)
+                                .blur(radius: 8)
                         }
                     }
                 }
                 .buttonStyle(.plain)
                 .help("Lampu Meja: Klik untuk menyalakan/mematikan lampu")
-                .frame(width: w * 0.11, height: h * 0.20)
-                .position(x: w * 0.32, y: h * 0.55)
+                .frame(width: w * 0.075, height: h * 0.110)
+                .position(x: w * 0.472, y: h * 0.552)
                 
-                // Desk Radio Hot Zone (Tabletop Radio)
+                // Desk Radio Hot Zone (Over the illustrated retro radio on tabletop)
                 Button(action: {
                     spotify.playPause()
                 }) {
                     ZStack {
-                        let radioImgName = spotify.isPlaying ? appState.currentTheme.radioOnImageName : appState.currentTheme.radioOffImageName
-                        if let radioImg = AssetLoader.image(named: radioImgName) {
-                            Image(nsImage: radioImg)
-                                .resizable()
-                                .interpolation(.none)
-                                .scaledToFit()
-                                .frame(height: 50)
-                                .shadow(color: .black.opacity(0.35), radius: 3, y: 2)
-                        } else {
-                            Image(systemName: "radio.fill")
-                                .font(.system(size: 32))
-                                .foregroundColor(.brown)
-                        }
+                        Rectangle()
+                            .fill(Color.clear)
+                            .contentShape(Rectangle())
                         
                         if spotify.isPlaying {
                             Text("♪ ♫")
-                                .font(.system(size: 14, weight: .bold))
+                                .font(.system(size: 13, weight: .bold))
                                 .foregroundColor(.yellow)
-                                .offset(x: 20, y: -24)
+                                .offset(y: -22)
                         }
                     }
-                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .contextMenu {
@@ -102,92 +79,35 @@ public struct DesktopRootView: View {
                     Button("Lagu Sebelumnya") { spotify.previousTrack() }
                 }
                 .help("Radio: \(spotify.isPlaying ? "\(spotify.trackTitle) - \(spotify.artistName)" : "Klik untuk memutar Spotify")")
-                .frame(width: w * 0.10, height: h * 0.14)
-                .position(x: w * 0.44, y: h * 0.58)
+                .frame(width: w * 0.065, height: h * 0.075)
+                .position(x: w * 0.415, y: h * 0.585)
                 
-                // Potted Plant (Left Floor)
-                HousePlantView()
-                    .frame(width: w * 0.08, height: h * 0.24)
-                    .position(x: w * 0.22, y: h * 0.72)
+                // Desk Photo Frame (Small framed picture resting on right of desk)
+                DeskPhotoFrameView()
+                    .frame(width: w * 0.055, height: h * 0.070)
+                    .position(x: w * 0.548, y: h * 0.575)
                 
-                // Magic Carpet / Rug Zone (Floor)
+                // Woven Wastebasket / Trash Can (Floor beside desk)
+                BasketTrashHotZoneView()
+                    .frame(width: w * 0.065, height: h * 0.115)
+                    .position(x: w * 0.683, y: h * 0.732)
+                
+                // Floor Rug / Magic Carpet (Floor)
                 MagicCarpetView(theme: appState.currentTheme)
-                    .frame(width: w * 0.32, height: h * 0.24)
-                    .position(x: w * 0.65, y: h * 0.81)
+                    .frame(width: w * 0.280, height: h * 0.120)
+                    .position(x: w * 0.650, y: h * 0.810)
                 
-                // Trash Can Zone (Right Floor)
-                TrashCanView()
-                    .frame(width: w * 0.09, height: h * 0.18)
-                    .position(x: w * 0.90, y: h * 0.82)
-                
-                // 3. Ambient Night Overlay when Lamp is Off (LampOffShade)
+                // 3. Ambient Night Dimmer when Lamp is Off
                 if !appState.lampOn {
-                    Color.black.opacity(0.68)
+                    Color.black.opacity(0.65)
                         .ignoresSafeArea()
                         .allowsHitTesting(false)
                         .transition(.opacity)
                         .zIndex(20)
                 }
                 
-                // 4. Floating Top Control Bar (Clean Glass Pill)
-                HStack {
-                    Spacer()
-                    HStack(spacing: 8) {
-                        ControlButton(title: "Tema", icon: "paintpalette.fill") {
-                            withAnimation(.spring()) {
-                                appState.showThemePicker = true
-                            }
-                        }
-                        
-                        ControlButton(title: appState.lampOn ? "Matikan Lampu" : "Nyalakan Lampu", icon: appState.lampOn ? "moon.stars.fill" : "sun.max.fill") {
-                            withAnimation(.easeInOut(duration: 0.35)) {
-                                appState.lampOn.toggle()
-                            }
-                        }
-                        
-                        ControlButton(title: "Kembalikan Semua", icon: "arrow.uturn.backward.circle.fill") {
-                            storage.restoreEverything()
-                        }
-                        
-                        ControlButton(title: "Geser Ikon Mac", icon: "arrow.right.to.line.compact") {
-                            storage.moveCoveredIcons()
-                        }
-                        
-                        ControlButton(title: "Folder Ruangan", icon: "folder.fill") {
-                            storage.openBaseFolder()
-                        }
-                        
-                        ControlButton(title: "Panduan", icon: "questionmark.circle.fill") {
-                            withAnimation(.spring()) {
-                                appState.showHelpModal = true
-                            }
-                        }
-                        
-                        Button(action: {
-                            NSApplication.shared.miniaturizeAll(nil)
-                        }) {
-                            Image(systemName: "minus")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.secondary)
-                                .padding(6)
-                        }
-                        .buttonStyle(.plain)
-                        .help("Perkecil Jendela")
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 7)
-                    .background(
-                        Capsule()
-                            .fill(Color(NSColor.windowBackgroundColor).opacity(0.92))
-                            .shadow(color: .black.opacity(0.3), radius: 8, y: 3)
-                    )
-                    .padding(.top, 14)
-                    Spacer()
-                }
-                .frame(width: w)
-                .zIndex(30)
-                
-                // 5. In-App Seamless Modals
+
+                // 5. Modals (Bookshelf Drawer, Theme Picker, Help Guide)
                 if appState.showBookshelfDrawer {
                     ModalBackdrop(isPresented: $appState.showBookshelfDrawer) {
                         BookshelfDrawerView(isPresented: $appState.showBookshelfDrawer)
@@ -220,6 +140,111 @@ public struct DesktopRootView: View {
                     .zIndex(40)
                 }
             }
+        }
+    }
+}
+
+// MARK: - Desk Photo Frame Hot Zone (Over the illustrated desk picture frame)
+struct DeskPhotoFrameView: View {
+    @ObservedObject var storage = StorageManager.shared
+    @ObservedObject var appState = AppState.shared
+    
+    var photoURL: URL? {
+        storage.photoSlots[0]
+    }
+    
+    var cachedImage: NSImage? {
+        storage.cachedPhotos[0]
+    }
+    
+    var body: some View {
+        ZStack {
+            if let image = cachedImage {
+                Image(nsImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+                    .cornerRadius(2)
+                    .onTapGesture {
+                        if let url = photoURL {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+                    .help("Klik untuk melihat foto")
+            } else {
+                Button(action: {
+                    storage.pickPhoto(forSlot: 0)
+                }) {
+                    Rectangle()
+                        .fill(Color.clear)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("Klik atau drag foto ke sini untuk memajangnya di meja")
+            }
+        }
+        .overlay(
+            Group {
+                if appState.targetedPhotoSlot == 0 {
+                    RoundedRectangle(cornerRadius: 2)
+                        .stroke(Color.yellow, lineWidth: 2)
+                }
+            }
+        )
+        .onDrop(of: [.fileURL], isTargeted: Binding(
+            get: { appState.targetedPhotoSlot == 0 },
+            set: { targeted in appState.targetedPhotoSlot = targeted ? 0 : nil }
+        )) { providers in
+            for provider in providers {
+                StorageManager.extractFileURL(from: provider) { url in
+                    storage.assignPhoto(sourceURL: url, slotIndex: 0)
+                }
+            }
+            return true
+        }
+    }
+}
+
+// MARK: - Woven Wastebasket Hot Zone (Directly over the illustrated trash basket)
+struct BasketTrashHotZoneView: View {
+    @ObservedObject var storage = StorageManager.shared
+    @ObservedObject var appState = AppState.shared
+    
+    var body: some View {
+        Button(action: {
+            if let trashURL = FileManager.default.urls(for: .trashDirectory, in: .userDomainMask).first {
+                NSWorkspace.shared.open(trashURL)
+            }
+        }) {
+            ZStack {
+                Rectangle()
+                    .fill(appState.isTrashTargeted ? Color.red.opacity(0.25) : Color.clear)
+                    .contentShape(Rectangle())
+                
+                if appState.isTrashTargeted {
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(Color.red, lineWidth: 2)
+                        .overlay(
+                            Image(systemName: "trash.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(.red)
+                        )
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .help("Tempat Sampah: Seret file ke sini untuk membuangnya, atau klik untuk buka Trash")
+        .onDrop(of: [.fileURL], isTargeted: Binding(
+            get: { appState.isTrashTargeted },
+            set: { appState.isTrashTargeted = $0 }
+        )) { providers in
+            for provider in providers {
+                StorageManager.extractFileURL(from: provider) { url in
+                    _ = storage.moveToTrash(url: url)
+                }
+            }
+            return true
         }
     }
 }
@@ -268,86 +293,6 @@ struct ControlButton: View {
     }
 }
 
-// MARK: - Potted Floor Houseplant & Swaying Leaves
-struct HousePlantView: View {
-    @ObservedObject var appState = AppState.shared
-    
-    var body: some View {
-        ZStack(alignment: .bottom) {
-            // Swaying Leaves layer
-            if let leavesImg = AssetLoader.image(named: "plant-leaves") {
-                Image(nsImage: leavesImg)
-                    .resizable()
-                    .interpolation(.none)
-                    .scaledToFit()
-                    .frame(width: 82, height: 68)
-                    .rotationEffect(.degrees(appState.isLowPower ? 0 : 3))
-                    .animation(appState.isLowPower ? .default : .easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: appState.isLowPower)
-                    .offset(y: -28)
-            } else {
-                proceduralLeaves
-            }
-            
-            // Potted Base
-            if let potImg = AssetLoader.image(named: "plant-pot") {
-                Image(nsImage: potImg)
-                    .resizable()
-                    .interpolation(.none)
-                    .scaledToFit()
-                    .frame(width: 52, height: 42)
-            } else {
-                proceduralPot
-            }
-        }
-        .frame(width: 86, height: 100)
-    }
-    
-    private var proceduralLeaves: some View {
-        ZStack {
-            LeafShape()
-                .fill(Color(red: 0.18, green: 0.52, blue: 0.28))
-                .frame(width: 32, height: 48)
-                .rotationEffect(.degrees(-35))
-                .offset(x: -16, y: -8)
-            
-            LeafShape()
-                .fill(Color(red: 0.22, green: 0.60, blue: 0.32))
-                .frame(width: 34, height: 52)
-                .rotationEffect(.degrees(30))
-                .offset(x: 16, y: -10)
-            
-            LeafShape()
-                .fill(Color(red: 0.15, green: 0.45, blue: 0.22))
-                .frame(width: 30, height: 46)
-                .offset(y: -14)
-        }
-        .offset(y: -24)
-    }
-    
-    private var proceduralPot: some View {
-        Path { path in
-            path.move(to: CGPoint(x: 4, y: 0))
-            path.addLine(to: CGPoint(x: 8, y: 34))
-            path.addLine(to: CGPoint(x: 32, y: 34))
-            path.addLine(to: CGPoint(x: 36, y: 0))
-            path.closeSubpath()
-        }
-        .fill(Color(red: 0.82, green: 0.42, blue: 0.25))
-        .frame(width: 40, height: 34)
-        .shadow(color: .black.opacity(0.3), radius: 3, y: 2)
-    }
-}
-
-struct LeafShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.midX, y: rect.maxY))
-        path.addQuadCurve(to: CGPoint(x: rect.midX, y: rect.minY), control: CGPoint(x: rect.minX - 4, y: rect.midY))
-        path.addQuadCurve(to: CGPoint(x: rect.midX, y: rect.maxY), control: CGPoint(x: rect.maxX + 4, y: rect.midY))
-        return path
-    }
-}
-
 // MARK: - Help Guide Modal
 struct HelpGuideModalView: View {
     @Binding var isPresented: Bool
@@ -374,11 +319,11 @@ struct HelpGuideModalView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     GuideRow(icon: "books.vertical.fill", color: .brown, title: "Rak Buku File & Folder", desc: "Seret file/folder dari desktop ke rak buku untuk menyimpannya. Klik dua kali untuk membuka file, atau klik kanan untuk melihat opsi.")
                     GuideRow(icon: "oval.inset.filled", color: .red, title: "Magic Carpet (Sembunyikan File)", desc: "Seret file ke atas karpet untuk menyembunyikannya. Klik karpet untuk mengangkatnya dan melihat/mengembalikan file.")
-                    GuideRow(icon: "note.text", color: .orange, title: "Memo Board (Catatan Dinding)", desc: "Klik tombol '+' di pojok catatan untuk menambah memo baru. Tulis to-do list dan centang saat selesai.")
-                    GuideRow(icon: "photo.stack.fill", color: .purple, title: "Bingkai Foto di Dinding", desc: "Seret foto ke bingkai dinding atau klik bingkai kosong untuk memajang foto favorit kamu.")
-                    GuideRow(icon: "lightbulb.fill", color: .yellow, title: "Lampu Meja (Mode Malam)", desc: "Klik kap lampu di atas meja untuk mematikan/menyalakan lampu dan menikmati suasana malam yang tenang.")
+                    GuideRow(icon: "note.text", color: .orange, title: "Memo Board (Catatan Dinding)", desc: "Klik tombol 'Memo' di pojok papan gabus untuk membuat sticky note baru. Tulis to-do list dan centang saat selesai.")
+                    GuideRow(icon: "photo.fill", color: .purple, title: "Bingkai Foto di Meja", desc: "Seret foto ke bingkai di atas meja atau klik untuk memajang foto favorit kamu.")
+                    GuideRow(icon: "lightbulb.fill", color: .yellow, title: "Lampu Meja (Mode Malam)", desc: "Klik kap lampu di atas meja untuk mematikan/menyalakan lampu dan meredupkan ruangan.")
                     GuideRow(icon: "radio.fill", color: .green, title: "Radio Spotify", desc: "Klik radio di atas meja untuk memutar/menjeda lagu di Spotify langsung dari desktop.")
-                    GuideRow(icon: "trash.fill", color: .gray, title: "Tempat Sampah", desc: "Seret file apa pun ke tempat sampah di lantai untuk membuangnya langsung ke Trash macOS.")
+                    GuideRow(icon: "trash.fill", color: .gray, title: "Tempat Sampah", desc: "Seret file apa pun ke keranjang sampah di lantai untuk membuangnya langsung ke Trash macOS.")
                 }
                 .padding(.vertical, 8)
             }
