@@ -67,12 +67,8 @@ public struct TrashCanView: View {
             set: { appState.isTrashTargeted = $0 }
         )) { providers in
             for provider in providers {
-                _ = provider.loadObject(ofClass: URL.self) { url, _ in
-                    if let url = url {
-                        DispatchQueue.main.async {
-                            _ = storage.moveToTrash(url: url)
-                        }
-                    }
+                StorageManager.extractFileURL(from: provider) { url in
+                    _ = storage.moveToTrash(url: url)
                 }
             }
             return true

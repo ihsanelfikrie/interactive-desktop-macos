@@ -13,91 +13,98 @@ public struct BookshelfView: View {
     public var body: some View {
         ZStack(alignment: .bottomLeading) {
             // Main Bookshelf structure
-            Button(action: {
-                appState.showBookshelfDrawer = true
-            }) {
-                ZStack(alignment: .topLeading) {
-                    // Outer wooden frame
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(shelfWoodColor)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6)
-                                .stroke(appState.isBookshelfTargeted ? Color.yellow : shelfShadowColor, lineWidth: appState.isBookshelfTargeted ? 4 : 2)
-                        )
-                        .shadow(color: .black.opacity(0.4), radius: 8, x: 4, y: 4)
-                    
-                    // Interior back panel
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(shelfInteriorColor)
-                        .padding(8)
-                    
-                    // Shelves & Book Spines
-                    VStack(spacing: 0) {
-                        ForEach(0..<4, id: \.self) { shelfIndex in
-                            VStack(spacing: 0) {
+            ZStack(alignment: .topLeading) {
+                // Outer wooden frame
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(shelfWoodColor)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(appState.isBookshelfTargeted ? Color.yellow : shelfShadowColor, lineWidth: appState.isBookshelfTargeted ? 4 : 2)
+                    )
+                    .shadow(color: .black.opacity(0.4), radius: 8, x: 4, y: 4)
+                
+                // Interior back panel
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(shelfInteriorColor)
+                    .padding(8)
+                
+                // Shelves & Book Spines
+                VStack(spacing: 0) {
+                    ForEach(0..<4, id: \.self) { shelfIndex in
+                        VStack(spacing: 0) {
+                            Spacer()
+                            
+                            // Shelf contents
+                            HStack(alignment: .bottom, spacing: 3) {
+                                renderShelfBooks(shelfIndex: shelfIndex)
                                 Spacer()
-                                
-                                // Shelf contents
-                                HStack(alignment: .bottom, spacing: 3) {
-                                    renderShelfBooks(shelfIndex: shelfIndex)
-                                    Spacer()
-                                }
-                                .padding(.horizontal, 14)
-                                
-                                // Wooden horizontal shelf plank
-                                Rectangle()
-                                    .fill(shelfWoodColor)
-                                    .frame(height: 10)
-                                    .shadow(color: .black.opacity(0.3), radius: 2, y: 2)
                             }
+                            .padding(.horizontal, 12)
+                            
+                            // Wooden horizontal shelf plank
+                            Rectangle()
+                                .fill(shelfWoodColor)
+                                .frame(height: 10)
+                                .shadow(color: .black.opacity(0.3), radius: 2, y: 2)
                         }
                     }
-                    .padding(.vertical, 8)
-                    
-                    // Library Rolling Ladder leaning against shelf
-                    HStack {
-                        Spacer()
-                        LadderView()
-                            .frame(width: 44)
-                            .padding(.trailing, -12)
-                            .offset(y: 20)
-                    }
-                    
-                    // Drop overlay indicator
-                    if appState.isBookshelfTargeted {
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(Color.blue.opacity(0.25))
-                            .overlay(
-                                VStack(spacing: 6) {
-                                    Image(systemName: "square.and.arrow.down.fill")
-                                        .font(.system(size: 32))
-                                        .foregroundColor(.white)
-                                    Text("Lepaskan File/Folder di Rak")
-                                        .font(.system(size: 13, weight: .bold))
-                                        .foregroundColor(.white)
-                                }
-                            )
-                    }
+                }
+                .padding(.vertical, 8)
+                
+                // Library Rolling Ladder leaning against shelf
+                HStack {
+                    Spacer()
+                    LadderView()
+                        .frame(width: 44)
+                        .padding(.trailing, -10)
+                        .offset(y: 15)
+                }
+                
+                // Top label button
+                HStack {
+                    Spacer()
+                    Text("\(storage.bookshelfItems.count) Buku")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(.white.opacity(0.8))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color.black.opacity(0.45)))
+                        .padding(6)
+                }
+                
+                // Drop overlay indicator
+                if appState.isBookshelfTargeted {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.blue.opacity(0.35))
+                        .overlay(
+                            VStack(spacing: 6) {
+                                Image(systemName: "square.and.arrow.down.fill")
+                                    .font(.system(size: 32))
+                                    .foregroundColor(.white)
+                                Text("Lepaskan File/Folder di Rak")
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(.white)
+                            }
+                        )
                 }
             }
-            .buttonStyle(.plain)
-            .frame(width: 175, height: 380)
+            .frame(width: 175, height: 400)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                appState.showBookshelfDrawer = true
+            }
             .onDrop(of: [.fileURL], isTargeted: Binding(
                 get: { appState.isBookshelfTargeted },
                 set: { appState.isBookshelfTargeted = $0 }
             )) { providers in
-                handleDrop(providers: providers)
+                for provider in providers {
+                    StorageManager.extractFileURL(from: provider) { url in
+                        storage.addBookshelfItem(from: url)
+                    }
+                }
                 return true
             }
-        }
-        .sheet(isPresented: Binding(
-            get: { appState.showBookshelfDrawer },
-            set: { appState.showBookshelfDrawer = $0 }
-        )) {
-            BookshelfDrawerView(isPresented: Binding(
-                get: { appState.showBookshelfDrawer },
-                set: { appState.showBookshelfDrawer = $0 }
-            ))
+            .help("Rak Buku: Klik untuk membuka daftar buku, atau drag & drop file ke sini")
         }
     }
     
@@ -137,9 +144,9 @@ public struct BookshelfView: View {
             if shelfIndex == 3 {
                 // Little potted cactus / succulent on top shelf
                 Image(systemName: "leaf.circle.fill")
-                    .font(.system(size: 22))
+                    .font(.system(size: 20))
                     .foregroundColor(.green.opacity(0.9))
-                    .padding(.leading, 6)
+                    .padding(.leading, 4)
             }
         }
     }
@@ -163,18 +170,6 @@ public struct BookshelfView: View {
     private var shelfShadowColor: Color {
         Color.black.opacity(0.3)
     }
-    
-    private func handleDrop(providers: [NSItemProvider]) {
-        for provider in providers {
-            _ = provider.loadObject(ofClass: URL.self) { url, _ in
-                if let url = url {
-                    DispatchQueue.main.async {
-                        self.storage.addBookshelfItem(from: url)
-                    }
-                }
-            }
-        }
-    }
 }
 
 // MARK: - Leaning Ladder View
@@ -185,14 +180,14 @@ struct LadderView: View {
             HStack(spacing: 28) {
                 RoundedRectangle(cornerRadius: 2)
                     .fill(Color(red: 0.45, green: 0.28, blue: 0.16))
-                    .frame(width: 5, height: 390)
+                    .frame(width: 5, height: 410)
                 RoundedRectangle(cornerRadius: 2)
                     .fill(Color(red: 0.45, green: 0.28, blue: 0.16))
-                    .frame(width: 5, height: 390)
+                    .frame(width: 5, height: 410)
             }
             
             // Rungs
-            VStack(spacing: 34) {
+            VStack(spacing: 36) {
                 ForEach(0..<9, id: \.self) { _ in
                     RoundedRectangle(cornerRadius: 1.5)
                         .fill(Color(red: 0.38, green: 0.22, blue: 0.12))
@@ -200,12 +195,12 @@ struct LadderView: View {
                 }
             }
         }
-        .rotationEffect(.degrees(-7))
+        .rotationEffect(.degrees(-6))
     }
 }
 
 // MARK: - Bookshelf Drawer View (Opens when Bookshelf is Clicked)
-struct BookshelfDrawerView: View {
+public struct BookshelfDrawerView: View {
     @ObservedObject var storage = StorageManager.shared
     @Binding var isPresented: Bool
     
@@ -219,23 +214,35 @@ struct BookshelfDrawerView: View {
         Color(red: 0.20, green: 0.45, blue: 0.55)
     ]
     
-    var body: some View {
+    public init(isPresented: Binding<Bool>) {
+        self._isPresented = isPresented
+    }
+    
+    public var body: some View {
         VStack(spacing: 0) {
             // Header
             HStack {
                 Image(systemName: "books.vertical.fill")
                     .font(.system(size: 20))
                     .foregroundColor(.brown)
-                Text("Rak Buku Organizer")
+                Text("Rak Buku Organizer (\(storage.bookshelfItems.count) Buku)")
                     .font(.system(size: 18, weight: .bold))
                 
                 Spacer()
                 
                 Button(action: {
+                    storage.pickBookshelfItem()
+                }) {
+                    Label("Tambah File/Folder", systemImage: "plus")
+                        .font(.system(size: 12))
+                }
+                .buttonStyle(.borderedProminent)
+                
+                Button(action: {
                     storage.openInFinder(url: storage.bookshelfDirectory)
                 }) {
                     Label("Buka di Finder", systemImage: "folder.fill")
-                        .font(.system(size: 13))
+                        .font(.system(size: 12))
                 }
                 .buttonStyle(.bordered)
                 
@@ -261,11 +268,11 @@ struct BookshelfDrawerView: View {
                             .foregroundColor(.secondary)
                         Text("Rak buku masih kosong.")
                             .font(.headline)
-                        Text("Tarik dan letakkan folder atau file dari Finder ke rak buku untuk menyimpannya di sini!")
+                        Text("Tarik folder atau file ke rak buku, atau tekan tombol '+ Tambah File/Folder' di atas!")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
-                    .frame(maxWidth: .infinity, minHeight: 280)
+                    .frame(maxWidth: .infinity, minHeight: 260)
                     .padding()
                 } else {
                     HStack(alignment: .bottom, spacing: 10) {
@@ -285,7 +292,7 @@ struct BookshelfDrawerView: View {
                                             .frame(width: 52, height: 210)
                                             .overlay(
                                                 RoundedRectangle(cornerRadius: 4)
-                                                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                                                    .stroke(Color.white.opacity(0.25), lineWidth: 1)
                                             )
                                             .shadow(color: .black.opacity(0.3), radius: 3, x: 2, y: 2)
                                         
@@ -322,16 +329,18 @@ struct BookshelfDrawerView: View {
                                 }
                             }
                             .buttonStyle(.plain)
-                            .help("Klik untuk membuka: \(fileURL.lastPathComponent)")
+                            .help("Klik untuk membuka di Finder: \(fileURL.lastPathComponent)")
                         }
                     }
                     .padding(.horizontal, 24)
                     .padding(.vertical, 20)
                 }
             }
-            .frame(height: 300)
+            .frame(height: 280)
             .background(Color(NSColor.underPageBackgroundColor))
         }
-        .frame(width: 680, height: 380)
+        .frame(width: 680, height: 360)
+        .cornerRadius(12)
+        .shadow(color: .black.opacity(0.5), radius: 16, y: 8)
     }
 }

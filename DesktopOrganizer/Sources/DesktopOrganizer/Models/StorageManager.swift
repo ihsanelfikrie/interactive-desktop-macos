@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 
 public final class StorageManager: ObservableObject {
     public static let shared = StorageManager()
@@ -50,6 +51,35 @@ public final class StorageManager: ObservableObject {
         loadStickyNotes()
     }
     
+    // MARK: - Reliable Drag & Drop URL Extractor
+    public static func extractFileURL(from provider: NSItemProvider, completion: @escaping (URL) -> Void) {
+        if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
+            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
+                var targetURL: URL? = nil
+                if let url = item as? URL {
+                    targetURL = url
+                } else if let data = item as? Data {
+                    targetURL = URL(dataRepresentation: data, relativeTo: nil)
+                } else if let str = item as? String {
+                    targetURL = URL(fileURLWithPath: str)
+                }
+                if let url = targetURL {
+                    DispatchQueue.main.async {
+                        completion(url)
+                    }
+                }
+            }
+        } else {
+            _ = provider.loadObject(ofClass: URL.self) { url, _ in
+                if let url = url {
+                    DispatchQueue.main.async {
+                        completion(url)
+                    }
+                }
+            }
+        }
+    }
+    
     // MARK: - Safe File Destination (Prevents Data Overwriting)
     private func safeDestinationURL(in directory: URL, originalName: String) -> URL {
         let fileManager = FileManager.default
@@ -89,6 +119,19 @@ public final class StorageManager: ObservableObject {
         }
     }
     
+    public func pickBookshelfItem() {
+        let panel = NSOpenPanel()
+        panel.title = "Pilih File atau Folder untuk Rak Buku"
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = true
+        if panel.runModal() == .OK {
+            for url in panel.urls {
+                addBookshelfItem(from: url)
+            }
+        }
+    }
+    
     // MARK: - Magic Carpet
     public func refreshCarpet() {
         let fileManager = FileManager.default
@@ -108,6 +151,19 @@ public final class StorageManager: ObservableObject {
             // fallback to copy if move fails across volumes
             try? FileManager.default.copyItem(at: sourceURL, to: destURL)
             refreshCarpet()
+        }
+    }
+    
+    public func pickCarpetItem() {
+        let panel = NSOpenPanel()
+        panel.title = "Pilih File untuk Disembunyikan di Bawah Karpet"
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = true
+        if panel.runModal() == .OK {
+            for url in panel.urls {
+                addCarpetItem(from: url)
+            }
         }
     }
     
@@ -148,6 +204,18 @@ public final class StorageManager: ObservableObject {
             refreshPhotos()
         } catch {
             print("Gagal menyimpan foto: \(error)")
+        }
+    }
+    
+    public func pickPhoto(forSlot slotIndex: Int) {
+        let panel = NSOpenPanel()
+        panel.title = "Pilih Foto untuk Bingkai #\(slotIndex + 1)"
+        panel.allowedContentTypes = [.image]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        if panel.runModal() == .OK, let url = panel.url {
+            assignPhoto(sourceURL: url, slotIndex: slotIndex)
         }
     }
     
@@ -241,7 +309,7 @@ public final class StorageManager: ObservableObject {
         NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: baseDirectory.path)
     }
     
-    // MARK: - Native Desktop Icons Management (Direct Process Execution)
+    // MARK: - Native Desktop Icons Management
     public func checkDesktopIconStatus() {
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/usr/bin/defaults")

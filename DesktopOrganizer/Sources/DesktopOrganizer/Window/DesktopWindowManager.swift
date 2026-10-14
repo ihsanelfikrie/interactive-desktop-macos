@@ -1,11 +1,17 @@
 import SwiftUI
 import AppKit
 
+// Custom interactive NSWindow that can become key and main to receive all mouse & keyboard events
+final class InteractiveDesktopWindow: NSWindow {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
+}
+
 public final class DesktopWindowManager: ObservableObject {
     public static let shared = DesktopWindowManager()
     
     public var window: NSWindow?
-    @Published public var isDesktopPinned: Bool = true
+    @Published public var isDesktopPinned: Bool = false
     
     private init() {
         setupScreenChangeObserver()
@@ -15,7 +21,7 @@ public final class DesktopWindowManager: ObservableObject {
         guard let screen = NSScreen.main else { return }
         
         let screenRect = screen.frame
-        let window = NSWindow(
+        let window = InteractiveDesktopWindow(
             contentRect: screenRect,
             styleMask: [.borderless, .fullSizeContentView],
             backing: .buffered,
@@ -27,8 +33,9 @@ public final class DesktopWindowManager: ObservableObject {
         window.hasShadow = false
         window.backgroundColor = .black
         window.ignoresMouseEvents = false
+        window.acceptsMouseMovedEvents = true
         
-        // Multi-space & stationary behavior
+        // Ensure it joins all spaces and behaves nicely with Mission Control
         window.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
         
         // Host the SwiftUI view
@@ -37,8 +44,11 @@ public final class DesktopWindowManager: ObservableObject {
         window.contentView = hostingView
         
         self.window = window
-        applyWindowLevel()
+        
+        // Normal window level by default so all clicks, textfields, and drag-drops work seamlessly
+        window.level = .normal
         window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
     
     private func setupScreenChangeObserver() {
@@ -55,23 +65,23 @@ public final class DesktopWindowManager: ObservableObject {
     public func applyWindowLevel() {
         guard let window = window else { return }
         if isDesktopPinned {
-            // Sits at the desktop layer right above wallpaper, behind normal windows
+            // Background wallpaper mode
             window.level = NSWindow.Level(Int(CGWindowLevelForKey(.desktopWindow)) + 1)
         } else {
-            // Normal floating window mode
+            // Normal interactive mode
             window.level = .normal
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
         }
     }
     
     public func toggleWindowLevel() {
         isDesktopPinned.toggle()
         applyWindowLevel()
-        window?.makeKeyAndOrderFront(nil)
     }
     
     public func bringToFront() {
-        window?.level = .normal
-        window?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        isDesktopPinned = false
+        applyWindowLevel()
     }
 }

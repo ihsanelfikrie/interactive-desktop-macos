@@ -11,7 +11,7 @@ public struct MagicCarpetView: View {
     }
     
     public var body: some View {
-        ZStack {
+        VStack(spacing: 8) {
             // Secret compartment underneath carpet when lifted
             if appState.isCarpetLifted {
                 VStack(spacing: 8) {
@@ -24,15 +24,27 @@ public struct MagicCarpetView: View {
                         Spacer()
                         
                         Button(action: {
-                            storage.openInFinder(url: storage.carpetDirectory)
+                            storage.pickCarpetItem()
                         }) {
-                            Text("Buka Folder")
+                            Label("Sembunyikan File", systemImage: "plus")
                                 .font(.system(size: 11))
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(.brown)
                         
-                        Button(action: { appState.isCarpetLifted = false }) {
+                        Button(action: {
+                            storage.openInFinder(url: storage.carpetDirectory)
+                        }) {
+                            Text("Buka Folder")
+                                .font(.system(size: 11))
+                        }
+                        .buttonStyle(.bordered)
+                        
+                        Button(action: {
+                            withAnimation(.spring()) {
+                                appState.isCarpetLifted = false
+                            }
+                        }) {
                             Image(systemName: "xmark.circle.fill")
                                 .foregroundColor(.white.opacity(0.8))
                         }
@@ -45,7 +57,7 @@ public struct MagicCarpetView: View {
                         Text("Belum ada file yang disembunyikan di bawah karpet.")
                             .font(.system(size: 12))
                             .foregroundColor(.white.opacity(0.7))
-                            .padding(.vertical, 20)
+                            .padding(.vertical, 14)
                     } else {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 12) {
@@ -55,7 +67,7 @@ public struct MagicCarpetView: View {
                                     }) {
                                         VStack(spacing: 4) {
                                             Image(systemName: item.hasDirectoryPath ? "folder.fill" : "doc.fill")
-                                                .font(.system(size: 26))
+                                                .font(.system(size: 24))
                                                 .foregroundColor(item.hasDirectoryPath ? .yellow : .cyan)
                                             Text(item.lastPathComponent)
                                                 .font(.system(size: 10, weight: .medium))
@@ -64,7 +76,7 @@ public struct MagicCarpetView: View {
                                                 .frame(width: 70)
                                         }
                                         .padding(6)
-                                        .background(Color.white.opacity(0.12))
+                                        .background(Color.white.opacity(0.15))
                                         .cornerRadius(6)
                                     }
                                     .buttonStyle(.plain)
@@ -75,97 +87,90 @@ public struct MagicCarpetView: View {
                         }
                     }
                 }
-                .frame(width: 480, height: 120)
+                .frame(width: 480, height: 110)
                 .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color.black.opacity(0.85))
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Color.black.opacity(0.88))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 16)
+                            RoundedRectangle(cornerRadius: 14)
                                 .stroke(Color.yellow.opacity(0.6), lineWidth: 1.5)
                         )
                 )
                 .shadow(color: .black.opacity(0.5), radius: 10, y: 5)
-                .offset(y: -40)
                 .transition(.scale.combined(with: .opacity))
             }
             
             // The Oval Carpet Body
-            Button(action: {
-                withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
-                    appState.isCarpetLifted.toggle()
+            ZStack {
+                // Carpet base oval
+                Ellipse()
+                    .fill(carpetColor)
+                    .frame(width: 360, height: 80)
+                    .overlay(
+                        // Golden / decorative border rim
+                        Ellipse()
+                            .stroke(appState.isCarpetTargeted ? Color.yellow : borderRimColor, lineWidth: appState.isCarpetTargeted ? 4 : 2.5)
+                            .frame(width: 346, height: 68)
+                    )
+                    .overlay(
+                        // Center ornamental pattern
+                        Ellipse()
+                            .stroke(borderRimColor.opacity(0.4), lineWidth: 1.5)
+                            .frame(width: 240, height: 42)
+                    )
+                    .shadow(color: .black.opacity(0.35), radius: 5, y: 4)
+                
+                // Fringe tassels on sides
+                HStack {
+                    TasselGroupView()
+                    Spacer()
+                    TasselGroupView()
                 }
-            }) {
-                ZStack {
-                    // Carpet base oval
-                    Ellipse()
-                        .fill(carpetColor)
-                        .frame(width: 380, height: 110)
-                        .overlay(
-                            // Golden / decorative border rim
-                            Ellipse()
-                                .stroke(appState.isCarpetTargeted ? Color.yellow : borderRimColor, lineWidth: appState.isCarpetTargeted ? 4 : 3)
-                                .frame(width: 366, height: 96)
-                        )
-                        .overlay(
-                            // Center ornamental pattern
-                            Ellipse()
-                                .stroke(borderRimColor.opacity(0.5), lineWidth: 1.5)
-                                .frame(width: 260, height: 60)
-                        )
-                        .shadow(color: .black.opacity(0.35), radius: 6, y: 5)
-                    
-                    // Fringe tassels on sides
-                    HStack {
-                        TasselGroupView()
-                        Spacer()
-                        TasselGroupView()
-                    }
-                    .frame(width: 390)
-                    
-                    // Center label / drop cue
-                    VStack(spacing: 3) {
-                        if appState.isCarpetTargeted {
-                            HStack(spacing: 6) {
-                                Image(systemName: "arrow.down.circle.fill")
-                                Text("Sembunyikan ke Bawah Karpet")
+                .frame(width: 368)
+                
+                // Center label / drop cue
+                VStack(spacing: 2) {
+                    if appState.isCarpetTargeted {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.down.circle.fill")
+                            Text("Sembunyikan ke Bawah Karpet")
+                        }
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.yellow)
+                    } else {
+                        if storage.carpetItems.count > 0 {
+                            HStack(spacing: 4) {
+                                Image(systemName: "lock.shield.fill")
+                                    .font(.system(size: 10))
+                                Text("\(storage.carpetItems.count) item di bawah karpet")
+                                    .font(.system(size: 10, weight: .semibold))
                             }
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundColor(.yellow)
+                            .foregroundColor(.white.opacity(0.95))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 3)
+                            .background(Capsule().fill(Color.black.opacity(0.4)))
                         } else {
-                            if storage.carpetItems.count > 0 {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "lock.shield.fill")
-                                        .font(.system(size: 11))
-                                    Text("\(storage.carpetItems.count) item di bawah karpet")
-                                        .font(.system(size: 11, weight: .semibold))
-                                }
-                                .foregroundColor(.white.opacity(0.9))
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .background(Capsule().fill(Color.black.opacity(0.35)))
-                            } else {
-                                Text("Magic Carpet")
-                                    .font(.system(size: 11, weight: .medium, design: .serif))
-                                    .foregroundColor(.white.opacity(0.55))
-                            }
+                            Text("Magic Carpet (Klik untuk Angkat)")
+                                .font(.system(size: 10, weight: .medium, design: .serif))
+                                .foregroundColor(.white.opacity(0.7))
                         }
                     }
                 }
             }
-            .buttonStyle(.plain)
-            .scaleEffect(appState.isCarpetLifted ? 0.88 : 1.0)
-            .offset(y: appState.isCarpetLifted ? 30 : 0)
+            .contentShape(Rectangle())
+            .scaleEffect(appState.isCarpetLifted ? 0.92 : 1.0)
+            .onTapGesture {
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
+                    appState.isCarpetLifted.toggle()
+                }
+            }
             .onDrop(of: [.fileURL], isTargeted: Binding(
                 get: { appState.isCarpetTargeted },
                 set: { appState.isCarpetTargeted = $0 }
             )) { providers in
                 for provider in providers {
-                    _ = provider.loadObject(ofClass: URL.self) { url, _ in
-                        if let url = url {
-                            DispatchQueue.main.async {
-                                storage.addCarpetItem(from: url)
-                            }
-                        }
+                    StorageManager.extractFileURL(from: provider) { url in
+                        storage.addCarpetItem(from: url)
                     }
                 }
                 return true
@@ -193,11 +198,11 @@ public struct MagicCarpetView: View {
 
 struct TasselGroupView: View {
     var body: some View {
-        VStack(spacing: 4) {
-            ForEach(0..<6) { _ in
+        VStack(spacing: 3) {
+            ForEach(0..<5) { _ in
                 Rectangle()
                     .fill(Color(red: 0.92, green: 0.82, blue: 0.60))
-                    .frame(width: 8, height: 2)
+                    .frame(width: 7, height: 2)
             }
         }
     }

@@ -62,7 +62,7 @@ struct PhotoFrameItemView: View {
                 .fill(frameColor)
                 .overlay(
                     RoundedRectangle(cornerRadius: 4)
-                        .stroke(isTargeted ? Color.yellow : Color.white.opacity(0.15), lineWidth: isTargeted ? 3 : 1)
+                        .stroke(isTargeted ? Color.yellow : Color.white.opacity(0.18), lineWidth: isTargeted ? 3 : 1)
                 )
                 .shadow(color: .black.opacity(0.35), radius: 4, x: 2, y: 3)
             
@@ -71,13 +71,14 @@ struct PhotoFrameItemView: View {
                 .fill(Color.white)
                 .padding(6)
             
-            // Photo Content (Rendered from cached image in memory)
+            // Photo Content
             if let image = cachedImage {
                 Image(nsImage: image)
                     .resizable()
                     .scaledToFill()
                     .frame(width: width - 18, height: height - 18)
                     .clipped()
+                    .contentShape(Rectangle())
                     .onTapGesture {
                         if let url = photoURL {
                             NSWorkspace.shared.open(url)
@@ -85,15 +86,22 @@ struct PhotoFrameItemView: View {
                     }
                     .help("Klik untuk melihat foto")
             } else {
-                // Empty state drop target
-                VStack(spacing: 4) {
-                    Image(systemName: "photo.badge.plus")
-                        .font(.system(size: 16))
-                        .foregroundColor(isTargeted ? .yellow : .gray.opacity(0.6))
-                    Text("Drop Foto")
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundColor(isTargeted ? .yellow : .gray.opacity(0.7))
+                // Empty state drop & click target
+                Button(action: {
+                    storage.pickPhoto(forSlot: slotIndex)
+                }) {
+                    VStack(spacing: 4) {
+                        Image(systemName: "photo.badge.plus")
+                            .font(.system(size: 16))
+                            .foregroundColor(isTargeted ? .yellow : .gray.opacity(0.7))
+                        Text("Drop / Klik Foto")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundColor(isTargeted ? .yellow : .gray.opacity(0.8))
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
+                .buttonStyle(.plain)
+                .help("Klik untuk memilih foto atau drag foto ke sini")
             }
             
             // Hover controls to remove photo
@@ -131,12 +139,8 @@ struct PhotoFrameItemView: View {
             }
         )) { providers in
             for provider in providers {
-                _ = provider.loadObject(ofClass: URL.self) { url, _ in
-                    if let url = url {
-                        DispatchQueue.main.async {
-                            storage.assignPhoto(sourceURL: url, slotIndex: slotIndex)
-                        }
-                    }
+                StorageManager.extractFileURL(from: provider) { url in
+                    storage.assignPhoto(sourceURL: url, slotIndex: slotIndex)
                 }
             }
             return true
