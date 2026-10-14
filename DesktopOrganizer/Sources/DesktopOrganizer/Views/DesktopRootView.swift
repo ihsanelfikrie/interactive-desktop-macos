@@ -11,61 +11,71 @@ public struct DesktopRootView: View {
         GeometryReader { geo in
             let w = geo.size.width
             let h = geo.size.height
-            // Floor baseline elevated above the macOS Dock (~85pt)
-            let dockPadding: CGFloat = 85
             
-            ZStack(alignment: .bottom) {
+            ZStack(alignment: .topLeading) {
                 // 1. Procedural Room Background (Wall & Floor)
                 ThemeBackgroundView(theme: appState.currentTheme, isNightMode: appState.isNightMode)
                     .frame(width: w, height: h)
                 
-                // 2. Wall-Mounted Elements (Corkboard, Clock/Calendar, Photo Gallery)
-                VStack {
-                    HStack(alignment: .top, spacing: 20) {
-                        // Spacer for Left Bookshelf area
-                        Spacer()
-                            .frame(width: 210)
-                        
-                        // Center-Left: Corkboard (Memo Board)
-                        CorkboardView()
-                        
-                        // Center-Right: Wall Clock & Wall Calendar
-                        WallClockCalendarView()
-                            .padding(.top, 20)
-                        
-                        // Right: Photo Gallery Frames
-                        PhotoGalleryView()
-                            .padding(.trailing, 24)
+                // 2. Customizable Movable Room Elements Layer
+                Group {
+                    // Bookshelf (Rak Buku)
+                    CustomizableElement(
+                        id: "bookshelf",
+                        title: "Rak Buku",
+                        defaultPos: CGPoint(x: 40, y: max(100, h - 510)),
+                        isEditMode: appState.isEditLayoutMode
+                    ) {
+                        BookshelfView(theme: appState.currentTheme)
                     }
-                    .padding(.top, 55)
                     
-                    Spacer()
-                }
-                .frame(width: w, height: h)
-                
-                // 3. Furniture & Floor Elements (Elevated above macOS Dock)
-                VStack(spacing: 0) {
-                    Spacer()
+                    // Potted Plant (Tanaman Lantai)
+                    CustomizableElement(
+                        id: "plant",
+                        title: "Tanaman Hias",
+                        defaultPos: CGPoint(x: 230, y: max(200, h - 180)),
+                        isEditMode: appState.isEditLayoutMode
+                    ) {
+                        HousePlantView()
+                    }
                     
-                    HStack(alignment: .bottom, spacing: 18) {
-                        // LEFT: Bookshelf & Floor Plant
-                        HStack(alignment: .bottom, spacing: 10) {
-                            BookshelfView(theme: appState.currentTheme)
-                            
-                            HousePlantView()
-                                .padding(.bottom, 6)
-                        }
-                        .padding(.leading, 32)
-                        
-                        Spacer()
-                        
-                        // Kos-Kosan Special Props: Standing Fan
-                        if appState.currentTheme == .kosKosan {
-                            StandingFanView()
-                                .padding(.bottom, 6)
-                        }
-                        
-                        // CENTER: Executive Desk
+                    // Corkboard (Papan Catatan)
+                    CustomizableElement(
+                        id: "corkboard",
+                        title: "Papan Catatan",
+                        defaultPos: CGPoint(x: max(260, w * 0.5 - 340), y: 70),
+                        isEditMode: appState.isEditLayoutMode
+                    ) {
+                        CorkboardView()
+                    }
+                    
+                    // Wall Clock & Calendar (Jam & Kalender Dinding)
+                    CustomizableElement(
+                        id: "clockCalendar",
+                        title: "Jam & Kalender",
+                        defaultPos: CGPoint(x: max(320, w * 0.5 + 130), y: 75),
+                        isEditMode: appState.isEditLayoutMode
+                    ) {
+                        WallClockCalendarView()
+                    }
+                    
+                    // Photo Gallery (Bingkai Foto)
+                    CustomizableElement(
+                        id: "photoGallery",
+                        title: "Galeri Foto",
+                        defaultPos: CGPoint(x: max(400, w - 280), y: 80),
+                        isEditMode: appState.isEditLayoutMode
+                    ) {
+                        PhotoGalleryView()
+                    }
+                    
+                    // Executive Desk (Meja Belajar & Kerja)
+                    CustomizableElement(
+                        id: "desk",
+                        title: "Meja Kerja & Lampu",
+                        defaultPos: CGPoint(x: max(200, w * 0.5 - 340), y: max(150, h - 250)),
+                        isEditMode: appState.isEditLayoutMode
+                    ) {
                         DeskView(
                             theme: appState.currentTheme,
                             isNightMode: Binding(
@@ -77,30 +87,52 @@ public struct DesktopRootView: View {
                                 set: { appState.showSpotifyPopup = $0 }
                             )
                         )
-                        
-                        // Kos-Kosan Special Props: Water Dispenser
-                        if appState.currentTheme == .kosKosan {
-                            WaterDispenserView()
-                                .padding(.bottom, 6)
+                    }
+                    
+                    // Magic Carpet (Karpet Ajaib)
+                    CustomizableElement(
+                        id: "carpet",
+                        title: "Magic Carpet",
+                        defaultPos: CGPoint(x: max(220, w * 0.5 - 180), y: max(150, h - 170)),
+                        isEditMode: appState.isEditLayoutMode
+                    ) {
+                        MagicCarpetView(theme: appState.currentTheme)
+                    }
+                    
+                    // Trash Can (Tempat Sampah)
+                    CustomizableElement(
+                        id: "trashCan",
+                        title: "Tempat Sampah",
+                        defaultPos: CGPoint(x: max(300, w * 0.5 + 360), y: max(150, h - 165)),
+                        isEditMode: appState.isEditLayoutMode
+                    ) {
+                        TrashCanView()
+                    }
+                    
+                    // Kos-Kosan Props (Kipas & Dispenser)
+                    if appState.currentTheme == .kosKosan {
+                        CustomizableElement(
+                            id: "standingFan",
+                            title: "Kipas Angin",
+                            defaultPos: CGPoint(x: max(150, w * 0.5 - 430), y: max(150, h - 210)),
+                            isEditMode: appState.isEditLayoutMode
+                        ) {
+                            StandingFanView()
                         }
                         
-                        // RIGHT: Trash Can
-                        TrashCanView()
-                            .padding(.bottom, 8)
-                            .padding(.trailing, 40)
-                        
-                        Spacer()
+                        CustomizableElement(
+                            id: "waterDispenser",
+                            title: "Galon Dispenser",
+                            defaultPos: CGPoint(x: max(300, w * 0.5 + 360), y: max(150, h - 220)),
+                            isEditMode: appState.isEditLayoutMode
+                        ) {
+                            WaterDispenserView()
+                        }
                     }
-                    .frame(width: w)
-                    
-                    // Center Carpet (Resting in front of Desk)
-                    MagicCarpetView(theme: appState.currentTheme)
-                        .padding(.top, -28)
-                        .padding(.bottom, dockPadding)
                 }
                 .frame(width: w, height: h)
                 
-                // 4. Spotify Mini Player Card (Floating right above radio)
+                // 3. Spotify Mini Player Card (Floating near radio)
                 if appState.showSpotifyPopup {
                     VStack {
                         Spacer()
@@ -110,7 +142,7 @@ public struct DesktopRootView: View {
                                 get: { appState.showSpotifyPopup },
                                 set: { appState.showSpotifyPopup = $0 }
                             ))
-                            .offset(x: 160, y: -(dockPadding + 140))
+                            .offset(x: 140, y: -220)
                             Spacer()
                         }
                     }
@@ -118,7 +150,7 @@ public struct DesktopRootView: View {
                     .zIndex(10)
                 }
                 
-                // 5. Ambient Night Mode Dark Overlay
+                // 4. Ambient Night Mode Dark Overlay
                 if appState.isNightMode {
                     Color.black.opacity(0.70)
                         .ignoresSafeArea()
@@ -127,9 +159,54 @@ public struct DesktopRootView: View {
                         .zIndex(20)
                 }
                 
-                // 6. Top Control Bar (Pill Toolbar)
-                VStack {
+                // 5. Top Control Bar (Pill Toolbar)
+                HStack {
+                    Spacer()
+                    
                     HStack(spacing: 8) {
+                        // Layout Customization Toggle
+                        Button(action: {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                                appState.isEditLayoutMode.toggle()
+                            }
+                        }) {
+                            HStack(spacing: 5) {
+                                Image(systemName: appState.isEditLayoutMode ? "checkmark.circle.fill" : "arrow.up.and.down.and.arrow.left.and.right")
+                                    .font(.system(size: 11, weight: .bold))
+                                Text(appState.isEditLayoutMode ? "Selesai Atur Posisi" : "Atur Tata Letak")
+                                    .font(.system(size: 11, weight: .bold))
+                            }
+                            .padding(.horizontal, 11)
+                            .padding(.vertical, 5)
+                            .background(appState.isEditLayoutMode ? Color.yellow : Color.white.opacity(0.18))
+                            .foregroundColor(appState.isEditLayoutMode ? .black : .primary)
+                            .cornerRadius(12)
+                        }
+                        .buttonStyle(.plain)
+                        .help(appState.isEditLayoutMode ? "Simpan dan kunci posisi furnitur" : "Aktifkan mode geser untuk mengatur posisi perabotan")
+                        
+                        // Reset Layout Button (Visible when in edit mode)
+                        if appState.isEditLayoutMode {
+                            Button(action: {
+                                withAnimation(.spring()) {
+                                    storage.resetLayout(screenSize: CGSize(width: w, height: h))
+                                }
+                            }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "arrow.counterclockwise")
+                                    Text("Reset Posisi")
+                                }
+                                .font(.system(size: 11, weight: .semibold))
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 5)
+                                .background(Color.red.opacity(0.85))
+                                .foregroundColor(.white)
+                                .cornerRadius(12)
+                            }
+                            .buttonStyle(.plain)
+                            .help("Kembalikan tata letak semua perabotan ke posisi default")
+                        }
+                        
                         ControlButton(title: "Tema Ruangan", icon: "paintpalette.fill") {
                             withAnimation(.spring()) {
                                 appState.showThemePicker = true
@@ -159,7 +236,7 @@ public struct DesktopRootView: View {
                             }
                         }
                         
-                        // Close / Minimize button
+                        // Minimize Window button
                         Button(action: {
                             NSApplication.shared.miniaturizeAll(nil)
                         }) {
@@ -182,10 +259,10 @@ public struct DesktopRootView: View {
                     
                     Spacer()
                 }
+                .frame(width: w)
                 .zIndex(30)
                 
-                // MARK: - In-App Seamless Modals (Never glitch, 100% clickable)
-                // Bookshelf Drawer Modal
+                // MARK: - In-App Seamless Modals
                 if appState.showBookshelfDrawer {
                     ModalBackdrop(isPresented: $appState.showBookshelfDrawer) {
                         BookshelfDrawerView(isPresented: $appState.showBookshelfDrawer)
@@ -193,7 +270,6 @@ public struct DesktopRootView: View {
                     .zIndex(40)
                 }
                 
-                // Theme Picker Modal
                 if appState.showThemePicker {
                     ModalBackdrop(isPresented: $appState.showThemePicker) {
                         ThemePickerView(
@@ -209,7 +285,6 @@ public struct DesktopRootView: View {
                     .zIndex(40)
                 }
                 
-                // Help Guide Modal
                 if appState.showHelpModal {
                     ModalBackdrop(isPresented: $appState.showHelpModal) {
                         HelpGuideModalView(isPresented: $appState.showHelpModal)
@@ -220,7 +295,69 @@ public struct DesktopRootView: View {
                     .zIndex(40)
                 }
             }
+            .onAppear {
+                storage.loadLayout(screenSize: CGSize(width: w, height: h))
+            }
         }
+    }
+}
+
+// MARK: - Customizable Element Wrapper (Supports Dragging to Reposition)
+struct CustomizableElement<Content: View>: View {
+    @ObservedObject var storage = StorageManager.shared
+    let id: String
+    let title: String
+    let defaultPos: CGPoint
+    let isEditMode: Bool
+    @ViewBuilder let content: () -> Content
+    
+    var currentPos: CGPoint {
+        storage.layoutPositions[id] ?? defaultPos
+    }
+    
+    var body: some View {
+        content()
+            .overlay(
+                Group {
+                    if isEditMode {
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.yellow, style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
+                            .background(Color.yellow.opacity(0.12))
+                            .overlay(
+                                VStack {
+                                    HStack {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "arrow.up.and.down.and.arrow.left.and.right")
+                                            Text(title)
+                                        }
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundColor(.black)
+                                        .padding(.horizontal, 7)
+                                        .padding(.vertical, 3)
+                                        .background(Capsule().fill(Color.yellow))
+                                        
+                                        Spacer()
+                                    }
+                                    Spacer()
+                                }
+                                .padding(4)
+                            )
+                    }
+                }
+            )
+            .offset(x: currentPos.x, y: currentPos.y)
+            .gesture(
+                isEditMode ? DragGesture()
+                    .onChanged { value in
+                        var newPos = storage.layoutPositions[id] ?? defaultPos
+                        newPos.x += value.translation.width
+                        newPos.y += value.translation.height
+                        storage.layoutPositions[id] = newPos
+                    }
+                    .onEnded { _ in
+                        storage.saveLayout()
+                    } : nil
+            )
     }
 }
 
@@ -342,8 +479,9 @@ struct HelpGuideModalView: View {
             
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                    GuideRow(icon: "photo.stack.fill", color: .purple, title: "Bingkai Foto di Dinding Kanan", desc: "Drag & drop foto atau klik bingkai kosong untuk memilih foto dari Mac. Klik foto untuk melihat ukuran penuh.")
-                    GuideRow(icon: "books.vertical.fill", color: .brown, title: "Rak Buku File & Folder Organizer", desc: "Klik rak buku untuk membuka koleksi buku! Drag & drop file/folder ke rak atau tekan tombol tambah file.")
+                    GuideRow(icon: "arrow.up.and.down.and.arrow.left.and.right", color: .yellow, title: "Kustomisasi Tata Letak Bebas", desc: "Klik tombol 'Atur Tata Letak' di toolbar atas. Setiap perabotan (meja, rak, papan catatan, karpet, jam) bisa kamu geser bebas ke posisi mana pun di layar MacBook kamu!")
+                    GuideRow(icon: "photo.stack.fill", color: .purple, title: "Bingkai Foto di Dinding", desc: "Drag & drop foto atau klik bingkai kosong untuk memilih foto dari Mac. Klik foto untuk melihat ukuran penuh.")
+                    GuideRow(icon: "books.vertical.fill", color: .brown, title: "Rak Buku File & Folder", desc: "Klik rak buku untuk membuka koleksi buku! Drag & drop file/folder ke rak atau tekan tombol tambah file.")
                     GuideRow(icon: "oval.inset.filled", color: .red, title: "Magic Carpet (Sembunyikan File)", desc: "Klik karpet untuk mengangkatnya dan melihat item tersembunyi. Drag file ke atas karpet untuk menyembunyikannya dari desktop.")
                     GuideRow(icon: "note.text", color: .orange, title: "Memo Board (Papan Catatan)", desc: "Klik tombol '+' di pojok papan gabus untuk membuat sticky note baru. Geser posisi note, edit judul & to-do list.")
                     GuideRow(icon: "calendar", color: .red, title: "Kalender & Jam Dinding Realtime", desc: "Menampilkan waktu dan tanggal live. Klik kalender untuk membuka aplikasi Kalender macOS.")

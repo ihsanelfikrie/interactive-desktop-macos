@@ -11,6 +11,9 @@ public final class AppState: ObservableObject {
     @Published public var showBookshelfDrawer: Bool = false
     @Published public var isCarpetLifted: Bool = false
     
+    // Custom Layout Edit Mode
+    @Published public var isEditLayoutMode: Bool = false
+    
     // Drop & Hover states
     @Published public var isBookshelfTargeted: Bool = false
     @Published public var isCarpetTargeted: Bool = false

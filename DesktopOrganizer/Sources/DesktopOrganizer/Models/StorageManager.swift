@@ -3,6 +3,11 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 
+public struct StoredPosition: Codable {
+    public var x: Double
+    public var y: Double
+}
+
 public final class StorageManager: ObservableObject {
     public static let shared = StorageManager()
     
@@ -12,6 +17,7 @@ public final class StorageManager: ObservableObject {
     public let carpetDirectory: URL
     private let notesFileURL: URL
     private let settingsFileURL: URL
+    private let layoutFileURL: URL
     
     @Published public var bookshelfItems: [URL] = []
     @Published public var carpetItems: [URL] = []
@@ -19,6 +25,7 @@ public final class StorageManager: ObservableObject {
     @Published public var cachedPhotos: [Int: NSImage] = [:]
     @Published public var stickyNotes: [StickyNote] = []
     @Published public var areDesktopIconsHidden: Bool = false
+    @Published public var layoutPositions: [String: CGPoint] = [:]
     
     private init() {
         let home = FileManager.default.homeDirectoryForCurrentUser
@@ -28,6 +35,7 @@ public final class StorageManager: ObservableObject {
         self.carpetDirectory = baseDirectory.appendingPathComponent("MagicCarpet", isDirectory: true)
         self.notesFileURL = baseDirectory.appendingPathComponent("notes.json")
         self.settingsFileURL = baseDirectory.appendingPathComponent("settings.json")
+        self.layoutFileURL = baseDirectory.appendingPathComponent("layout.json")
         
         setupDirectories()
         loadAllData()
@@ -49,6 +57,51 @@ public final class StorageManager: ObservableObject {
         refreshCarpet()
         refreshPhotos()
         loadStickyNotes()
+    }
+    
+    // MARK: - Customizable Layout Management
+    public func loadLayout(screenSize: CGSize) {
+        if let data = try? Data(contentsOf: layoutFileURL),
+           let dict = try? JSONDecoder().decode([String: StoredPosition].self, from: data),
+           !dict.isEmpty {
+            var result: [String: CGPoint] = [:]
+            for (k, v) in dict {
+                result[k] = CGPoint(x: v.x, y: v.y)
+            }
+            self.layoutPositions = result
+        } else {
+            resetLayout(screenSize: screenSize)
+        }
+    }
+    
+    public func saveLayout() {
+        var dict: [String: StoredPosition] = [:]
+        for (k, v) in layoutPositions {
+            dict[k] = StoredPosition(x: Double(v.x), y: Double(v.y))
+        }
+        if let data = try? JSONEncoder().encode(dict) {
+            try? data.write(to: layoutFileURL)
+        }
+    }
+    
+    public func resetLayout(screenSize: CGSize) {
+        let w = screenSize.width > 0 ? screenSize.width : 1440
+        let h = screenSize.height > 0 ? screenSize.height : 900
+        
+        var pos: [String: CGPoint] = [:]
+        pos["bookshelf"] = CGPoint(x: 40, y: max(100, h - 510))
+        pos["plant"] = CGPoint(x: 230, y: max(200, h - 180))
+        pos["corkboard"] = CGPoint(x: max(260, w * 0.5 - 340), y: 70)
+        pos["clockCalendar"] = CGPoint(x: max(320, w * 0.5 + 130), y: 75)
+        pos["photoGallery"] = CGPoint(x: max(400, w - 280), y: 80)
+        pos["desk"] = CGPoint(x: max(200, w * 0.5 - 340), y: max(150, h - 250))
+        pos["carpet"] = CGPoint(x: max(220, w * 0.5 - 180), y: max(150, h - 170))
+        pos["trashCan"] = CGPoint(x: max(300, w * 0.5 + 360), y: max(150, h - 165))
+        pos["standingFan"] = CGPoint(x: max(150, w * 0.5 - 430), y: max(150, h - 210))
+        pos["waterDispenser"] = CGPoint(x: max(300, w * 0.5 + 360), y: max(150, h - 220))
+        
+        self.layoutPositions = pos
+        saveLayout()
     }
     
     // MARK: - Reliable Drag & Drop URL Extractor
