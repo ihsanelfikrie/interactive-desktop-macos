@@ -39,11 +39,14 @@ public final class StorageManager: ObservableObject {
         self.settingsFileURL = baseDirectory.appendingPathComponent("settings.json")
         self.layoutFileURL = baseDirectory.appendingPathComponent("layout.json")
         
-        setupDirectories()
-        migrateLegacyIfPresent()
-        loadAllData()
-        checkDesktopIconStatus()
-        watchDirectory()
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
+            self.setupDirectories()
+            self.migrateLegacyIfPresent()
+            self.loadAllData()
+            self.checkDesktopIconStatus()
+            self.watchDirectory()
+        }
     }
     
     private func setupDirectories() {

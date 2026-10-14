@@ -30,54 +30,87 @@ public struct AnalogWallClockView: View {
         let minute = CGFloat(calendar.component(.minute, from: currentDate))
         let second = CGFloat(calendar.component(.second, from: currentDate))
         
-        ZStack {
-            // Outer casing
-            Circle()
-                .fill(Color(red: 0.25, green: 0.28, blue: 0.32))
-                .frame(width: 58, height: 58)
-                .shadow(color: .black.opacity(0.3), radius: 3, y: 2)
-            
-            // White clock face
-            Circle()
-                .fill(Color.white)
-                .frame(width: 48, height: 48)
-            
-            // Hour markers
-            ForEach(0..<12) { i in
-                Rectangle()
-                    .fill(Color.black.opacity(0.7))
-                    .frame(width: 1.5, height: i % 3 == 0 ? 4 : 2.5)
-                    .offset(y: -19)
-                    .rotationEffect(.degrees(Double(i) * 30))
+        Button(action: {
+            if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.clock") {
+                NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
             }
-            
-            // Hour hand
-            Rectangle()
-                .fill(Color.black)
-                .frame(width: 2.2, height: 12)
-                .offset(y: -6)
-                .rotationEffect(.degrees(Double((hour + minute / 60.0) * 30)))
-            
-            // Minute hand
-            Rectangle()
-                .fill(Color.black.opacity(0.8))
-                .frame(width: 1.8, height: 17)
-                .offset(y: -8.5)
-                .rotationEffect(.degrees(Double((minute + second / 60.0) * 6)))
-            
-            // Second hand
-            Rectangle()
-                .fill(Color.red)
-                .frame(width: 1, height: 19)
-                .offset(y: -9.5)
-                .rotationEffect(.degrees(Double(second * 6)))
-            
-            // Center pin
-            Circle()
-                .fill(Color.red)
-                .frame(width: 3.5, height: 3.5)
+        }) {
+            ZStack {
+                // Invisible round hit area
+                Circle()
+                    .fill(Color.clear)
+                    .contentShape(Circle())
+                
+                // Hour hand (Short & broad, Charcoal)
+                ClockHand(
+                    length: 25,
+                    width: 3.8,
+                    color: Color(red: 0.15, green: 0.15, blue: 0.15),
+                    angle: Double((hour + minute / 60.0 + second / 3600.0) * 30.0),
+                    tail: 4
+                )
+                
+                // Minute hand (Long & slender, Charcoal)
+                ClockHand(
+                    length: 37,
+                    width: 2.6,
+                    color: Color(red: 0.15, green: 0.15, blue: 0.15),
+                    angle: Double((minute + second / 60.0) * 6.0),
+                    tail: 6
+                )
+                
+                // Second hand (Slender red needle with counter-balance tail)
+                ClockHand(
+                    length: 44,
+                    width: 1.3,
+                    color: Color(red: 0.88, green: 0.18, blue: 0.20),
+                    angle: Double(second * 6.0),
+                    tail: 9
+                )
+                
+                // Center pin
+                Circle()
+                    .fill(Color(red: 0.15, green: 0.15, blue: 0.15))
+                    .frame(width: 6, height: 6)
+                
+                Circle()
+                    .fill(Color(red: 0.88, green: 0.18, blue: 0.20))
+                    .frame(width: 2.5, height: 2.5)
+            }
         }
-        .help("Jam Dinding Sistem")
+        .buttonStyle(.plain)
+        .contextMenu {
+            Button("Buka Jam Sistem (Clock)") {
+                if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.clock") {
+                    NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
+                }
+            }
+        }
+        .help("Jam Dinding: \(timeFormatter.string(from: currentDate))")
+    }
+    
+    private var timeFormatter: DateFormatter {
+        let f = DateFormatter()
+        f.timeStyle = .medium
+        return f
+    }
+}
+
+// MARK: - Mathematically exact Clock Hand with counter-balance tail
+struct ClockHand: View {
+    let length: CGFloat
+    let width: CGFloat
+    let color: Color
+    let angle: Double
+    let tail: CGFloat
+    
+    var body: some View {
+        Capsule()
+            .fill(color)
+            .frame(width: width, height: length + tail)
+            .offset(y: -(length - tail) / 2)
+            .rotationEffect(.degrees(angle))
+            .shadow(color: .black.opacity(0.18), radius: 1, x: 0.5, y: 1)
     }
 }
 

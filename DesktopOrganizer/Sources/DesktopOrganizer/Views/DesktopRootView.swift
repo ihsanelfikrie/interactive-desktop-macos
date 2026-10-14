@@ -30,6 +30,25 @@ public struct DesktopRootView: View {
                     .frame(width: w * 0.370, height: h * 0.293)
                     .position(x: w * 0.549, y: h * 0.236)
                 
+                // Live Analog Wall Clock (Hour, minute, and second hands moving in real time)
+                AnalogWallClockView(currentDate: appState.currentDate)
+                    .frame(width: w * 0.080, height: w * 0.080)
+                    .position(x: w * 0.7025, y: h * 0.2010)
+                
+                // Wall Calendar (Click to open Calendar.app)
+                Button(action: {
+                    if let calURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.iCal") {
+                        NSWorkspace.shared.openApplication(at: calURL, configuration: NSWorkspace.OpenConfiguration())
+                    }
+                }) {
+                    Color.clear
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .frame(width: w * 0.055, height: h * 0.080)
+                .position(x: w * 0.7020, y: h * 0.3200)
+                .help("Kalender: Klik untuk membuka aplikasi Calendar macOS")
+                
                 // Desk Lamp Hot Zone (Over the illustrated green Banker's Lamp)
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.35)) {
