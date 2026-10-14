@@ -76,28 +76,45 @@ public struct BookshelfView: View {
                         return true
                     }
                 
-                // 5 Interactive Shelf Levels (Flushed exactly onto the 5 white shelf planks)
-                // Shelves 0, 1, 2: 100% Books (stacked full, folder/file names on covers)
-                // Shelves 3, 4: 100% Cardboard Archive Boxes (folder names on front labels)
-                // Shelf 0 (top plank)
-                shelfRow(shelfIndex: 0, width: w * 0.90)
-                    .position(x: w * 0.48, y: h * 0.140)
+                // Empty state prompt on shelf when no items are added
+                if storage.bookshelfItems.isEmpty {
+                    VStack(spacing: 3) {
+                        Text("Tarik file ke sini")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.white)
+                        Text("jadi buku 📚")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundColor(SANSColors.lime)
+                        Text("Folder jadi kardus arsip 🗃️")
+                            .font(.system(size: 8, weight: .medium))
+                            .foregroundColor(SANSColors.cleanWhite.opacity(0.9))
+                    }
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(Color.black.opacity(0.70))
+                            .overlay(RoundedRectangle(cornerRadius: 6).stroke(SANSColors.lime.opacity(0.4), lineWidth: 1))
+                    )
+                    .shadow(color: .black.opacity(0.4), radius: 4, y: 2)
+                    .position(x: w * 0.48, y: h * 0.25)
+                    .allowsHitTesting(false)
+                }
                 
-                // Shelf 1
-                shelfRow(shelfIndex: 1, width: w * 0.90)
-                    .position(x: w * 0.48, y: h * 0.330)
                 
-                // Shelf 2
-                shelfRow(shelfIndex: 2, width: w * 0.90)
-                    .position(x: w * 0.48, y: h * 0.520)
+                let shelfWidth = w * 0.90
+                let rowHeight: CGFloat = 114
+                let plankY: [CGFloat] = [
+                    h * 0.491,
+                    h * 0.928
+                ]
+                let distributedShelves = itemsForShelves(totalWidth: shelfWidth)
                 
-                // Shelf 3
-                shelfRow(shelfIndex: 3, width: w * 0.90)
-                    .position(x: w * 0.48, y: h * 0.710)
-                
-                // Shelf 4 (bottom plank)
-                shelfRow(shelfIndex: 4, width: w * 0.88)
-                    .position(x: w * 0.48, y: h * 0.900)
+                ForEach(0..<2, id: \.self) { i in
+                    shelfRow(items: distributedShelves[i], width: shelfWidth, rowHeight: rowHeight, shelfIndex: i)
+                        .position(x: w * 0.50, y: plankY[i] - (rowHeight / 2))
+                }
                 
                 // Item Count Badge (Top-right of bookcase)
                 VStack {
@@ -127,437 +144,277 @@ public struct BookshelfView: View {
         }
     }
     
-    // MARK: - Book & Box Color Palettes and Companion Metadata
-    private let bookColors: [Color] = [
-        Color(red: 0.65, green: 0.18, blue: 0.20), // Crimson Wine
-        Color(red: 0.15, green: 0.22, blue: 0.35), // Prussian Navy
-        Color(red: 0.16, green: 0.34, blue: 0.24), // Forest Green
-        Color(red: 0.72, green: 0.44, blue: 0.14), // Amber Ochre
-        Color(red: 0.20, green: 0.22, blue: 0.25), // Dark Charcoal
-        Color(red: 0.52, green: 0.28, blue: 0.40), // Vintage Mauve
-        Color(red: 0.70, green: 0.32, blue: 0.20), // Terracotta
-        Color(red: 0.20, green: 0.38, blue: 0.42), // Slate Teal
-        Color(red: 0.38, green: 0.22, blue: 0.45), // Deep Plum
-        Color(red: 0.35, green: 0.42, blue: 0.25)  // Olive Sage
-    ]
-    
-    private let bookHeights: [CGFloat] = [54, 56, 52, 57, 53, 55, 52, 56, 54, 55]
-    
-    private let companionBookTitles: [String] = [
-        "Skripsi Bab 2",
-        "Moodboard",
-        "Tiket Pesawat",
-        "Desain Logo",
-        "Foto Produk",
-        "Arsip 2025",
-        "Laporan Q3",
-        "Proposal Klien",
-        "Catatan Kuliah",
-        "Invoice Okt",
-        "Resep Masak",
-        "Kontrak Kerja",
-        "Ide Konten",
-        "Budget 2026",
-        "CV Terbaru",
-        "Jadwal Shoot",
-        "Portofolio",
-        "Dokumen",
-        "Project AG",
-        "Asset Gambar",
-        "Sertifikat",
-        "Draft Artikel",
-        "Bahan Riset",
-        "Source Code",
-        "Backup Mac",
-        "Materi Belajar",
-        "Reading List",
-        "Finansial",
-        "Ide Bisnis",
-        "Referensi UI"
-    ]
-    
-    private let companionBoxTitles: [String] = [
-        "Arsip\nProject",
-        "Dokumen\nLegal",
-        "Desain &\nIlustrasi",
-        "Photo Raw\nArchive",
-        "Backup\nDatabase",
-        "Invoice &\nResi",
-        "File\nDownload",
-        "Koleksi\nE-Book"
-    ]
-    
-    @ViewBuilder
-    private func shelfRow(shelfIndex: Int, width: CGFloat) -> some View {
-        if shelfIndex < 3 {
-            // Shelves 0, 1, 2: 100% Books (10 books per shelf = 30 books total)
-            booksRow(shelfIndex: shelfIndex, width: width)
-        } else {
-            // Shelves 3, 4: 100% Cardboard Archive Boxes (4 boxes per shelf = 8 boxes total)
-            boxesRow(shelfIndex: shelfIndex, width: width)
+    // Distribute files & folders across the 2 shelves based on available shelf width
+    private func itemsForShelves(totalWidth: CGFloat) -> [[URL]] {
+        var shelves: [[URL]] = [[], []]
+        var currentShelf = 0
+        var currentWidth: CGFloat = 0
+        let spacing: CGFloat = 1
+        
+        for url in storage.bookshelfItems {
+            let isFolder = ShelfItemView.isFolder(url)
+            let itemWidth: CGFloat = isFolder ? 72 : 26
+            
+            if currentWidth + itemWidth > totalWidth && !shelves[currentShelf].isEmpty {
+                currentShelf += 1
+                if currentShelf >= 2 { break }
+                currentWidth = 0
+            }
+            
+            shelves[currentShelf].append(url)
+            currentWidth += itemWidth + spacing
         }
+        
+        return shelves
     }
     
     @ViewBuilder
-    private func booksRow(shelfIndex: Int, width: CGFloat) -> some View {
-        let booksPerShelf = 10
-        let bookWidth = (width - 40) / CGFloat(booksPerShelf)
-        
-        HStack(alignment: .bottom, spacing: 4) {
-            ForEach(0..<booksPerShelf, id: \.self) { i in
-                let globalIndex = shelfIndex * booksPerShelf + i
-                let userItem = globalIndex < storage.bookshelfItems.count ? storage.bookshelfItems[globalIndex] : nil
-                let title = userItem?.deletingPathExtension().lastPathComponent ?? companionBookTitles[globalIndex % companionBookTitles.count]
-                let color = bookColors[globalIndex % bookColors.count]
-                let height = bookHeights[globalIndex % bookHeights.count]
-                let id = "book-\(globalIndex)"
-                
-                BookSpineView(
-                    id: id,
-                    title: title,
-                    url: userItem,
-                    color: color,
-                    bookWidth: bookWidth,
-                    bookHeight: height
-                )
+    private func shelfRow(items: [URL], width: CGFloat, rowHeight: CGFloat, shelfIndex: Int) -> some View {
+        HStack(alignment: .bottom, spacing: 1) {
+            ForEach(items, id: \.self) { url in
+                ShelfItemView(url: url, theme: theme, shelfIndex: shelfIndex)
             }
+            Spacer()
         }
-        .frame(width: width, height: 60, alignment: .bottomLeading)
-        .padding(.horizontal, 6)
-    }
-    
-    @ViewBuilder
-    private func boxesRow(shelfIndex: Int, width: CGFloat) -> some View {
-        let boxShelfIndex = shelfIndex - 3 // 0 for shelf 3, 1 for shelf 4
-        let boxesPerShelf = 4
-        let boxWidth = (width - 36) / CGFloat(boxesPerShelf)
-        
-        // Find real user directories from storage.bookshelfItems
-        let userDirectories = storage.bookshelfItems.filter { url in
-            var isDir: ObjCBool = false
-            FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
-            return isDir.boolValue
-        }
-        
-        HStack(alignment: .bottom, spacing: 8) {
-            ForEach(0..<boxesPerShelf, id: \.self) { i in
-                let globalIndex = boxShelfIndex * boxesPerShelf + i
-                let userDir = globalIndex < userDirectories.count ? userDirectories[globalIndex] : nil
-                let title: String = {
-                    if let userDir = userDir {
-                        let raw = userDir.lastPathComponent
-                        let words = raw.split(separator: " ")
-                        if words.count >= 2 {
-                            return "\(words[0])\n\(words.dropFirst().joined(separator: " "))"
-                        }
-                        return raw
-                    }
-                    return companionBoxTitles[globalIndex % companionBoxTitles.count]
-                }()
-                let id = "box-\(globalIndex)"
-                
-                ArchiveBoxView(
-                    id: id,
-                    title: title,
-                    url: userDir,
-                    boxWidth: boxWidth
-                )
-            }
-        }
-        .frame(width: width, height: 60, alignment: .bottomLeading)
-        .padding(.horizontal, 6)
+        .frame(width: width, height: rowHeight, alignment: .bottomLeading)
+        .padding(.horizontal, 8)
     }
 }
 
-// MARK: - Book Spine View (Top Shelves 1-3: Books with Folder/File Title on Spine)
-struct BookSpineView: View {
-    @ObservedObject var appState = AppState.shared
+// MARK: - Shelf Item View (Authentic Desktop Organizer Books & Archive Boxes)
+struct ShelfItemView: View {
     @ObservedObject var storage = StorageManager.shared
-    let id: String
-    let title: String
-    let url: URL?
-    let color: Color
-    let bookWidth: CGFloat
+    @ObservedObject var appState = AppState.shared
+    let url: URL
+    let theme: RoomTheme
+    let shelfIndex: Int
+    let isFolder: Bool
     let bookHeight: CGFloat
-    
-    var isHovered: Bool {
-        appState.hoveredShelfItemId == id
+
+    init(url: URL, theme: RoomTheme, shelfIndex: Int) {
+        self.url = url
+        self.theme = theme
+        self.shelfIndex = shelfIndex
+        self.isFolder = ShelfItemView.isFolder(url)
+        self.bookHeight = ShelfItemView.calculateBookHeight(for: url)
     }
-    
-    var isDirectory: Bool {
-        guard let url = url else { return false }
+
+    // Check if an item is a true folder (not an application .app bundle or file package)
+    public static func isFolder(_ url: URL) -> Bool {
         var isDir: ObjCBool = false
-        FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
-        return isDir.boolValue
+        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue else {
+            return false
+        }
+        // Application bundles (.app) and file packages are single applications/files -> represented as books
+        if url.pathExtension.lowercased() == "app" || NSWorkspace.shared.isFilePackage(atPath: url.path) {
+            return false
+        }
+        return true
     }
-    
+
+    public static func calculateBookHeight(for url: URL) -> CGFloat {
+        var fileBytes = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int64) ?? 0
+        if fileBytes <= 4096, url.pathExtension.lowercased() == "app" {
+            let appName = url.deletingPathExtension().lastPathComponent
+            let binURL = url.appendingPathComponent("Contents/MacOS/\(appName)")
+            if let binSize = (try? FileManager.default.attributesOfItem(atPath: binURL.path)[.size] as? Int64), binSize > 0 {
+                fileBytes = binSize
+            } else {
+                fileBytes = 40 * 1024 * 1024 // 40MB app standard
+            }
+        }
+        let bytes = max(Double(fileBytes), 1024.0)
+        let logVal = log10(bytes)
+        let normalized = min(max((logVal - 3.0) / 5.0, 0.0), 1.0)
+        return 64 + CGFloat(normalized) * 38
+    }
+
     var body: some View {
-        ZStack(alignment: .center) {
-            // Main book spine body with subtle curvature gradient
-            RoundedRectangle(cornerRadius: 2)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            color.opacity(0.92),
-                            color,
-                            color.opacity(0.85)
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 2)
-                        .stroke(isHovered ? Color.white : Color.white.opacity(0.25), lineWidth: isHovered ? 1.5 : 0.6)
-                )
-            
-            // Spine gold / embossed accent bands (top and bottom)
-            VStack {
-                Rectangle()
-                    .fill(Color.white.opacity(0.35))
-                    .frame(height: 1)
-                    .padding(.horizontal, 2)
-                    .padding(.top, 4)
-                Spacer()
-                Rectangle()
-                    .fill(Color.white.opacity(0.35))
-                    .frame(height: 1)
-                    .padding(.horizontal, 2)
-                    .padding(.bottom, 4)
-            }
-            
-            // Vertical spine title text (reads bottom to top along the spine)
-            Text(title)
-                .font(.system(size: 7.5, weight: .bold))
-                .foregroundColor(.white)
-                .lineLimit(1)
-                .minimumScaleFactor(0.55)
-                .frame(width: bookHeight - 6)
-                .rotationEffect(.degrees(-90))
-                .shadow(color: .black.opacity(0.6), radius: 1, y: 1)
-            
-            // Hover Tooltip Tag
-            if isHovered {
-                VStack(spacing: 2) {
-                    Text(url != nil ? (isDirectory ? "📁 " : "📄 ") + (url?.lastPathComponent ?? title) : "📚 " + title)
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                    if url != nil {
-                        Text(isDirectory ? "Folder di Rak" : "File di Rak")
-                            .font(.system(size: 7.5))
-                            .foregroundColor(SANSColors.lime)
-                    }
+        Group {
+            if isFolder { folderView } else { fileView }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2) {
+            NSWorkspace.shared.open(url)
+        }
+        .onTapGesture {
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
+                if appState.activeShelfPopoverURL == url {
+                    appState.activeShelfPopoverURL = nil
+                } else {
+                    appState.activeShelfPopoverURL = url
+                    appState.activeShelfIndex = shelfIndex
                 }
-                .padding(.horizontal, 6)
-                .padding(.vertical, 3)
-                .background(RoundedRectangle(cornerRadius: 4).fill(Color.black.opacity(0.88)))
-                .shadow(color: .black.opacity(0.5), radius: 4, y: 2)
-                .offset(y: -bookHeight / 2 - 18)
-                .allowsHitTesting(false)
-                .zIndex(30)
             }
+        }
+        .contextMenu {
+            Button("Buka") { NSWorkspace.shared.open(url) }
+            Button("Tampilkan di Finder") { storage.openInFinder(url: url) }
+            Divider()
+            Button("Kembalikan ke Desktop") { storage.restoreBookshelfItemToDesktop(itemURL: url) }
+            Button("Buang ke Tempat Sampah", role: .destructive) { storage.removeBookshelfItem(itemURL: url) }
+        }
+        .help("\(url.lastPathComponent) (Klik untuk melihat info/file terbaru, klik 2x untuk membuka)")
+    }
+
+    // Classic library palette for book spines
+    private static let bookColors: [Color] = [
+        Color(red: 0.58, green: 0.16, blue: 0.18), // Crimson Wine
+        Color(red: 0.14, green: 0.22, blue: 0.35), // Prussian Navy
+        Color(red: 0.16, green: 0.34, blue: 0.22), // Forest Green
+        Color(red: 0.68, green: 0.42, blue: 0.15), // Warm Ochre
+        Color(red: 0.20, green: 0.22, blue: 0.25), // Dark Charcoal
+        Color(red: 0.45, green: 0.16, blue: 0.40), // Vintage Plum
+        Color(red: 0.65, green: 0.28, blue: 0.18)  // Terracotta
+    ]
+
+    // File → Authentic Book Spine. Height scales with file size (heavier = taller).
+    private var fileView: some View {
+        let colorIdx = abs(url.lastPathComponent.hashValue) % ShelfItemView.bookColors.count
+        let color = ShelfItemView.bookColors[colorIdx]
+        let label = url.deletingPathExtension().lastPathComponent
+        let bookWidth: CGFloat = 26
+
+        return ZStack(alignment: .bottom) {
+            ZStack(alignment: .center) {
+                // Book spine curvature gradient
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                color.opacity(0.88),
+                                color,
+                                color.opacity(0.82)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 3)
+                            .stroke(Color.white.opacity(0.25), lineWidth: 0.6)
+                    )
+                    .frame(width: bookWidth, height: bookHeight)
+
+                // Gold foil embossed accent lines (2 top, 2 bottom)
+                VStack {
+                    VStack(spacing: 2) {
+                        Rectangle()
+                            .fill(Color(red: 0.92, green: 0.82, blue: 0.55).opacity(0.75))
+                            .frame(height: 1)
+                        Rectangle()
+                            .fill(Color(red: 0.92, green: 0.82, blue: 0.55).opacity(0.75))
+                            .frame(height: 1)
+                    }
+                    .padding(.horizontal, 2)
+                    .padding(.top, 6)
+
+                    Spacer()
+
+                    VStack(spacing: 2) {
+                        Rectangle()
+                            .fill(Color(red: 0.92, green: 0.82, blue: 0.55).opacity(0.75))
+                            .frame(height: 1)
+                        Rectangle()
+                            .fill(Color(red: 0.92, green: 0.82, blue: 0.55).opacity(0.75))
+                            .frame(height: 1)
+                    }
+                    .padding(.horizontal, 2)
+                    .padding(.bottom, 6)
+                }
+                .frame(width: bookWidth, height: bookHeight)
+
+                // Rotated Spine Title Text
+                Text(label)
+                    .font(.system(size: 8.5, weight: .bold))
+                    .foregroundColor(Color(red: 0.97, green: 0.95, blue: 0.90))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .minimumScaleFactor(0.55)
+                    .frame(width: bookHeight - 24, height: bookWidth)
+                    .rotationEffect(.degrees(-90))
+                    .frame(width: bookWidth, height: bookHeight)
+                    .shadow(color: .black.opacity(0.75), radius: 1, y: 1)
+                    .allowsHitTesting(false)
+            }
+            .frame(width: bookWidth, height: bookHeight)
+            .clipped()
+            .shadow(color: .black.opacity(0.25), radius: 3, y: 3)
         }
         .frame(width: bookWidth, height: bookHeight)
-        .shadow(color: .black.opacity(isHovered ? 0.45 : 0.22), radius: isHovered ? 3 : 1.5, y: 1)
-        .scaleEffect(isHovered ? 1.05 : 1.0)
-        .contentShape(Rectangle())
-        .onHover { hovering in
-            if hovering {
-                appState.hoveredShelfItemId = id
-            } else if appState.hoveredShelfItemId == id {
-                appState.hoveredShelfItemId = nil
-            }
-        }
-        .onTapGesture(count: 2) {
-            handleOpen()
-        }
-        .onTapGesture(count: 1) {
-            handleOpen()
-        }
-        .contextMenu {
-            if let url = url {
-                Button("Buka") {
-                    NSWorkspace.shared.open(url)
-                }
-                Button("Tampilkan di Finder") {
-                    storage.openInFinder(url: url)
-                }
-                Divider()
-                Button("Kembalikan ke Desktop") {
-                    storage.restoreBookshelfItemToDesktop(itemURL: url)
-                }
-                Button("Buang ke Tempat Sampah", role: .destructive) {
-                    storage.removeBookshelfItem(itemURL: url)
-                }
-            } else {
-                Button("Buka Rak Buku di Finder") {
-                    storage.openBaseFolder()
-                }
-                Button("Tambah File / Folder ke Rak...") {
-                    storage.pickBookshelfItem()
-                }
-                Divider()
-                Button("Buka Laci Rak Buku") {
-                    withAnimation(.spring()) {
-                        appState.showBookshelfDrawer = true
-                    }
-                }
-            }
-        }
-        .help(url?.lastPathComponent ?? title)
     }
-    
-    private func handleOpen() {
-        if let url = url {
-            NSWorkspace.shared.open(url)
-        } else {
-            storage.openBaseFolder()
-        }
-    }
-}
 
-// MARK: - Archive Box View (Bottom Shelves 4-5: Cardboard Boxes with Folder Label Sticker)
-struct ArchiveBoxView: View {
-    @ObservedObject var appState = AppState.shared
-    @ObservedObject var storage = StorageManager.shared
-    let id: String
-    let title: String
-    let url: URL?
-    let boxWidth: CGFloat
-    
-    var isHovered: Bool {
-        appState.hoveredShelfItemId == id
-    }
-    
-    var body: some View {
-        ZStack(alignment: .top) {
-            // Main kraft cardboard body
-            RoundedRectangle(cornerRadius: 3)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color(red: 0.77, green: 0.60, blue: 0.42),
-                            Color(red: 0.71, green: 0.54, blue: 0.36)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
+    // Folder → Kraft Archive Box. Height scales with number of items inside (heavier folder = taller box).
+    private var folderView: some View {
+        let subItems = (try? FileManager.default.contentsOfDirectory(atPath: url.path))?.count ?? 0
+        let label = url.lastPathComponent
+        let boxWidth: CGFloat = 72
+        
+        // Map item count → box height 64–102pt; heavier folder with more files = taller archive box
+        // shortcut: counts top-level items with sqrt scaling for instant 60fps render without disk blocking; when to upgrade: if recursive byte sum is cached in background
+        let normalized = min(sqrt(Double(subItems)) / 6.0, 1.0)
+        let boxHeight: CGFloat = 64 + CGFloat(normalized) * 38
+
+        return ZStack(alignment: .bottom) {
+            ZStack(alignment: .top) {
+                // Cardboard box body
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.77, green: 0.59, blue: 0.41),
+                                Color(red: 0.69, green: 0.51, blue: 0.34)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
                     )
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 3)
-                        .stroke(isHovered ? Color.white : Color(red: 0.55, green: 0.40, blue: 0.25), lineWidth: isHovered ? 1.5 : 0.8)
-                )
-            
-            // Top lid fold flap
-            Rectangle()
-                .fill(Color(red: 0.65, green: 0.48, blue: 0.32))
-                .frame(height: 6)
-                .clipShape(RoundedRectangle(cornerRadius: 2))
-                .padding(.horizontal, 2)
-                .padding(.top, 2)
-            
-            // Front white label card
-            RoundedRectangle(cornerRadius: 2)
-                .fill(Color(red: 0.95, green: 0.97, blue: 1.0))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 2)
-                        .stroke(Color(red: 0.65, green: 0.72, blue: 0.82), lineWidth: 0.8)
-                )
-                .frame(width: boxWidth * 0.84, height: 26)
-                .overlay(
-                    Text(title)
-                        .font(.system(size: 7.5, weight: .bold))
-                        .foregroundColor(Color(red: 0.15, green: 0.20, blue: 0.28))
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.65)
-                        .multilineTextAlignment(.center)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 3)
+                            .stroke(Color(red: 0.52, green: 0.38, blue: 0.24), lineWidth: 0.8)
+                    )
+
+                // Top lid fold flap
+                Rectangle()
+                    .fill(Color(red: 0.62, green: 0.44, blue: 0.28))
+                    .frame(height: 8)
+                    .clipShape(RoundedRectangle(cornerRadius: 2))
+                    .padding(.horizontal, 2)
+                    .padding(.top, 2)
+
+                // Front white paper label card
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color(red: 0.97, green: 0.97, blue: 0.95))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 2)
+                            .stroke(Color(red: 0.74, green: 0.70, blue: 0.65), lineWidth: 0.7)
+                    )
+                    .frame(width: boxWidth * 0.85, height: min(38, boxHeight - 20))
+                    .overlay(
+                        VStack(spacing: 2) {
+                            Text(label)
+                                .font(.system(size: 8.5, weight: .bold))
+                                .foregroundColor(Color(red: 0.15, green: 0.12, blue: 0.10))
+                                .lineLimit(2)
+                                .multilineTextAlignment(.center)
+                                .minimumScaleFactor(0.65)
+
+                            Text("\(subItems) file")
+                                .font(.system(size: 7.5, weight: .medium))
+                                .foregroundColor(Color(red: 0.45, green: 0.42, blue: 0.38))
+                        }
                         .padding(.horizontal, 3)
-                )
-                .padding(.top, 12)
-            
-            // Hover Tooltip Tag
-            if isHovered {
-                VStack(spacing: 2) {
-                    Text("🗃️ " + (url?.lastPathComponent ?? title.replacingOccurrences(of: "\n", with: " ")))
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                    if url != nil {
-                        Text("Folder Kardus Arsip")
-                            .font(.system(size: 7.5))
-                            .foregroundColor(SANSColors.lime)
-                    }
-                }
-                .padding(.horizontal, 6)
-                .padding(.vertical, 3)
-                .background(RoundedRectangle(cornerRadius: 4).fill(Color.black.opacity(0.88)))
-                .shadow(color: .black.opacity(0.5), radius: 4, y: 2)
-                .offset(y: -42)
-                .allowsHitTesting(false)
-                .zIndex(30)
+                    )
+                    .padding(.top, 18)
             }
+            .frame(width: boxWidth, height: boxHeight)
+            .shadow(color: .black.opacity(0.22), radius: 3, y: 3)
         }
-        .frame(width: boxWidth, height: 44)
-        .shadow(color: .black.opacity(isHovered ? 0.35 : 0.15), radius: isHovered ? 4 : 2, y: 1.5)
-        .scaleEffect(isHovered ? 1.04 : 1.0)
-        .contentShape(Rectangle())
-        .onHover { hovering in
-            if hovering {
-                appState.hoveredShelfItemId = id
-            } else if appState.hoveredShelfItemId == id {
-                appState.hoveredShelfItemId = nil
-            }
-        }
-        .onTapGesture(count: 2) {
-            handleOpen()
-        }
-        .onTapGesture(count: 1) {
-            handleOpen()
-        }
-        .contextMenu {
-            if let url = url {
-                Button("Buka Folder") {
-                    NSWorkspace.shared.open(url)
-                }
-                Button("Tampilkan di Finder") {
-                    storage.openInFinder(url: url)
-                }
-                Divider()
-                Button("Kembalikan ke Desktop") {
-                    storage.restoreBookshelfItemToDesktop(itemURL: url)
-                }
-                Button("Buang ke Tempat Sampah", role: .destructive) {
-                    storage.removeBookshelfItem(itemURL: url)
-                }
-            } else {
-                Button("Buka Rak Buku di Finder") {
-                    storage.openBaseFolder()
-                }
-                Button("Tambah Folder ke Rak...") {
-                    storage.pickBookshelfItem()
-                }
-                Divider()
-                Button("Buka Laci Rak Buku") {
-                    withAnimation(.spring()) {
-                        appState.showBookshelfDrawer = true
-                    }
-                }
-            }
-        }
-        .help(url?.lastPathComponent ?? title.replacingOccurrences(of: "\n", with: " "))
-    }
-    
-    private func handleOpen() {
-        if let url = url {
-            NSWorkspace.shared.open(url)
-        } else {
-            storage.openBaseFolder()
-        }
+        .frame(width: boxWidth, height: boxHeight)
     }
 }
 
-// MARK: - Bookshelf Drawer View (Opens when Bookshelf is Clicked)
+// MARK: - File Rack Popup View (Shows latest files, metadata, and quick actions)
 public struct BookshelfDrawerView: View {
     @ObservedObject var storage = StorageManager.shared
     @Binding var isPresented: Bool
@@ -566,75 +423,117 @@ public struct BookshelfDrawerView: View {
         self._isPresented = isPresented
     }
     
+    // Sort items by modification date (newest first)
+    private var sortedRecentItems: [URL] {
+        storage.bookshelfItems.sorted { url1, url2 in
+            let date1 = (try? FileManager.default.attributesOfItem(atPath: url1.path)[.modificationDate] as? Date) ?? Date.distantPast
+            let date2 = (try? FileManager.default.attributesOfItem(atPath: url2.path)[.modificationDate] as? Date) ?? Date.distantPast
+            return date1 > date2
+        }
+    }
+    
+    private func formattedDate(for url: URL) -> String {
+        guard let attr = try? FileManager.default.attributesOfItem(atPath: url.path),
+              let date = attr[.modificationDate] as? Date else {
+            return "Baru saja"
+        }
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        return formatter.localizedString(for: date, relativeTo: Date())
+    }
+    
+    private func itemSubtitle(for url: URL) -> String {
+        if ShelfItemView.isFolder(url) {
+            let count = (try? FileManager.default.contentsOfDirectory(atPath: url.path))?.count ?? 0
+            return "Kardus Arsip • \(count) file"
+        } else {
+            let ext = url.pathExtension.uppercased()
+            let kind = ext == "APP" ? "Aplikasi" : (ext.isEmpty ? "Dokumen" : ext)
+            let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int64) ?? 0
+            let formattedSize = ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
+            return "Buku • \(kind) • \(formattedSize)"
+        }
+    }
+    
     public var body: some View {
         VStack(spacing: 0) {
             // Header
-            HStack {
-                Image(systemName: "books.vertical.fill")
-                    .foregroundColor(.yellow)
-                    .font(.system(size: 18))
-                
-                Text("Koleksi Rak Buku (\(storage.bookshelfItems.count) Item)")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(.white)
+            HStack(alignment: .center) {
+                HStack(spacing: 8) {
+                    Image(systemName: "books.vertical.fill")
+                        .foregroundColor(SANSColors.lime)
+                        .font(.system(size: 18))
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Rak File Desktop")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.white)
+                        Text("\(storage.bookshelfItems.count) item tersimpan • Menampilkan file terbaru")
+                            .font(.system(size: 11))
+                            .foregroundColor(.white.opacity(0.65))
+                    }
+                }
                 
                 Spacer()
                 
-                Button(action: {
-                    storage.pickBookshelfItem()
-                }) {
-                    Label("Tambah File", systemImage: "plus")
-                        .font(.system(size: 11))
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.brown)
-                
-                Button(action: {
-                    storage.openBaseFolder()
-                }) {
-                    Text("Buka di Finder")
-                        .font(.system(size: 11))
-                }
-                .buttonStyle(.bordered)
-                
-                if !storage.bookshelfItems.isEmpty {
+                HStack(spacing: 8) {
                     Button(action: {
-                        storage.restoreAllBookshelfItems()
+                        storage.pickBookshelfItem()
                     }) {
-                        Text("Kembalikan Semua ke Desktop")
+                        Label("Tambah File", systemImage: "plus")
+                            .font(.system(size: 11, weight: .semibold))
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(SANSColors.primaryBlue)
+                    
+                    Button(action: {
+                        storage.openBaseFolder()
+                    }) {
+                        Label("Buka di Finder", systemImage: "folder")
                             .font(.system(size: 11))
                     }
                     .buttonStyle(.bordered)
-                }
-                
-                Button(action: {
-                    withAnimation(.spring()) {
-                        isPresented = false
+                    
+                    if !storage.bookshelfItems.isEmpty {
+                        Button(action: {
+                            storage.restoreAllBookshelfItems()
+                        }) {
+                            Text("Kembalikan Semua")
+                                .font(.system(size: 11))
+                        }
+                        .buttonStyle(.bordered)
                     }
-                }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 16))
-                        .foregroundColor(.white.opacity(0.8))
+                    
+                    Button(action: {
+                        withAnimation(.spring()) {
+                            isPresented = false
+                        }
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.leading, 4)
                 }
-                .buttonStyle(.plain)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
-            .background(Color.black.opacity(0.3))
+            .padding(.horizontal, 18)
+            .padding(.vertical, 14)
+            .background(Color.black.opacity(0.35))
             
             Divider()
-                .background(Color.white.opacity(0.1))
+                .background(Color.white.opacity(0.12))
             
-            // Content List
+            // Content
             if storage.bookshelfItems.isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "books.vertical")
                         .font(.system(size: 42))
-                        .foregroundColor(.white.opacity(0.4))
+                        .foregroundColor(.white.opacity(0.35))
                     Text("Rak buku masih kosong.")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white.opacity(0.8))
-                    Text("Seret file atau folder dari desktop ke rak buku untuk merapikannya.")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.85))
+                    Text("Seret file atau folder dari desktop ke lemari buku untuk menyimpannya.")
                         .font(.system(size: 12))
                         .foregroundColor(.white.opacity(0.6))
                         .multilineTextAlignment(.center)
@@ -642,60 +541,126 @@ public struct BookshelfDrawerView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(40)
             } else {
-                ScrollView {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 100, maximum: 130), spacing: 14)], spacing: 14) {
-                        ForEach(storage.bookshelfItems, id: \.self) { item in
-                            VStack(spacing: 6) {
-                                ZStack(alignment: .topTrailing) {
-                                    Button(action: {
-                                        NSWorkspace.shared.open(item)
-                                    }) {
-                                        VStack(spacing: 6) {
-                                            Image(systemName: item.hasDirectoryPath ? "folder.fill" : "doc.fill")
-                                                .font(.system(size: 32))
-                                                .foregroundColor(item.hasDirectoryPath ? .yellow : .cyan)
-                                            
-                                            Text(item.lastPathComponent)
-                                                .font(.system(size: 11, weight: .medium))
-                                                .foregroundColor(.white)
-                                                .lineLimit(2)
-                                                .multilineTextAlignment(.center)
-                                        }
-                                        .frame(width: 90, height: 80)
-                                        .padding(8)
-                                        .background(Color.white.opacity(0.12))
-                                        .cornerRadius(8)
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(SANSColors.lime)
+                        Text("File & Folder Terbaru di Rak")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(SANSColors.lime)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 18)
+                    .padding(.top, 12)
+                    
+                    ScrollView {
+                        VStack(spacing: 8) {
+                            ForEach(sortedRecentItems, id: \.self) { item in
+                                let isFolder = ShelfItemView.isFolder(item)
+                                let isApp = item.pathExtension.lowercased() == "app"
+                                
+                                HStack(spacing: 12) {
+                                    // Visual badge
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .fill(isFolder ? Color(red: 0.72, green: 0.54, blue: 0.36).opacity(0.3) : (isApp ? Color.purple.opacity(0.3) : SANSColors.primaryBlue.opacity(0.3)))
+                                            .frame(width: 36, height: 36)
+                                        Image(systemName: isFolder ? "archivebox.fill" : (isApp ? "app.fill" : "doc.text.fill"))
+                                            .font(.system(size: 16))
+                                            .foregroundColor(isFolder ? Color(red: 0.95, green: 0.82, blue: 0.60) : (isApp ? Color.purple : Color.cyan))
                                     }
-                                    .buttonStyle(.plain)
                                     
-                                    Button(action: {
-                                        storage.restoreBookshelfItemToDesktop(itemURL: item)
-                                    }) {
-                                        Image(systemName: "arrow.up.forward.app.fill")
-                                            .font(.system(size: 12))
-                                            .foregroundColor(.yellow)
-                                            .background(Circle().fill(Color.black))
+                                    // Name & info
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(item.lastPathComponent)
+                                            .font(.system(size: 12, weight: .bold))
+                                            .foregroundColor(.white)
+                                            .lineLimit(1)
+                                        
+                                        HStack(spacing: 4) {
+                                            Text(itemSubtitle(for: item))
+                                                .font(.system(size: 10))
+                                                .foregroundColor(.white.opacity(0.65))
+                                            Text("•")
+                                                .font(.system(size: 9))
+                                                .foregroundColor(.white.opacity(0.4))
+                                            Text(formattedDate(for: item))
+                                                .font(.system(size: 10))
+                                                .foregroundColor(SANSColors.lime.opacity(0.9))
+                                        }
                                     }
-                                    .buttonStyle(.plain)
-                                    .offset(x: 4, y: -4)
-                                    .help("Kembalikan ke Desktop")
+                                    
+                                    Spacer()
+                                    
+                                    // Quick action buttons
+                                    HStack(spacing: 6) {
+                                        Button(action: {
+                                            NSWorkspace.shared.open(item)
+                                            withAnimation { isPresented = false }
+                                        }) {
+                                            Text("Buka")
+                                                .font(.system(size: 11, weight: .bold))
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal, 10)
+                                                .padding(.vertical, 4)
+                                                .background(Capsule().fill(SANSColors.primaryBlue))
+                                        }
+                                        .buttonStyle(.plain)
+                                        .help("Buka file ini")
+                                        
+                                        Button(action: {
+                                            storage.openInFinder(url: item)
+                                        }) {
+                                            Image(systemName: "folder")
+                                                .font(.system(size: 12))
+                                                .foregroundColor(.white.opacity(0.8))
+                                                .frame(width: 26, height: 26)
+                                                .background(Circle().fill(Color.white.opacity(0.12)))
+                                        }
+                                        .buttonStyle(.plain)
+                                        .help("Tampilkan di Finder")
+                                        
+                                        Button(action: {
+                                            storage.restoreBookshelfItemToDesktop(itemURL: item)
+                                        }) {
+                                            Image(systemName: "arrow.up.forward.app")
+                                                .font(.system(size: 12))
+                                                .foregroundColor(.yellow)
+                                                .frame(width: 26, height: 26)
+                                                .background(Circle().fill(Color.white.opacity(0.12)))
+                                        }
+                                        .buttonStyle(.plain)
+                                        .help("Kembalikan ke Desktop")
+                                    }
                                 }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(Color.white.opacity(0.06))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                                )
                             }
                         }
+                        .padding(.horizontal, 18)
+                        .padding(.bottom, 16)
                     }
-                    .padding(20)
                 }
             }
         }
-        .frame(width: 580, height: 380)
+        .frame(width: 600, height: 420)
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(Color(red: 0.16, green: 0.14, blue: 0.12).opacity(0.96))
+                .fill(Color(red: 0.14, green: 0.16, blue: 0.20).opacity(0.97))
                 .shadow(color: .black.opacity(0.6), radius: 20, y: 10)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                .stroke(Color.white.opacity(0.16), lineWidth: 1)
         )
     }
 }

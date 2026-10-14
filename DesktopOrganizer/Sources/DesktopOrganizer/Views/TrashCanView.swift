@@ -1,5 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import AppKit
 
 public struct TrashCanView: View {
     @ObservedObject var storage = StorageManager.shared
@@ -7,61 +8,60 @@ public struct TrashCanView: View {
     
     public init() {}
     
+    private let canWidth: CGFloat = 84
+    private let canHeight: CGFloat = 114
+    
     public var body: some View {
-        Button(action: {
-            // Open macOS Trash in Finder
+        ZStack(alignment: .bottom) {
+            // 1. Soft contact shadow on grass floor
+            Ellipse()
+                .fill(Color(red: 0.08, green: 0.22, blue: 0.10).opacity(0.38))
+                .frame(width: canWidth * 0.88, height: 16)
+                .blur(radius: 5)
+                .offset(y: 5)
+            
+            // 2. High-Resolution Cartoon Wastebasket Asset
+            if let nsImg = AssetLoader.image(named: "trash_can") {
+                Image(nsImage: nsImg)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: canWidth, height: canHeight)
+                    .shadow(
+                        color: appState.isTrashTargeted ? Color.red.opacity(0.65) : (appState.isHoveringTrash ? Color.black.opacity(0.28) : Color.black.opacity(0.12)),
+                        radius: appState.isTrashTargeted ? 12 : (appState.isHoveringTrash ? 8 : 4),
+                        x: 0, y: 3
+                    )
+                    .scaleEffect(appState.isTrashTargeted ? 1.05 : 1.0)
+                    .animation(.spring(response: 0.25, dampingFraction: 0.75), value: appState.isTrashTargeted)
+            }
+            
+            // 3. Drop Target Indicator (Glowing badge when dragging a file over trash)
+            if appState.isTrashTargeted {
+                VStack {
+                    Image(systemName: "arrow.down.circle.fill")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(.white)
+                        .shadow(color: .red, radius: 8)
+                        .offset(y: -canHeight - 12)
+                    Spacer()
+                }
+            }
+        }
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            appState.isHoveringTrash = hovering
+        }
+        .onTapGesture(count: 2) {
             if let trashURL = FileManager.default.urls(for: .trashDirectory, in: .userDomainMask).first {
                 NSWorkspace.shared.open(trashURL)
             }
-        }) {
-            ZStack(alignment: .top) {
-                // Bin Rim
-                Ellipse()
-                    .stroke(appState.isTrashTargeted ? Color.red : Color.gray, lineWidth: appState.isTrashTargeted ? 3 : 2)
-                    .background(Ellipse().fill(Color.black.opacity(0.6)))
-                    .frame(width: 44, height: 16)
-                
-                // Bin Body (tapered wire mesh basket)
-                Path { path in
-                    path.move(to: CGPoint(x: 2, y: 8))
-                    path.addLine(to: CGPoint(x: 8, y: 56))
-                    path.addLine(to: CGPoint(x: 36, y: 56))
-                    path.addLine(to: CGPoint(x: 42, y: 8))
-                    path.closeSubpath()
-                }
-                .fill(
-                    LinearGradient(
-                        colors: appState.isTrashTargeted ? [Color.red.opacity(0.8), Color.red.opacity(0.4)] : [Color(white: 0.55), Color(white: 0.35)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .overlay(
-                    // Wire mesh grid lines
-                    VStack(spacing: 5) {
-                        ForEach(0..<6, id: \.self) { _ in
-                            Rectangle()
-                                .fill(Color.black.opacity(0.35))
-                                .frame(height: 1)
-                        }
-                    }
-                    .padding(.top, 12)
-                    .padding(.horizontal, 6)
-                )
-                
-                // Icon
-                VStack {
-                    Spacer()
-                    Image(systemName: appState.isTrashTargeted ? "trash.fill" : "trash")
-                        .font(.system(size: 16))
-                        .foregroundColor(appState.isTrashTargeted ? .yellow : .white.opacity(0.9))
-                        .padding(.bottom, 12)
-                }
-            }
-            .frame(width: 44, height: 58)
-            .shadow(color: .black.opacity(0.35), radius: 3, y: 2)
         }
-        .buttonStyle(.plain)
+        .onTapGesture {
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                appState.toggleQuickView(.trash)
+            }
+        }
+        .help("Tempat Sampah: Klik 1x untuk opsi & kosongkan sampah, klik 2x untuk buka di Finder. Tarik file ke sini untuk membuangnya.")
         .onDrop(of: [.fileURL], isTargeted: Binding(
             get: { appState.isTrashTargeted },
             set: { appState.isTrashTargeted = $0 }
@@ -73,6 +73,5 @@ public struct TrashCanView: View {
             }
             return true
         }
-        .help("Tempat Sampah: Tarik file ke sini untuk membuangnya ke Trash")
     }
 }

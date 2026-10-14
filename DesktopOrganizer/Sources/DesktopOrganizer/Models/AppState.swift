@@ -1,6 +1,21 @@
 import SwiftUI
 import AppKit
 
+// MARK: - Active Quick View Enum for Desktop Elements
+public enum ActiveDesktopQuickView: Equatable {
+    case clock
+    case calendar
+    case monitor
+    case mail
+    case whatsapp
+    case trash
+    case photo(slot: Int)
+    case carpetItem(url: URL)
+    case guitar
+    case tegoerPlaque
+    case sansPlaque
+}
+
 public final class AppState: ObservableObject {
     public static let shared = AppState()
     
@@ -27,10 +42,27 @@ public final class AppState: ObservableObject {
     @Published public var showThemePicker: Bool = false
     @Published public var showHelpModal: Bool = false
     @Published public var showBookshelfDrawer: Bool = false
+    @Published public var activeShelfPopoverURL: URL? = nil
+    @Published public var activeShelfIndex: Int = 1
+    @Published public var activeQuickView: ActiveDesktopQuickView? = nil
     @Published public var showRugPeek: Bool = false
     @Published public var isCarpetLifted: Bool = false
     @Published public var carpetSlideOffset: CGFloat = 0
     @Published public var isCarpetDragging: Bool = false
+    
+    public func toggleQuickView(_ view: ActiveDesktopQuickView) {
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
+            if activeQuickView == view {
+                activeQuickView = nil
+            } else {
+                activeShelfPopoverURL = nil
+                showSpotifyPopup = false
+                showBookshelfDrawer = false
+                showThemePicker = false
+                activeQuickView = view
+            }
+        }
+    }
     
     // Custom Layout Edit Mode
     @Published public var isEditLayoutMode: Bool = false
@@ -42,19 +74,30 @@ public final class AppState: ObservableObject {
     @Published public var targetedPhotoSlot: Int? = nil
     @Published public var hoveredPhotoSlot: Int? = nil
     @Published public var hoveredShelfURL: URL? = nil
-    @Published public var hoveredShelfItemId: String? = nil
+    @Published public var hoveredFlyoutURL: URL? = nil
     
     // Sticky Notes state
     @Published public var addingTaskForNoteId: UUID? = nil
     @Published public var newTaskText: String = ""
     @Published public var draggingNoteId: UUID? = nil
     @Published public var noteDragTranslation: CGSize = .zero
+    
+    // Photo drag state
+    @Published public var draggingPhotoSlot: Int? = nil
+    @Published public var photoDragTranslation: CGSize = .zero
+    
     @Published public var isHoveringDeskMail: Bool = false
+    @Published public var isHoveringWallCalendar: Bool = false
+    @Published public var isHoveringGuitar: Bool = false
+    @Published public var isHoveringTrash: Bool = false
+    @Published public var hoveredPlaque: ActiveDesktopQuickView? = nil
     
-    // Live date/time for Clock & Calendar
-    @Published public var currentDate: Date = Date()
+    // Window Visibility for power conservation
+    @Published public var isWindowVisible: Bool = true
     
-    private var timer: Timer?
+    // Hardware-accelerated continuous leaf sway phase
+    @Published public var plantSwayPhase: Bool = false
+    
     private var powerObserver: AnyObject?
     
     private init() {
@@ -83,11 +126,7 @@ public final class AppState: ObservableObject {
             self?.isLowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
         }
         
-        let t = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
-            self?.currentDate = Date()
-        }
-        RunLoop.main.add(t, forMode: .common)
-        self.timer = t
     }
 }
+
 

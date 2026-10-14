@@ -2,9 +2,7 @@ import SwiftUI
 import AppKit
 
 public struct DesktopRootView: View {
-    @ObservedObject var storage = StorageManager.shared
     @ObservedObject var appState = AppState.shared
-    @ObservedObject var spotify = SpotifyService.shared
     
     public init() {}
     
@@ -20,78 +18,114 @@ public struct DesktopRootView: View {
                 
                 // 2. Interactive Hot Zones (Mapped 1:1 onto the illustrated furniture)
                 
-                // Bookshelf (Left Wall: 4 shelves of books/boxes & sliding ladder)
+                // Wall Shelf (Left Wall: centered perfectly in left wall boiserie panel)
                 BookshelfView(theme: appState.currentTheme)
-                    .frame(width: w * 0.23, height: h * 0.64)
-                    .position(x: w * 0.145, y: h * 0.430)
+                    .frame(width: w * 0.2444, height: h * 0.2860)
+                    .position(x: w * 0.1678, y: h * 0.3380)
+                
+                // Live Modern Architectural Wall Clock (Mounted on blue wall directly above Bookshelf)
+                let wallClockSize = min(w * 0.068, h * 0.108)
+                AnalogWallClockView()
+                    .frame(width: wallClockSize, height: wallClockSize)
+                    .position(x: w * 0.1678, y: h * 0.118)
                 
                 // Corkboard Notes (Center Wall: Sticky notes & Add Memo inside wooden frame)
                 CorkboardView()
                     .frame(width: w * 0.2691, height: h * 0.2935)
                     .position(x: w * 0.4983, y: h * 0.2357)
                 
-                // Live Analog Wall Clock (Hour, minute, and second hands moving in real time)
-                AnalogWallClockView()
-                    .frame(width: w * 0.080, height: w * 0.080)
-                    .position(x: w * 0.7025, y: h * 0.2010)
-                
-                // Live Wall Calendar (Date, Month, Day of week - Desktop Organizer parity)
+                /*
+                // Temporarily hidden: Wall Calendar (saved for later repositioning)
                 WallCalendarView()
-                    .frame(width: w * 0.0544, height: h * 0.1020)
-                    .position(x: w * 0.7022, y: h * 0.3318)
+                    .frame(width: w * 0.056, height: h * 0.104)
+                    .position(x: w * 0.7025, y: h * 0.3320)
+                */
                 
-                // Desk Lamp Hot Zone (Over the illustrated green Banker's Lamp)
-                Button(action: {
+                // Tropical Potted Houseplant (Beside Desk Left Side - Native Vector with Looping Leaf Sway)
+                let plantW = w * 0.105
+                let plantH = plantW * (310.0 / 140.0)
+                PottedPlantView()
+                    .frame(width: plantW, height: plantH)
+                    .position(x: w * 0.296, y: (h * 0.770) - (plantH / 2))
+                
+                // Modern Executive Workstation Desk (Clean, Spacious Dual-Pedestal)
+                let deskW = w * 0.335
+                let deskH = deskW * (276.0 / 555.0)
+                let deskX = w * 0.498
+                let deskY = h * 0.650
+                let tabletopSurfaceY = deskY - (deskH / 2)
+                
+                WorkstationDeskView()
+                    .frame(width: deskW, height: deskH)
+                    .position(x: deskX, y: deskY)
+                
+                // Workstation iMac Monitor (Center of Desk - Click to open Finder)
+                let monitorW = w * 0.104
+                let monitorH = monitorW * (155.0 / 175.0)
+                WorkstationMonitorView()
+                    .frame(width: monitorW, height: monitorH)
+                    .position(x: deskX, y: tabletopSurfaceY - (monitorH / 2) + 2)
+                
+                // Vintage Emerald & Brass Boudoir Lamp (Left Pedestal Top - Raised & Enlarged)
+                DeskLampView(isOn: appState.lampOn) {
                     withAnimation(.easeInOut(duration: 0.35)) {
                         appState.lampOn.toggle()
                     }
-                }) {
-                    ZStack {
-                        Rectangle()
-                            .fill(Color.clear)
-                            .contentShape(Rectangle())
-                        
-                        if appState.lampOn {
-                            Circle()
-                                .fill(Color.yellow.opacity(0.15))
-                                .frame(width: 45, height: 45)
-                                .blur(radius: 8)
-                        }
-                    }
                 }
-                .buttonStyle(.plain)
-                .help("Lampu Meja: Klik untuk menyalakan/mematikan lampu")
-                .frame(width: w * 0.075, height: h * 0.110)
-                .position(x: w * 0.472, y: h * 0.552)
+                .position(x: w * 0.350, y: tabletopSurfaceY - 87)
                 
-                // Desk Mail Envelope (Sealed letter on desk opens Mail - Desktop Organizer parity)
-                DeskMailEnvelopeView()
-                    .frame(width: w * 0.045, height: h * 0.025)
-                    .position(x: w * 0.4014, y: h * 0.589)
+                // Left Desk Trophy Plaque (Tegoer Sapa - Crystal Acrylic)
+                let plaqueH = min(h * 0.138, 142.0)
+                let plaqueW = plaqueH * (460.0 / 580.0)
+                DesktopAwardPlaqueView(
+                    title: "Plakat Tegoer Sapa",
+                    subtitle: "Plakat Penghargaan Resmi Tegoer Sapa",
+                    imageName: "plaque_tegoer_sapa",
+                    svgFileName: "tegoer sapa logoo.svg",
+                    quickViewType: .tegoerPlaque
+                )
+                .frame(width: plaqueW, height: plaqueH)
+                .position(x: w * 0.410, y: tabletopSurfaceY - (plaqueH / 2) + 6)
                 
-                // Desk Radio (Official vintage radio sitting on desk surface)
+                // Desk WhatsApp Card (Modern Apple Frosted Glass Card - Beside iMac Stand)
+                DeskWhatsAppCardView()
+                .position(x: w * 0.468, y: tabletopSurfaceY - 14)
+                
+                // Right Desk Trophy Plaque (Sans Studio - Crystal Acrylic)
+                DesktopAwardPlaqueView(
+                    title: "Plakat Sans Studio",
+                    subtitle: "Plakat Penghargaan Resmi Sans Studio",
+                    imageName: "plaque_sans",
+                    svgFileName: "sans logo.svg",
+                    quickViewType: .sansPlaque
+                )
+                .frame(width: plaqueW, height: plaqueH)
+                .position(x: w * 0.588, y: tabletopSurfaceY - (plaqueH / 2) + 6)
+                
+                // Desk Speaker (Marshall Bluetooth Speaker - Right Pedestal Top)
                 VintageRadioView()
-                    .position(x: w * 0.628, y: h * 0.585)
+                    .position(x: w * 0.648, y: tabletopSurfaceY - 17)
                 
-                // Desk Photo Frame (Framed photo resting on desk surface)
-                DeskPhotoFrameView()
-                    .frame(width: w * 0.0512, height: h * 0.0475)
-                    .position(x: w * 0.5509, y: h * 0.5707)
-                
-                // Photo Gallery (Right Wall: 6 photo frames matching official design)
+                // Photo Gallery (Right Wall: centered perfectly in right wall boiserie panel)
                 PhotoGalleryView()
-                    .frame(width: w * 0.170, height: h * 0.380)
-                    .position(x: w * 0.865, y: h * 0.320)
+                    .frame(width: w * 0.220, height: h * 0.440)
+                    .position(x: w * 0.83125, y: h * 0.320)
                 
-                // Woven Wastebasket / Trash Can (Floor beside desk)
-                BasketTrashHotZoneView()
-                    .frame(width: w * 0.065, height: h * 0.115)
-                    .position(x: w * 0.683, y: h * 0.732)
+                // Fender Stratocaster Guitar on Stand (Standing on lawn beneath photo gallery)
+                let guitarH = h * 0.390
+                let guitarW = guitarH * (475.0 / 1380.0)
+                StratocasterGuitarView()
+                    .frame(width: guitarW, height: guitarH)
+                    .position(x: w * 0.885, y: h * 0.720)
                 
-                // Floor Rug / Magic Carpet (Floor)
+                // Cartoon Wastebasket (Beside Desk on Floor)
+                TrashCanView()
+                    .position(x: w * 0.710, y: h * 0.738)
+                
+                // Floor Rug / Magic Carpet (Centered in Front of Desk - Enlarged with Cloth Dynamics)
                 MagicCarpetView(theme: appState.currentTheme)
-                    .frame(width: w * 0.380, height: h * 0.120)
-                    .position(x: w * 0.580, y: h * 0.855)
+                    .frame(width: w * 0.620, height: h * 0.208)
+                    .position(x: w * 0.498, y: h * 0.835)
                 
                 // 3. Ambient Night Dimmer when Lamp is Off
                 if !appState.lampOn {
@@ -103,12 +137,94 @@ public struct DesktopRootView: View {
                 }
                 
 
-                // 5. Modals (Bookshelf Drawer, Theme Picker, Help Guide)
-                if appState.showBookshelfDrawer {
-                    ModalBackdrop(isPresented: $appState.showBookshelfDrawer) {
-                        BookshelfDrawerView(isPresented: $appState.showBookshelfDrawer)
+                // 5. Anchored Popovers & Flyouts (Shelf Item Flyout, Spotify Player, Theme Picker)
+                if let targetURL = appState.activeShelfPopoverURL {
+                    let shelfPlanks: [CGFloat] = [0.488, 0.922]
+                    let shelfIdx = min(max(appState.activeShelfIndex, 0), 1)
+                    let bookshelfTop = h * (0.2785 - 0.288 / 2)
+                    let bookshelfHeight = h * 0.288
+                    let plankY = bookshelfTop + (bookshelfHeight * shelfPlanks[shelfIdx])
+                    let shelfItemY = plankY - 35
+                    let popoverWidth: CGFloat = 279
+                    let popoverX = (w * 0.208) + (popoverWidth / 2) + 4
+                    let popoverY = min(max(shelfItemY, 140), h - 140)
+                    
+                    ZStack {
+                        Color.clear
+                            .contentShape(Rectangle())
+                            .ignoresSafeArea()
+                            .onTapGesture {
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                    appState.activeShelfPopoverURL = nil
+                                }
+                            }
+                        
+                        ShelfFlyoutPopoverView(
+                            url: targetURL,
+                            shelfIndex: shelfIdx,
+                            onClose: {
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                    appState.activeShelfPopoverURL = nil
+                                }
+                            }
+                        )
+                        .position(x: popoverX, y: popoverY)
+                        .transition(.asymmetric(
+                            insertion: .scale(scale: 0.92, anchor: .leading).combined(with: .opacity),
+                            removal: .scale(scale: 0.92, anchor: .leading).combined(with: .opacity)
+                        ))
                     }
-                    .zIndex(40)
+                    .zIndex(45)
+                }
+                
+                if appState.showBookshelfDrawer {
+                    let popoverWidth: CGFloat = 520
+                    let popoverX = min((w * 0.208) + (popoverWidth / 2) + 10, w - (popoverWidth / 2) - 20)
+                    let popoverY = min(max(h * 0.380, 220), h - 230)
+                    
+                    ZStack {
+                        Color.clear
+                            .contentShape(Rectangle())
+                            .ignoresSafeArea()
+                            .onTapGesture {
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                    appState.showBookshelfDrawer = false
+                                }
+                            }
+                        
+                        BookshelfDrawerView(isPresented: $appState.showBookshelfDrawer)
+                            .position(x: popoverX, y: popoverY)
+                            .transition(.asymmetric(
+                                insertion: .scale(scale: 0.92, anchor: .leading).combined(with: .opacity),
+                                removal: .scale(scale: 0.92, anchor: .leading).combined(with: .opacity)
+                            ))
+                    }
+                    .zIndex(45)
+                }
+                
+                if appState.showSpotifyPopup {
+                    let radioX = w * 0.622
+                    let popoverX = min(max(radioX, 140), w - 140)
+                    let popoverY = tabletopSurfaceY - 128
+                    
+                    ZStack {
+                        Color.clear
+                            .contentShape(Rectangle())
+                            .ignoresSafeArea()
+                            .onTapGesture {
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                    appState.showSpotifyPopup = false
+                                }
+                            }
+                        
+                        SpotifyMiniPlayerView(isPresented: $appState.showSpotifyPopup)
+                            .position(x: popoverX, y: popoverY)
+                            .transition(.asymmetric(
+                                insertion: .scale(scale: 0.92, anchor: .bottom).combined(with: .opacity),
+                                removal: .scale(scale: 0.92, anchor: .bottom).combined(with: .opacity)
+                            ))
+                    }
+                    .zIndex(45)
                 }
                 
                 if appState.showThemePicker {
@@ -126,117 +242,199 @@ public struct DesktopRootView: View {
                     .zIndex(40)
                 }
                 
-                if appState.showSpotifyPopup {
-                    ModalBackdrop(isPresented: $appState.showSpotifyPopup) {
-                        SpotifyMiniPlayerView(isPresented: $appState.showSpotifyPopup)
+                // 6. Interactive Quick View Popovers (Single-click preview with double-click app opener)
+                if let active = appState.activeQuickView {
+                    ZStack {
+                        Color.clear
+                            .contentShape(Rectangle())
+                            .ignoresSafeArea()
+                            .onTapGesture {
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                    appState.activeQuickView = nil
+                                }
+                            }
+                        
+                        switch active {
+                        case .clock:
+                            ClockQuickView(onClose: {
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                    appState.activeQuickView = nil
+                                }
+                            })
+                            .position(x: min(max(w * 0.1678, 140), w - 140), y: min(max((h * 0.118) + (wallClockSize / 2) + 85, 140), h - 140))
+                            
+                        case .calendar:
+                            CalendarQuickView(onClose: {
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                    appState.activeQuickView = nil
+                                }
+                            })
+                            .position(x: max((w * 0.7022) - 150, 140), y: min(max(h * 0.3318, 140), h - 140))
+                            
+                        case .monitor:
+                            MonitorQuickView(onClose: {
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                    appState.activeQuickView = nil
+                                }
+                            })
+                            .position(x: deskX, y: max(tabletopSurfaceY - 110, 150))
+                            
+                        case .mail, .whatsapp:
+                            WhatsAppQuickView(onClose: {
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                    appState.activeQuickView = nil
+                                }
+                            })
+                            .position(x: min(max(w * 0.468, 130), w - 130), y: tabletopSurfaceY - 95)
+                            
+                        case .trash:
+                            TrashQuickView(onClose: {
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                    appState.activeQuickView = nil
+                                }
+                            })
+                            .position(x: min(max(w * 0.708, 130), w - 130), y: (h * 0.735) - 115)
+                            
+                        case .photo(let slot):
+                            PhotoFrameQuickView(slotIndex: slot, onClose: {
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                    appState.activeQuickView = nil
+                                }
+                            })
+                            .position(
+                                x: min(max(w * 0.83125 - 140, 140), w - 140),
+                                y: h * 0.320
+                            )
+                            
+                        case .carpetItem(let itemURL):
+                            CarpetItemQuickView(url: itemURL, onClose: {
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                    appState.activeQuickView = nil
+                                }
+                            })
+                            .position(x: w * 0.498, y: min(h * 0.730, h - 140))
+                            
+                        case .guitar:
+                            GuitarQuickView(onClose: {
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                    appState.activeQuickView = nil
+                                }
+                            })
+                            .position(x: min(max(w * 0.875 - 135, 140), w - 140), y: min(max(h * 0.640, 150), h - 140))
+                            
+                        case .tegoerPlaque:
+                            AwardPlaqueQuickView(
+                                title: "Plakat Tegoer Sapa",
+                                subtitle: "Plakat Penghargaan Resmi Tegoer Sapa",
+                                imageName: "plaque_tegoer_sapa",
+                                svgFileName: "tegoer sapa logoo.svg",
+                                onClose: {
+                                    withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                        appState.activeQuickView = nil
+                                    }
+                                }
+                            )
+                            .position(x: min(max(w * 0.410, 140), w - 140), y: tabletopSurfaceY - 120)
+                            
+                        case .sansPlaque:
+                            AwardPlaqueQuickView(
+                                title: "Plakat Sans Studio",
+                                subtitle: "Plakat Penghargaan Resmi Sans Studio",
+                                imageName: "plaque_sans",
+                                svgFileName: "sans logo.svg",
+                                onClose: {
+                                    withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                        appState.activeQuickView = nil
+                                    }
+                                }
+                            )
+                            .position(x: min(max(w * 0.588, 140), w - 140), y: tabletopSurfaceY - 120)
+                        }
                     }
-                    .zIndex(40)
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.92).combined(with: .opacity),
+                        removal: .scale(scale: 0.92).combined(with: .opacity)
+                    ))
+                    .zIndex(50)
                 }
             }
         }
     }
 }
 
-// MARK: - Desk Photo Frame Hot Zone (Over the illustrated desk picture frame)
-struct DeskPhotoFrameView: View {
-    @ObservedObject var storage = StorageManager.shared
+
+// MARK: - Desk WhatsApp (Modern Apple Frosted Glass Card)
+struct DeskWhatsAppCardView: View {
     @ObservedObject var appState = AppState.shared
-    let slotIndex: Int = 6
     
-    var photoURL: URL? {
-        storage.photoSlots[slotIndex]
-    }
-    
-    var cachedImage: NSImage? {
-        storage.cachedPhotos[slotIndex]
+    private func openWhatsApp() {
+        if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "net.whatsapp.WhatsApp") {
+            NSWorkspace.shared.openApplication(at: appURL, configuration: NSWorkspace.OpenConfiguration())
+        } else if let url = URL(string: "whatsapp://") {
+            NSWorkspace.shared.open(url)
+        } else if let webURL = URL(string: "https://web.whatsapp.com") {
+            NSWorkspace.shared.open(webURL)
+        }
     }
     
     var body: some View {
         ZStack {
-            if let image = cachedImage {
-                ZStack(alignment: .topTrailing) {
-                    Image(nsImage: image)
+            // Sleek Apple Frosted Glass Card
+            RoundedRectangle(cornerRadius: 6)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.88), Color(red: 0.94, green: 0.98, blue: 0.95).opacity(0.65)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 52, height: 32)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.95), Color.white.opacity(0.40)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                )
+                .shadow(color: Color.black.opacity(0.20), radius: 5, y: 3)
+            
+            // WhatsApp Icon & Online Indicator Dot
+            HStack(spacing: 5) {
+                if let img = AssetLoader.image(named: "whatsapp_icon") {
+                    Image(nsImage: img)
                         .resizable()
-                        .scaledToFill()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .clipped()
-                        .cornerRadius(3)
-                        .onTapGesture {
-                            if let url = photoURL {
-                                NSWorkspace.shared.open(url)
-                            }
-                        }
-                        .help("Klik untuk melihat foto di Preview")
-                    
-                    Button(action: {
-                        storage.removePhoto(slotIndex: slotIndex)
-                    }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 10))
-                            .foregroundColor(SANSColors.pink)
-                            .background(Circle().fill(Color.white))
-                    }
-                    .buttonStyle(.plain)
-                    .padding(2)
-                    .help("Hapus foto dari meja")
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 20, height: 20)
+                } else {
+                    Image(systemName: "phone.bubble.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(Color(red: 0.15, green: 0.83, blue: 0.40))
                 }
-            } else {
-                Button(action: {
-                    storage.pickPhoto(forSlot: slotIndex)
-                }) {
-                    Color.clear
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .help("Pigura Meja: Klik atau tarik foto ke sini untuk memajangnya")
-            }
-        }
-        .overlay(
-            Group {
-                if appState.targetedPhotoSlot == slotIndex {
-                    RoundedRectangle(cornerRadius: 3)
-                        .stroke(SANSColors.lime, lineWidth: 2)
-                }
-            }
-        )
-        .onDrop(of: [.fileURL], isTargeted: Binding(
-            get: { appState.targetedPhotoSlot == slotIndex },
-            set: { targeted in appState.targetedPhotoSlot = targeted ? slotIndex : nil }
-        )) { providers in
-            for provider in providers {
-                StorageManager.extractFileURL(from: provider) { url in
-                    storage.assignPhoto(sourceURL: url, slotIndex: slotIndex)
-                }
-            }
-            return true
-        }
-    }
-}
-
-// MARK: - Desk Mail Hot Zone (Over the illustrated sealed envelope)
-struct DeskMailEnvelopeView: View {
-    @ObservedObject var appState = AppState.shared
-    
-    var body: some View {
-        Button(action: {
-            if let mailURL = URL(string: "mailto:") {
-                NSWorkspace.shared.open(mailURL)
-            }
-        }) {
-            ZStack {
-                Color.clear
-                    .contentShape(Rectangle())
                 
-                if appState.isHoveringDeskMail {
-                    RoundedRectangle(cornerRadius: 3)
-                        .stroke(Color.yellow.opacity(0.85), lineWidth: 1.5)
-                        .shadow(color: Color.yellow.opacity(0.5), radius: 3)
-                }
+                Circle()
+                    .fill(Color(red: 0.15, green: 0.83, blue: 0.40))
+                    .frame(width: 6, height: 6)
+                    .overlay(Circle().stroke(Color.white, lineWidth: 1))
+                    .shadow(color: Color(red: 0.15, green: 0.83, blue: 0.40).opacity(0.5), radius: 2)
             }
         }
-        .buttonStyle(.plain)
-        .onHover { appState.isHoveringDeskMail = $0 }
-        .help("Surat: Klik untuk membuka Mail / Email")
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2) {
+            openWhatsApp()
+        }
+        .onTapGesture {
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                appState.toggleQuickView(.whatsapp)
+            }
+        }
+        .onHover { hovering in
+            appState.isHoveringDeskMail = hovering
+        }
+        .help("WhatsApp: Klik 1x untuk opsi, klik 2x untuk membuka WhatsApp")
     }
 }
 

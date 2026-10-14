@@ -19,7 +19,7 @@ public struct ThemeBackgroundView: View {
                 if let nsImg = AssetLoader.image(named: theme.backgroundImageName) {
                     Image(nsImage: nsImg)
                         .resizable()
-                        .interpolation(.none) // Preserve crisp pixel-art look
+                        .interpolation(.high) // Smooth, crisp anti-aliased rendering on Retina displays
                         .aspectRatio(contentMode: .fill)
                         .frame(width: width, height: height)
                         .clipped()
@@ -39,11 +39,11 @@ public struct ThemeBackgroundView: View {
     }
     
     private var floorColor: Color {
-        SANSColors.dark
+        Color(red: 0.71, green: 0.52, blue: 0.34) // Warm honey oak hardwood
     }
     
     private var woodColor: Color {
-        Color(red: 0.38, green: 0.23, blue: 0.14)
+        Color(red: 0.32, green: 0.20, blue: 0.12) // Rich walnut wainscoting
     }
 
     @ViewBuilder

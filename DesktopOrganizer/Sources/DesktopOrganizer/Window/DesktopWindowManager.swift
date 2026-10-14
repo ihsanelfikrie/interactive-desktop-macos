@@ -46,10 +46,28 @@ public final class DesktopWindowManager: ObservableObject {
         
         self.window = window
         
+        // Setup occlusion observer for zero-CPU background throttling
+        setupOcclusionObserver(for: window)
+        
         // Normal window level by default so all clicks, textfields, and drag-drops work seamlessly
         window.level = .normal
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+    
+    private func setupOcclusionObserver(for window: NSWindow) {
+        AppState.shared.isWindowVisible = window.occlusionState.contains(.visible)
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.didChangeOcclusionStateNotification,
+            object: window,
+            queue: .main
+        ) { [weak window] _ in
+            guard let window = window else { return }
+            let isVisible = window.occlusionState.contains(.visible)
+            if AppState.shared.isWindowVisible != isVisible {
+                AppState.shared.isWindowVisible = isVisible
+            }
+        }
     }
     
     private func setupScreenChangeObserver() {

@@ -2,10 +2,25 @@ import Foundation
 import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
+import ImageIO
 
 public struct StoredPosition: Codable {
     public var x: Double
     public var y: Double
+}
+
+public struct PhotoTransform: Codable, Equatable {
+    public var scale: Double = 1.0
+    public var rotation: Double = 0.0 // in degrees
+    public var offsetX: Double = 0.0
+    public var offsetY: Double = 0.0
+    
+    public init(scale: Double = 1.0, rotation: Double = 0.0, offsetX: Double = 0.0, offsetY: Double = 0.0) {
+        self.scale = scale
+        self.rotation = rotation
+        self.offsetX = offsetX
+        self.offsetY = offsetY
+    }
 }
 
 public final class StorageManager: ObservableObject {
@@ -18,12 +33,14 @@ public final class StorageManager: ObservableObject {
     private let notesFileURL: URL
     private let settingsFileURL: URL
     private let layoutFileURL: URL
+    private let transformsFileURL: URL
     private var dirSource: DispatchSourceFileSystemObject?
     
     @Published public var bookshelfItems: [URL] = []
     @Published public var carpetItems: [URL] = []
     @Published public var photoSlots: [Int: URL] = [:]
     @Published public var cachedPhotos: [Int: NSImage] = [:]
+    @Published public var photoTransforms: [Int: PhotoTransform] = [:]
     @Published public var stickyNotes: [StickyNote] = []
     @Published public var areDesktopIconsHidden: Bool = false
     @Published public var layoutPositions: [String: CGPoint] = [:]
@@ -38,6 +55,7 @@ public final class StorageManager: ObservableObject {
         self.notesFileURL = baseDirectory.appendingPathComponent("notes.json")
         self.settingsFileURL = baseDirectory.appendingPathComponent("settings.json")
         self.layoutFileURL = baseDirectory.appendingPathComponent("layout.json")
+        self.transformsFileURL = baseDirectory.appendingPathComponent("photo_transforms.json")
         
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
@@ -127,6 +145,7 @@ public final class StorageManager: ObservableObject {
         refreshBookshelf()
         refreshCarpet()
         refreshPhotos()
+        loadPhotoTransforms()
         loadStickyNotes()
     }
     
@@ -204,10 +223,11 @@ public final class StorageManager: ObservableObject {
         }
     }
     
-    // MARK: - Safe File Destination (Prevents Data Overwriting)
+    // MARK: - Safe File Destination (Prevents Data Overwriting & Path Traversal)
     private func safeDestinationURL(in directory: URL, originalName: String) -> URL {
         let fileManager = FileManager.default
-        var destURL = directory.appendingPathComponent(originalName)
+        let cleanName = (originalName as NSString).lastPathComponent
+        var destURL = directory.appendingPathComponent(cleanName)
         if !fileManager.fileExists(atPath: destURL.path) {
             return destURL
         }
@@ -224,11 +244,45 @@ public final class StorageManager: ObservableObject {
     }
     
     // MARK: - Bookshelf
+    // Date an item was first added into the bookshelf or folder
+    public static func dateAdded(for url: URL) -> Date {
+        var buffer = [CChar](repeating: 0, count: 64)
+        let size = url.path.withCString { cPath in
+            getxattr(cPath, "id.desktoporganizer.added", &buffer, buffer.count, 0, 0)
+        }
+        if size > 0,
+           let str = String(bytes: buffer.prefix(size).map { UInt8($0) }, encoding: .utf8),
+           let timeInterval = Double(str) {
+            return Date(timeIntervalSince1970: timeInterval)
+        }
+        
+        if let vals = try? url.resourceValues(forKeys: [.addedToDirectoryDateKey]),
+           let date = vals.addedToDirectoryDate {
+            return date
+        }
+        
+        var st = stat()
+        if stat(url.path, &st) == 0 {
+            return Date(timeIntervalSince1970: TimeInterval(st.st_ctimespec.tv_sec))
+        }
+        
+        let attr = try? FileManager.default.attributesOfItem(atPath: url.path)
+        return (attr?[.creationDate] as? Date) ?? (attr?[.modificationDate] as? Date) ?? Date.distantPast
+    }
+
     public func refreshBookshelf() {
         let fileManager = FileManager.default
-        if let contents = try? fileManager.contentsOfDirectory(at: bookshelfDirectory, includingPropertiesForKeys: [.contentModificationDateKey], options: [.skipsHiddenFiles]) {
+        if let contents = try? fileManager.contentsOfDirectory(at: bookshelfDirectory, includingPropertiesForKeys: [.addedToDirectoryDateKey, .contentModificationDateKey, .creationDateKey], options: [.skipsHiddenFiles]) {
             DispatchQueue.main.async {
-                self.bookshelfItems = contents.sorted(by: { $0.lastPathComponent < $1.lastPathComponent })
+                // shortcut: sorts by dateAdded ascending so oldest-added items stay on the left; when to upgrade: if user requests drag-to-reorder shelf items
+                self.bookshelfItems = contents.sorted { url1, url2 in
+                    let d1 = Self.dateAdded(for: url1)
+                    let d2 = Self.dateAdded(for: url2)
+                    if d1 != d2 {
+                        return d1 < d2
+                    }
+                    return url1.lastPathComponent < url2.lastPathComponent
+                }
             }
         }
     }
@@ -332,6 +386,10 @@ public final class StorageManager: ObservableObject {
         destURL.path.withCString { cPath in
             originPath.withCString { cOrigin in
                 _ = setxattr(cPath, "id.desktoporganizer.origin", cOrigin, originPath.utf8.count, 0, 0)
+            }
+            let timeStr = String(Date().timeIntervalSince1970)
+            timeStr.withCString { cTime in
+                _ = setxattr(cPath, "id.desktoporganizer.added", cTime, timeStr.utf8.count, 0, 0)
             }
         }
     }
@@ -450,6 +508,23 @@ public final class StorageManager: ObservableObject {
     }
     
     // MARK: - Photos & Image Cache (Low Memory & Zero Redraw I/O)
+    public static func downsampleImage(at url: URL, maxPixelSize: CGFloat = 500) -> NSImage? {
+        let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, sourceOptions) else {
+            return NSImage(contentsOf: url)
+        }
+        let downsampleOptions = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxPixelSize
+        ] as CFDictionary
+        guard let cgImg = CGImageSourceCreateThumbnailAtIndex(source, 0, downsampleOptions) else {
+            return NSImage(contentsOf: url)
+        }
+        return NSImage(cgImage: cgImg, size: NSSize(width: maxPixelSize, height: maxPixelSize))
+    }
+    
     public func refreshPhotos() {
         let fileManager = FileManager.default
         guard let contents = try? fileManager.contentsOfDirectory(at: photosDirectory, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]) else { return }
@@ -467,7 +542,7 @@ public final class StorageManager: ObservableObject {
             let name = file.deletingPathExtension().lastPathComponent
             if name.hasPrefix("frame_"), let idxStr = name.components(separatedBy: "_").last, let idx = Int(idxStr) {
                 dict[idx] = file
-                if let image = NSImage(contentsOf: file) {
+                if let image = Self.downsampleImage(at: file) {
                     imgDict[idx] = image
                 }
             } else {
@@ -482,7 +557,7 @@ public final class StorageManager: ObservableObject {
             if dict[slot] == nil && unslottedIdx < unslotted.count {
                 let file = unslotted[unslottedIdx]
                 dict[slot] = file
-                if let image = NSImage(contentsOf: file) {
+                if let image = Self.downsampleImage(at: file) {
                     imgDict[slot] = image
                 }
                 unslottedIdx += 1
@@ -527,8 +602,36 @@ public final class StorageManager: ObservableObject {
     public func removePhoto(slotIndex: Int) {
         if let existing = photoSlots[slotIndex] {
             try? FileManager.default.removeItem(at: existing)
+            resetTransform(for: slotIndex)
             refreshPhotos()
         }
+    }
+    
+    public func transform(for slotIndex: Int) -> PhotoTransform {
+        photoTransforms[slotIndex] ?? PhotoTransform()
+    }
+    
+    public func updateTransform(for slotIndex: Int, transform: PhotoTransform) {
+        photoTransforms[slotIndex] = transform
+        savePhotoTransforms()
+    }
+    
+    public func resetTransform(for slotIndex: Int) {
+        photoTransforms[slotIndex] = PhotoTransform()
+        savePhotoTransforms()
+    }
+    
+    public func loadPhotoTransforms() {
+        guard let data = try? Data(contentsOf: transformsFileURL),
+              let dict = try? JSONDecoder().decode([Int: PhotoTransform].self, from: data) else { return }
+        DispatchQueue.main.async {
+            self.photoTransforms = dict
+        }
+    }
+    
+    public func savePhotoTransforms() {
+        guard let data = try? JSONEncoder().encode(photoTransforms) else { return }
+        try? data.write(to: transformsFileURL)
     }
     
     // MARK: - Sticky Notes
