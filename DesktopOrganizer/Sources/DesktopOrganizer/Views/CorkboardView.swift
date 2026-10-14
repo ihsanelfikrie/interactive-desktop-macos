@@ -17,25 +17,12 @@ public struct CorkboardView: View {
                 
                 // Sticky Notes Container
                 ForEach($storage.stickyNotes) { $note in
-                    StickyNoteCardView(note: $note) {
-                        storage.removeStickyNote(id: note.id)
-                    } onSave: {
-                        storage.saveStickyNotes()
-                    }
-                    .offset(x: note.x, y: note.y)
-                    .rotationEffect(.degrees(note.rotation))
-                    .gesture(
-                        DragGesture()
-                            .onChanged { value in
-                                note.x += value.translation.width
-                                note.y += value.translation.height
-                                // Clamp within the corkboard area so notes never fly off to wall
-                                note.x = max(10, min(note.x, boardW - 160))
-                                note.y = max(10, min(note.y, boardH - 120))
-                            }
-                            .onEnded { _ in
-                                storage.saveStickyNotes()
-                            }
+                    DraggableStickyNote(
+                        note: $note,
+                        boardW: boardW,
+                        boardH: boardH,
+                        onDelete: { storage.removeStickyNote(id: note.id) },
+                        onSave: { storage.saveStickyNotes() }
                     )
                 }
                 
@@ -187,5 +174,40 @@ public struct StickyNoteCardView: View {
     
     private var cardColor: Color {
         note.color.background
+    }
+}
+
+// MARK: - Draggable Sticky Note Wrapper
+struct DraggableStickyNote: View {
+    @Binding var note: StickyNote
+    let boardW: CGFloat
+    let boardH: CGFloat
+    let onDelete: () -> Void
+    let onSave: () -> Void
+    
+    @ObservedObject var appState = AppState.shared
+    
+    var currentOffset: CGSize {
+        appState.draggingNoteId == note.id ? appState.noteDragTranslation : .zero
+    }
+    
+    var body: some View {
+        StickyNoteCardView(note: $note, onDelete: onDelete, onSave: onSave)
+            .offset(x: note.x + currentOffset.width, y: note.y + currentOffset.height)
+            .rotationEffect(.degrees(note.rotation))
+            .gesture(
+                DragGesture()
+                    .onChanged { value in
+                        appState.draggingNoteId = note.id
+                        appState.noteDragTranslation = value.translation
+                    }
+                    .onEnded { value in
+                        note.x = max(8, min(note.x + value.translation.width, max(8, boardW - 148)))
+                        note.y = max(8, min(note.y + value.translation.height, max(8, boardH - 110)))
+                        appState.draggingNoteId = nil
+                        appState.noteDragTranslation = .zero
+                        onSave()
+                    }
+            )
     }
 }

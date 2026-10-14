@@ -27,8 +27,8 @@ public struct DesktopRootView: View {
                 
                 // Corkboard Notes (Center Wall: Sticky notes & Add Memo inside wooden frame)
                 CorkboardView()
-                    .frame(width: w * 0.375, height: h * 0.280)
-                    .position(x: w * 0.443, y: h * 0.241)
+                    .frame(width: w * 0.2691, height: h * 0.2935)
+                    .position(x: w * 0.4983, y: h * 0.2357)
                 
                 // Live Analog Wall Clock (Hour, minute, and second hands moving in real time)
                 AnalogWallClockView()
@@ -64,14 +64,19 @@ public struct DesktopRootView: View {
                 .frame(width: w * 0.075, height: h * 0.110)
                 .position(x: w * 0.472, y: h * 0.552)
                 
+                // Desk Mail Envelope (Sealed letter on desk opens Mail - Desktop Organizer parity)
+                DeskMailEnvelopeView()
+                    .frame(width: w * 0.045, height: h * 0.025)
+                    .position(x: w * 0.4014, y: h * 0.589)
+                
                 // Desk Radio (Official vintage radio sitting on desk surface)
                 VintageRadioView()
-                    .position(x: w * 0.628, y: h * 0.490)
+                    .position(x: w * 0.628, y: h * 0.585)
                 
                 // Desk Photo Frame (Framed photo resting on desk surface)
                 DeskPhotoFrameView()
-                    .frame(width: w * 0.055, height: h * 0.070)
-                    .position(x: w * 0.566, y: h * 0.485)
+                    .frame(width: w * 0.0512, height: h * 0.0475)
+                    .position(x: w * 0.5509, y: h * 0.5707)
                 
                 // Photo Gallery (Right Wall: 6 photo frames matching official design)
                 PhotoGalleryView()
@@ -85,8 +90,8 @@ public struct DesktopRootView: View {
                 
                 // Floor Rug / Magic Carpet (Floor)
                 MagicCarpetView(theme: appState.currentTheme)
-                    .frame(width: w * 0.280, height: h * 0.120)
-                    .position(x: w * 0.650, y: h * 0.810)
+                    .frame(width: w * 0.380, height: h * 0.120)
+                    .position(x: w * 0.580, y: h * 0.855)
                 
                 // 3. Ambient Night Dimmer when Lamp is Off
                 if !appState.lampOn {
@@ -179,24 +184,11 @@ struct DeskPhotoFrameView: View {
                 Button(action: {
                     storage.pickPhoto(forSlot: slotIndex)
                 }) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(Color.white.opacity(0.85))
-                            .overlay(RoundedRectangle(cornerRadius: 3).stroke(SANSColors.border, lineWidth: 1))
-                            .shadow(color: .black.opacity(0.12), radius: 2)
-                        
-                        VStack(spacing: 2) {
-                            Image(systemName: "photo.badge.plus")
-                                .font(.system(size: 11))
-                                .foregroundColor(SANSColors.primaryBlue)
-                            Text("+ Foto")
-                                .font(.system(size: 7, weight: .bold))
-                                .foregroundColor(SANSColors.dark)
-                        }
-                    }
+                    Color.clear
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .help("Klik atau drag foto ke sini untuk memajangnya di meja")
+                .help("Pigura Meja: Klik atau tarik foto ke sini untuk memajangnya")
             }
         }
         .overlay(
@@ -218,6 +210,33 @@ struct DeskPhotoFrameView: View {
             }
             return true
         }
+    }
+}
+
+// MARK: - Desk Mail Hot Zone (Over the illustrated sealed envelope)
+struct DeskMailEnvelopeView: View {
+    @ObservedObject var appState = AppState.shared
+    
+    var body: some View {
+        Button(action: {
+            if let mailURL = URL(string: "mailto:") {
+                NSWorkspace.shared.open(mailURL)
+            }
+        }) {
+            ZStack {
+                Color.clear
+                    .contentShape(Rectangle())
+                
+                if appState.isHoveringDeskMail {
+                    RoundedRectangle(cornerRadius: 3)
+                        .stroke(Color.yellow.opacity(0.85), lineWidth: 1.5)
+                        .shadow(color: Color.yellow.opacity(0.5), radius: 3)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .onHover { appState.isHoveringDeskMail = $0 }
+        .help("Surat: Klik untuk membuka Mail / Email")
     }
 }
 

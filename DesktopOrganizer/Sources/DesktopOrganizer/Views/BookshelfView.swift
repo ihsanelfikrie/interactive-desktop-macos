@@ -102,26 +102,26 @@ public struct BookshelfView: View {
                     .allowsHitTesting(false)
                 }
                 
-                // 5 Interactive Shelf Levels (Flushed onto the 5 white shelf planks)
+                // 5 Interactive Shelf Levels (Flushed exactly onto the 5 white shelf planks)
                 // Shelf 0 (top plank)
                 shelfRow(shelfIndex: 0, width: w * 0.90)
-                    .position(x: w * 0.48, y: h * 0.170)
+                    .position(x: w * 0.48, y: h * 0.140)
                 
                 // Shelf 1
                 shelfRow(shelfIndex: 1, width: w * 0.90)
-                    .position(x: w * 0.48, y: h * 0.320)
+                    .position(x: w * 0.48, y: h * 0.330)
                 
                 // Shelf 2
                 shelfRow(shelfIndex: 2, width: w * 0.90)
-                    .position(x: w * 0.48, y: h * 0.470)
+                    .position(x: w * 0.48, y: h * 0.520)
                 
                 // Shelf 3
                 shelfRow(shelfIndex: 3, width: w * 0.90)
-                    .position(x: w * 0.48, y: h * 0.620)
+                    .position(x: w * 0.48, y: h * 0.710)
                 
                 // Shelf 4 (bottom plank)
                 shelfRow(shelfIndex: 4, width: w * 0.88)
-                    .position(x: w * 0.48, y: h * 0.770)
+                    .position(x: w * 0.48, y: h * 0.900)
                 
                 // Sliding Library Ladder (scaled to bookcase height, draggable across track)
                 LadderView(shelfHeight: h)

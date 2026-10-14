@@ -29,6 +29,8 @@ public final class AppState: ObservableObject {
     @Published public var showBookshelfDrawer: Bool = false
     @Published public var showRugPeek: Bool = false
     @Published public var isCarpetLifted: Bool = false
+    @Published public var carpetSlideOffset: CGFloat = 0
+    @Published public var isCarpetDragging: Bool = false
     
     // Custom Layout Edit Mode
     @Published public var isEditLayoutMode: Bool = false
@@ -44,6 +46,9 @@ public final class AppState: ObservableObject {
     // Sticky Notes state
     @Published public var addingTaskForNoteId: UUID? = nil
     @Published public var newTaskText: String = ""
+    @Published public var draggingNoteId: UUID? = nil
+    @Published public var noteDragTranslation: CGSize = .zero
+    @Published public var isHoveringDeskMail: Bool = false
     
     // Live date/time for Clock & Calendar
     @Published public var currentDate: Date = Date()
