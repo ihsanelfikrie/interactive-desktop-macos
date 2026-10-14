@@ -76,33 +76,9 @@ public struct BookshelfView: View {
                         return true
                     }
                 
-                // Empty state prompt on shelf
-                if storage.bookshelfItems.isEmpty {
-                    VStack(spacing: 3) {
-                        Text("Tarik file ke sini")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(.white)
-                        Text("jadi buku 📚")
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundColor(SANSColors.lime)
-                        Text("Folder jadi kardus arsip 🗃️")
-                            .font(.system(size: 8, weight: .medium))
-                            .foregroundColor(SANSColors.cleanWhite.opacity(0.9))
-                    }
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 6)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(Color.black.opacity(0.72))
-                            .overlay(RoundedRectangle(cornerRadius: 6).stroke(SANSColors.lime.opacity(0.4), lineWidth: 1))
-                    )
-                    .shadow(color: .black.opacity(0.4), radius: 4, y: 2)
-                    .position(x: w * 0.48, y: h * 0.43)
-                    .allowsHitTesting(false)
-                }
-                
                 // 5 Interactive Shelf Levels (Flushed exactly onto the 5 white shelf planks)
+                // Shelves 0, 1, 2: 100% Books (stacked full, folder/file names on covers)
+                // Shelves 3, 4: 100% Cardboard Archive Boxes (folder names on front labels)
                 // Shelf 0 (top plank)
                 shelfRow(shelfIndex: 0, width: w * 0.90)
                     .position(x: w * 0.48, y: h * 0.140)
@@ -151,187 +127,432 @@ public struct BookshelfView: View {
         }
     }
     
+    // MARK: - Book & Box Color Palettes and Companion Metadata
+    private let bookColors: [Color] = [
+        Color(red: 0.65, green: 0.18, blue: 0.20), // Crimson Wine
+        Color(red: 0.15, green: 0.22, blue: 0.35), // Prussian Navy
+        Color(red: 0.16, green: 0.34, blue: 0.24), // Forest Green
+        Color(red: 0.72, green: 0.44, blue: 0.14), // Amber Ochre
+        Color(red: 0.20, green: 0.22, blue: 0.25), // Dark Charcoal
+        Color(red: 0.52, green: 0.28, blue: 0.40), // Vintage Mauve
+        Color(red: 0.70, green: 0.32, blue: 0.20), // Terracotta
+        Color(red: 0.20, green: 0.38, blue: 0.42), // Slate Teal
+        Color(red: 0.38, green: 0.22, blue: 0.45), // Deep Plum
+        Color(red: 0.35, green: 0.42, blue: 0.25)  // Olive Sage
+    ]
+    
+    private let bookHeights: [CGFloat] = [54, 56, 52, 57, 53, 55, 52, 56, 54, 55]
+    
+    private let companionBookTitles: [String] = [
+        "Skripsi Bab 2",
+        "Moodboard",
+        "Tiket Pesawat",
+        "Desain Logo",
+        "Foto Produk",
+        "Arsip 2025",
+        "Laporan Q3",
+        "Proposal Klien",
+        "Catatan Kuliah",
+        "Invoice Okt",
+        "Resep Masak",
+        "Kontrak Kerja",
+        "Ide Konten",
+        "Budget 2026",
+        "CV Terbaru",
+        "Jadwal Shoot",
+        "Portofolio",
+        "Dokumen",
+        "Project AG",
+        "Asset Gambar",
+        "Sertifikat",
+        "Draft Artikel",
+        "Bahan Riset",
+        "Source Code",
+        "Backup Mac",
+        "Materi Belajar",
+        "Reading List",
+        "Finansial",
+        "Ide Bisnis",
+        "Referensi UI"
+    ]
+    
+    private let companionBoxTitles: [String] = [
+        "Arsip\nProject",
+        "Dokumen\nLegal",
+        "Desain &\nIlustrasi",
+        "Photo Raw\nArchive",
+        "Backup\nDatabase",
+        "Invoice &\nResi",
+        "File\nDownload",
+        "Koleksi\nE-Book"
+    ]
+    
     @ViewBuilder
     private func shelfRow(shelfIndex: Int, width: CGFloat) -> some View {
-        let items = storage.bookshelfItems
-        let itemsPerShelf = 6
-        let startIndex = shelfIndex * itemsPerShelf
-        let endIndex = min(items.count, startIndex + itemsPerShelf)
-        let itemsForThisShelf = (startIndex < items.count) ? Array(items[startIndex..<endIndex]) : []
-        
-        HStack(alignment: .bottom, spacing: 6) {
-            if itemsForThisShelf.isEmpty {
-                // Subtle decorative ambient books when shelf has no user items
-                ambientBooks(shelfIndex: shelfIndex)
-            } else {
-                ForEach(itemsForThisShelf, id: \.self) { url in
-                    ShelfItemView(url: url, theme: theme)
-                }
-            }
-            Spacer()
+        if shelfIndex < 3 {
+            // Shelves 0, 1, 2: 100% Books (10 books per shelf = 30 books total)
+            booksRow(shelfIndex: shelfIndex, width: width)
+        } else {
+            // Shelves 3, 4: 100% Cardboard Archive Boxes (4 boxes per shelf = 8 boxes total)
+            boxesRow(shelfIndex: shelfIndex, width: width)
         }
-        .frame(width: width, height: 60, alignment: .bottomLeading)
-        .padding(.horizontal, 10)
     }
     
     @ViewBuilder
-    private func ambientBooks(shelfIndex: Int) -> some View {
-        let count = (shelfIndex == 1) ? 4 : (shelfIndex == 2 ? 5 : (shelfIndex == 3 ? 3 : 2))
-        let colors: [Color] = [
-            Color(red: 0.70, green: 0.22, blue: 0.22),
-            Color(red: 0.22, green: 0.38, blue: 0.65),
-            Color(red: 0.22, green: 0.55, blue: 0.35),
-            Color(red: 0.75, green: 0.55, blue: 0.22),
-            Color(red: 0.45, green: 0.25, blue: 0.55)
-        ]
+    private func booksRow(shelfIndex: Int, width: CGFloat) -> some View {
+        let booksPerShelf = 10
+        let bookWidth = (width - 40) / CGFloat(booksPerShelf)
         
-        HStack(alignment: .bottom, spacing: 3) {
-            ForEach(0..<count, id: \.self) { i in
-                let h = CGFloat(28 + (i * 5) % 16)
-                let c = colors[(shelfIndex * 2 + i) % colors.count]
-                RoundedRectangle(cornerRadius: 1.5)
-                    .fill(c.opacity(0.85))
-                    .frame(width: 8, height: h)
+        HStack(alignment: .bottom, spacing: 4) {
+            ForEach(0..<booksPerShelf, id: \.self) { i in
+                let globalIndex = shelfIndex * booksPerShelf + i
+                let userItem = globalIndex < storage.bookshelfItems.count ? storage.bookshelfItems[globalIndex] : nil
+                let title = userItem?.deletingPathExtension().lastPathComponent ?? companionBookTitles[globalIndex % companionBookTitles.count]
+                let color = bookColors[globalIndex % bookColors.count]
+                let height = bookHeights[globalIndex % bookHeights.count]
+                let id = "book-\(globalIndex)"
+                
+                BookSpineView(
+                    id: id,
+                    title: title,
+                    url: userItem,
+                    color: color,
+                    bookWidth: bookWidth,
+                    bookHeight: height
+                )
             }
         }
+        .frame(width: width, height: 60, alignment: .bottomLeading)
+        .padding(.horizontal, 6)
+    }
+    
+    @ViewBuilder
+    private func boxesRow(shelfIndex: Int, width: CGFloat) -> some View {
+        let boxShelfIndex = shelfIndex - 3 // 0 for shelf 3, 1 for shelf 4
+        let boxesPerShelf = 4
+        let boxWidth = (width - 36) / CGFloat(boxesPerShelf)
+        
+        // Find real user directories from storage.bookshelfItems
+        let userDirectories = storage.bookshelfItems.filter { url in
+            var isDir: ObjCBool = false
+            FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
+            return isDir.boolValue
+        }
+        
+        HStack(alignment: .bottom, spacing: 8) {
+            ForEach(0..<boxesPerShelf, id: \.self) { i in
+                let globalIndex = boxShelfIndex * boxesPerShelf + i
+                let userDir = globalIndex < userDirectories.count ? userDirectories[globalIndex] : nil
+                let title: String = {
+                    if let userDir = userDir {
+                        let raw = userDir.lastPathComponent
+                        let words = raw.split(separator: " ")
+                        if words.count >= 2 {
+                            return "\(words[0])\n\(words.dropFirst().joined(separator: " "))"
+                        }
+                        return raw
+                    }
+                    return companionBoxTitles[globalIndex % companionBoxTitles.count]
+                }()
+                let id = "box-\(globalIndex)"
+                
+                ArchiveBoxView(
+                    id: id,
+                    title: title,
+                    url: userDir,
+                    boxWidth: boxWidth
+                )
+            }
+        }
+        .frame(width: width, height: 60, alignment: .bottomLeading)
+        .padding(.horizontal, 6)
     }
 }
 
-// MARK: - Individual Shelf Item (File becomes Book 📚, Folder becomes Archive Box 🗃️)
-struct ShelfItemView: View {
-    @ObservedObject var storage = StorageManager.shared
+// MARK: - Book Spine View (Top Shelves 1-3: Books with Folder/File Title on Spine)
+struct BookSpineView: View {
     @ObservedObject var appState = AppState.shared
-    let url: URL
-    let theme: RoomTheme
+    @ObservedObject var storage = StorageManager.shared
+    let id: String
+    let title: String
+    let url: URL?
+    let color: Color
+    let bookWidth: CGFloat
+    let bookHeight: CGFloat
     
     var isHovered: Bool {
-        appState.hoveredShelfURL == url
+        appState.hoveredShelfItemId == id
     }
     
     var isDirectory: Bool {
+        guard let url = url else { return false }
         var isDir: ObjCBool = false
         FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
         return isDir.boolValue
     }
     
     var body: some View {
-        Group {
-            if isDirectory {
-                archiveBoxRepresentation
-            } else {
-                bookRepresentation
-            }
-        }
-        .contentShape(Rectangle())
-        .onHover { hovering in
-            if hovering {
-                appState.hoveredShelfURL = url
-            } else if appState.hoveredShelfURL == url {
-                appState.hoveredShelfURL = nil
-            }
-        }
-        .onTapGesture(count: 2) {
-            NSWorkspace.shared.open(url)
-        }
-        .onTapGesture(count: 1) {
-            NSWorkspace.shared.open(url)
-        }
-        .contextMenu {
-            Button("Buka") {
-                NSWorkspace.shared.open(url)
-            }
-            Button("Tampilkan di Finder") {
-                storage.openInFinder(url: url)
-            }
-            Divider()
-            Button("Kembalikan ke Desktop") {
-                storage.restoreBookshelfItemToDesktop(itemURL: url)
-            }
-            Button("Buang ke Tempat Sampah", role: .destructive) {
-                storage.removeBookshelfItem(itemURL: url)
-            }
-        }
-        .help(url.lastPathComponent)
-    }
-    
-    // File -> Authentic Book Spine Binder (using Desktop Organizer official asset)
-    private var bookRepresentation: some View {
-        let hash = abs(url.lastPathComponent.hashValue)
-        let colorIdx = hash % 6
-        let bookImgName = "file-\(colorIdx)"
-        
-        return ZStack(alignment: .bottom) {
-            if let img = AssetLoader.image(named: bookImgName) {
-                Image(nsImage: img)
-                    .resizable()
-                    .interpolation(.high)
-                    .scaledToFit()
-                    .frame(height: 52)
-                    .shadow(color: .black.opacity(isHovered ? 0.4 : 0.2), radius: isHovered ? 4 : 2, y: 2)
-            } else {
-                // High-fidelity procedural book fallback
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(SANSColors.primaryBlue)
-                    .frame(width: 14, height: 50)
+        ZStack(alignment: .center) {
+            // Main book spine body with subtle curvature gradient
+            RoundedRectangle(cornerRadius: 2)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            color.opacity(0.92),
+                            color,
+                            color.opacity(0.85)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 2)
+                        .stroke(isHovered ? Color.white : Color.white.opacity(0.25), lineWidth: isHovered ? 1.5 : 0.6)
+                )
+            
+            // Spine gold / embossed accent bands (top and bottom)
+            VStack {
+                Rectangle()
+                    .fill(Color.white.opacity(0.35))
+                    .frame(height: 1)
+                    .padding(.horizontal, 2)
+                    .padding(.top, 4)
+                Spacer()
+                Rectangle()
+                    .fill(Color.white.opacity(0.35))
+                    .frame(height: 1)
+                    .padding(.horizontal, 2)
+                    .padding(.bottom, 4)
             }
             
-            // Hover title tooltip tag
-            if isHovered {
-                Text(url.deletingPathExtension().lastPathComponent)
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundColor(.white)
-                    .lineLimit(1)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(RoundedRectangle(cornerRadius: 4).fill(Color.black.opacity(0.85)))
-                    .offset(y: -58)
-                    .allowsHitTesting(false)
-                    .zIndex(10)
-            }
-        }
-    }
-    
-    // Folder -> Authentic Cardboard Archive Box (using Desktop Organizer official asset)
-    private var archiveBoxRepresentation: some View {
-        let hash = abs(url.lastPathComponent.hashValue)
-        let colorIdx = hash % 6
-        let subItems = (try? FileManager.default.contentsOfDirectory(atPath: url.path))?.count ?? 0
-        let fullnessLevel = subItems == 0 ? 0 : (subItems <= 4 ? 1 : 2)
-        let folderImgName = "folder-\(colorIdx)-\(fullnessLevel)"
-        
-        return ZStack(alignment: .bottom) {
-            if let img = AssetLoader.image(named: folderImgName) {
-                Image(nsImage: img)
-                    .resizable()
-                    .interpolation(.high)
-                    .scaledToFit()
-                    .frame(height: 48)
-                    .shadow(color: .black.opacity(isHovered ? 0.4 : 0.2), radius: isHovered ? 4 : 2, y: 2)
-            } else {
-                // High-fidelity procedural box fallback
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(Color(red: 0.72, green: 0.55, blue: 0.38))
-                    .frame(width: 38, height: 44)
-            }
+            // Vertical spine title text (reads bottom to top along the spine)
+            Text(title)
+                .font(.system(size: 7.5, weight: .bold))
+                .foregroundColor(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.55)
+                .frame(width: bookHeight - 6)
+                .rotationEffect(.degrees(-90))
+                .shadow(color: .black.opacity(0.6), radius: 1, y: 1)
             
-            // Hover title and item count tooltip tag
+            // Hover Tooltip Tag
             if isHovered {
                 VStack(spacing: 2) {
-                    Text(url.lastPathComponent)
+                    Text(url != nil ? (isDirectory ? "📁 " : "📄 ") + (url?.lastPathComponent ?? title) : "📚 " + title)
                         .font(.system(size: 9, weight: .bold))
                         .foregroundColor(.white)
                         .lineLimit(1)
-                    Text("\(subItems) item")
-                        .font(.system(size: 8))
-                        .foregroundColor(SANSColors.lime)
+                    if url != nil {
+                        Text(isDirectory ? "Folder di Rak" : "File di Rak")
+                            .font(.system(size: 7.5))
+                            .foregroundColor(SANSColors.lime)
+                    }
                 }
                 .padding(.horizontal, 6)
                 .padding(.vertical, 3)
-                .background(RoundedRectangle(cornerRadius: 4).fill(Color.black.opacity(0.85)))
-                .offset(y: -54)
+                .background(RoundedRectangle(cornerRadius: 4).fill(Color.black.opacity(0.88)))
+                .shadow(color: .black.opacity(0.5), radius: 4, y: 2)
+                .offset(y: -bookHeight / 2 - 18)
                 .allowsHitTesting(false)
-                .zIndex(10)
+                .zIndex(30)
             }
+        }
+        .frame(width: bookWidth, height: bookHeight)
+        .shadow(color: .black.opacity(isHovered ? 0.45 : 0.22), radius: isHovered ? 3 : 1.5, y: 1)
+        .scaleEffect(isHovered ? 1.05 : 1.0)
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            if hovering {
+                appState.hoveredShelfItemId = id
+            } else if appState.hoveredShelfItemId == id {
+                appState.hoveredShelfItemId = nil
+            }
+        }
+        .onTapGesture(count: 2) {
+            handleOpen()
+        }
+        .onTapGesture(count: 1) {
+            handleOpen()
+        }
+        .contextMenu {
+            if let url = url {
+                Button("Buka") {
+                    NSWorkspace.shared.open(url)
+                }
+                Button("Tampilkan di Finder") {
+                    storage.openInFinder(url: url)
+                }
+                Divider()
+                Button("Kembalikan ke Desktop") {
+                    storage.restoreBookshelfItemToDesktop(itemURL: url)
+                }
+                Button("Buang ke Tempat Sampah", role: .destructive) {
+                    storage.removeBookshelfItem(itemURL: url)
+                }
+            } else {
+                Button("Buka Rak Buku di Finder") {
+                    storage.openBaseFolder()
+                }
+                Button("Tambah File / Folder ke Rak...") {
+                    storage.pickBookshelfItem()
+                }
+                Divider()
+                Button("Buka Laci Rak Buku") {
+                    withAnimation(.spring()) {
+                        appState.showBookshelfDrawer = true
+                    }
+                }
+            }
+        }
+        .help(url?.lastPathComponent ?? title)
+    }
+    
+    private func handleOpen() {
+        if let url = url {
+            NSWorkspace.shared.open(url)
+        } else {
+            storage.openBaseFolder()
+        }
+    }
+}
+
+// MARK: - Archive Box View (Bottom Shelves 4-5: Cardboard Boxes with Folder Label Sticker)
+struct ArchiveBoxView: View {
+    @ObservedObject var appState = AppState.shared
+    @ObservedObject var storage = StorageManager.shared
+    let id: String
+    let title: String
+    let url: URL?
+    let boxWidth: CGFloat
+    
+    var isHovered: Bool {
+        appState.hoveredShelfItemId == id
+    }
+    
+    var body: some View {
+        ZStack(alignment: .top) {
+            // Main kraft cardboard body
+            RoundedRectangle(cornerRadius: 3)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.77, green: 0.60, blue: 0.42),
+                            Color(red: 0.71, green: 0.54, blue: 0.36)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 3)
+                        .stroke(isHovered ? Color.white : Color(red: 0.55, green: 0.40, blue: 0.25), lineWidth: isHovered ? 1.5 : 0.8)
+                )
+            
+            // Top lid fold flap
+            Rectangle()
+                .fill(Color(red: 0.65, green: 0.48, blue: 0.32))
+                .frame(height: 6)
+                .clipShape(RoundedRectangle(cornerRadius: 2))
+                .padding(.horizontal, 2)
+                .padding(.top, 2)
+            
+            // Front white label card
+            RoundedRectangle(cornerRadius: 2)
+                .fill(Color(red: 0.95, green: 0.97, blue: 1.0))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 2)
+                        .stroke(Color(red: 0.65, green: 0.72, blue: 0.82), lineWidth: 0.8)
+                )
+                .frame(width: boxWidth * 0.84, height: 26)
+                .overlay(
+                    Text(title)
+                        .font(.system(size: 7.5, weight: .bold))
+                        .foregroundColor(Color(red: 0.15, green: 0.20, blue: 0.28))
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.65)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 3)
+                )
+                .padding(.top, 12)
+            
+            // Hover Tooltip Tag
+            if isHovered {
+                VStack(spacing: 2) {
+                    Text("🗃️ " + (url?.lastPathComponent ?? title.replacingOccurrences(of: "\n", with: " ")))
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    if url != nil {
+                        Text("Folder Kardus Arsip")
+                            .font(.system(size: 7.5))
+                            .foregroundColor(SANSColors.lime)
+                    }
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(RoundedRectangle(cornerRadius: 4).fill(Color.black.opacity(0.88)))
+                .shadow(color: .black.opacity(0.5), radius: 4, y: 2)
+                .offset(y: -42)
+                .allowsHitTesting(false)
+                .zIndex(30)
+            }
+        }
+        .frame(width: boxWidth, height: 44)
+        .shadow(color: .black.opacity(isHovered ? 0.35 : 0.15), radius: isHovered ? 4 : 2, y: 1.5)
+        .scaleEffect(isHovered ? 1.04 : 1.0)
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            if hovering {
+                appState.hoveredShelfItemId = id
+            } else if appState.hoveredShelfItemId == id {
+                appState.hoveredShelfItemId = nil
+            }
+        }
+        .onTapGesture(count: 2) {
+            handleOpen()
+        }
+        .onTapGesture(count: 1) {
+            handleOpen()
+        }
+        .contextMenu {
+            if let url = url {
+                Button("Buka Folder") {
+                    NSWorkspace.shared.open(url)
+                }
+                Button("Tampilkan di Finder") {
+                    storage.openInFinder(url: url)
+                }
+                Divider()
+                Button("Kembalikan ke Desktop") {
+                    storage.restoreBookshelfItemToDesktop(itemURL: url)
+                }
+                Button("Buang ke Tempat Sampah", role: .destructive) {
+                    storage.removeBookshelfItem(itemURL: url)
+                }
+            } else {
+                Button("Buka Rak Buku di Finder") {
+                    storage.openBaseFolder()
+                }
+                Button("Tambah Folder ke Rak...") {
+                    storage.pickBookshelfItem()
+                }
+                Divider()
+                Button("Buka Laci Rak Buku") {
+                    withAnimation(.spring()) {
+                        appState.showBookshelfDrawer = true
+                    }
+                }
+            }
+        }
+        .help(url?.lastPathComponent ?? title.replacingOccurrences(of: "\n", with: " "))
+    }
+    
+    private func handleOpen() {
+        if let url = url {
+            NSWorkspace.shared.open(url)
+        } else {
+            storage.openBaseFolder()
         }
     }
 }
