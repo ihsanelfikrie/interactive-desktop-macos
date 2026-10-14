@@ -1,13 +1,13 @@
-# 🏠 macOS Custom Desktop Organizer
+# 🏠 Custom Desktop Mac
 
-Aplikasi Desktop Organizer interaktif native untuk macOS (Apple Silicon M1/M2/M3 & Intel), dibuat dengan **SwiftUI & AppKit**. Aplikasi ini mengubah tampilan desktop menjadi ruangan kerja berilustrasi yang interaktif dan rapi seperti pada video referensi.
+Aplikasi ruang desktop interaktif native untuk macOS (Apple Silicon M1/M2/M3 & Intel), dibuat dengan **SwiftUI & AppKit**. Aplikasi ini mengubah tampilan desktop menjadi ruangan kerja berilustrasi yang interaktif dan rapi.
 
 ---
 
 ## 🚀 Cara Menjalankan
 
 Aplikasi sudah dikompilasi ke format native `.app`:
-- **Double click**: [DesktopOrganizer.app](file:///Users/macbook/Custom%20Desktop%20Mac/DesktopOrganizer.app)
+- **Double click**: [Custom Desktop Mac.app](file:///Users/macbook/Custom%20Desktop%20Mac/Custom%20Desktop%20Mac.app)
 - **Atau jalankan via Terminal**:
   ```bash
   ./start.sh
