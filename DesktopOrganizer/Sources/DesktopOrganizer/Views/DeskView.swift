@@ -96,8 +96,8 @@ public struct DeskView: View {
     private var deskColor: Color {
         switch theme {
         case .library: return Color(red: 0.36, green: 0.22, blue: 0.13)
-        case .kosKosan: return Color(red: 0.82, green: 0.72, blue: 0.58)
-        case .taman: return Color(red: 0.42, green: 0.28, blue: 0.16)
+        case .kos: return Color(red: 0.82, green: 0.72, blue: 0.58)
+        case .garden: return Color(red: 0.42, green: 0.28, blue: 0.16)
         }
     }
     
@@ -175,63 +175,81 @@ struct DeskLampView: View {
     }
 }
 
-// MARK: - Vintage Radio (Spotify Opener)
+// MARK: - Vintage Radio (Spotify Opener & Player)
 struct VintageRadioView: View {
+    @ObservedObject var spotify = SpotifyService.shared
+    @ObservedObject var appState = AppState.shared
     let action: () -> Void
     
     var body: some View {
         Button(action: action) {
             ZStack {
-                // Wooden Radio Box
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(Color(red: 0.52, green: 0.34, blue: 0.22))
-                    .frame(width: 68, height: 44)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(Color(red: 0.35, green: 0.22, blue: 0.12), lineWidth: 2)
-                    )
-                    .shadow(color: .black.opacity(0.3), radius: 2, y: 2)
-                
-                // Antenna
-                VStack {
-                    Rectangle()
-                        .fill(Color.gray)
-                        .frame(width: 1.5, height: 22)
-                        .rotationEffect(.degrees(20))
-                        .offset(x: 18, y: -20)
-                    Spacer()
+                let imgName = spotify.isPlaying ? appState.currentTheme.radioOnImageName : appState.currentTheme.radioOffImageName
+                if let radioImg = AssetLoader.image(named: imgName) {
+                    Image(nsImage: radioImg)
+                        .resizable()
+                        .interpolation(.none)
+                        .scaledToFit()
+                        .frame(height: 52)
+                        .shadow(color: .black.opacity(0.35), radius: 3, y: 2)
+                } else {
+                    proceduralRadio
                 }
-                
-                HStack(spacing: 6) {
-                    // Speaker Grille lines
-                    VStack(spacing: 3) {
-                        ForEach(0..<4, id: \.self) { _ in
-                            Rectangle()
-                                .fill(Color.black.opacity(0.55))
-                                .frame(width: 26, height: 2)
-                        }
-                    }
-                    
-                    // Dial & Knobs
-                    VStack(spacing: 5) {
-                        Circle()
-                            .fill(Color(red: 0.95, green: 0.85, blue: 0.55))
-                            .frame(width: 14, height: 14)
-                            .overlay(
-                                Circle().stroke(Color.black.opacity(0.4), lineWidth: 1)
-                            )
-                        
-                        HStack(spacing: 3) {
-                            Circle().fill(Color.black).frame(width: 5, height: 5)
-                            Circle().fill(Color.black).frame(width: 5, height: 5)
-                        }
-                    }
-                }
-                .padding(.horizontal, 4)
             }
         }
         .buttonStyle(.plain)
-        .help("Radio Vintage: Klik untuk membuka kontrol Spotify")
+        .help("Pemutar musik: klik untuk Spotify")
+    }
+    
+    private var proceduralRadio: some View {
+        ZStack {
+            // Wooden Radio Box
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color(red: 0.52, green: 0.34, blue: 0.22))
+                .frame(width: 68, height: 44)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(Color(red: 0.35, green: 0.22, blue: 0.12), lineWidth: 2)
+                )
+                .shadow(color: .black.opacity(0.3), radius: 2, y: 2)
+            
+            // Antenna
+            VStack {
+                Rectangle()
+                    .fill(Color.gray)
+                    .frame(width: 1.5, height: 22)
+                    .rotationEffect(.degrees(20))
+                    .offset(x: 18, y: -20)
+                Spacer()
+            }
+            
+            HStack(spacing: 6) {
+                // Speaker Grille lines
+                VStack(spacing: 3) {
+                    ForEach(0..<4, id: \.self) { _ in
+                        Rectangle()
+                            .fill(Color.black.opacity(0.55))
+                            .frame(width: 26, height: 2)
+                    }
+                }
+                
+                // Dial & Knobs
+                VStack(spacing: 5) {
+                    Circle()
+                        .fill(Color(red: 0.95, green: 0.85, blue: 0.55))
+                        .frame(width: 14, height: 14)
+                        .overlay(
+                            Circle().stroke(Color.black.opacity(0.4), lineWidth: 1)
+                        )
+                    
+                    HStack(spacing: 3) {
+                        Circle().fill(Color.black).frame(width: 5, height: 5)
+                        Circle().fill(Color.black).frame(width: 5, height: 5)
+                    }
+                }
+            }
+            .padding(.horizontal, 4)
+        }
     }
 }
 

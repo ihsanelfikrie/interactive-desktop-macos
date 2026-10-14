@@ -14,7 +14,7 @@ public struct DesktopRootView: View {
             
             ZStack(alignment: .topLeading) {
                 // 1. Procedural Room Background (Wall & Floor)
-                ThemeBackgroundView(theme: appState.currentTheme, isNightMode: appState.isNightMode)
+                ThemeBackgroundView(theme: appState.currentTheme, isNightMode: !appState.lampOn)
                     .frame(width: w, height: h)
                 
                 // 2. Customizable Movable Room Elements Layer
@@ -79,8 +79,8 @@ public struct DesktopRootView: View {
                         DeskView(
                             theme: appState.currentTheme,
                             isNightMode: Binding(
-                                get: { appState.isNightMode },
-                                set: { appState.isNightMode = $0 }
+                                get: { !appState.lampOn },
+                                set: { appState.lampOn = !$0 }
                             ),
                             showSpotifyPopup: Binding(
                                 get: { appState.showSpotifyPopup },
@@ -110,7 +110,7 @@ public struct DesktopRootView: View {
                     }
                     
                     // Kos-Kosan Props (Kipas & Dispenser)
-                    if appState.currentTheme == .kosKosan {
+                    if appState.currentTheme == .kos {
                         CustomizableElement(
                             id: "standingFan",
                             title: "Kipas Angin",
@@ -150,9 +150,9 @@ public struct DesktopRootView: View {
                     .zIndex(10)
                 }
                 
-                // 4. Ambient Night Mode Dark Overlay
-                if appState.isNightMode {
-                    Color.black.opacity(0.70)
+                // 4. Ambient Night Mode / Lamp Dimmed Dark Overlay (LampOffShade)
+                if !appState.lampOn {
+                    Color.black.opacity(0.68)
                         .ignoresSafeArea()
                         .allowsHitTesting(false)
                         .transition(.opacity)
@@ -213,10 +213,14 @@ public struct DesktopRootView: View {
                             }
                         }
                         
-                        ControlButton(title: appState.isNightMode ? "Nyalakan Lampu" : "Mode Malam", icon: appState.isNightMode ? "sun.max.fill" : "moon.stars.fill") {
+                        ControlButton(title: appState.lampOn ? "Matikan Lampu" : "Nyalakan Lampu", icon: appState.lampOn ? "moon.stars.fill" : "sun.max.fill") {
                             withAnimation(.easeInOut(duration: 0.35)) {
-                                appState.isNightMode.toggle()
+                                appState.lampOn.toggle()
                             }
+                        }
+                        
+                        ControlButton(title: "Geser Ikon", icon: "arrow.right.to.line.compact") {
+                            storage.moveCoveredIcons()
                         }
                         
                         ControlButton(
@@ -405,43 +409,73 @@ struct ControlButton: View {
     }
 }
 
-// MARK: - Potted Floor Houseplant
+// MARK: - Potted Floor Houseplant & Swaying Leaves
 struct HousePlantView: View {
+    @ObservedObject var appState = AppState.shared
+    
     var body: some View {
-        VStack(spacing: 0) {
-            // Leaf cluster
-            ZStack {
-                LeafShape()
-                    .fill(Color(red: 0.18, green: 0.52, blue: 0.28))
-                    .frame(width: 32, height: 48)
-                    .rotationEffect(.degrees(-35))
-                    .offset(x: -16, y: -8)
-                
-                LeafShape()
-                    .fill(Color(red: 0.22, green: 0.60, blue: 0.32))
-                    .frame(width: 34, height: 52)
-                    .rotationEffect(.degrees(30))
-                    .offset(x: 16, y: -10)
-                
-                LeafShape()
-                    .fill(Color(red: 0.15, green: 0.45, blue: 0.22))
-                    .frame(width: 30, height: 46)
-                    .offset(y: -14)
+        ZStack(alignment: .bottom) {
+            // Swaying Leaves layer
+            if let leavesImg = AssetLoader.image(named: "plant-leaves") {
+                Image(nsImage: leavesImg)
+                    .resizable()
+                    .interpolation(.none)
+                    .scaledToFit()
+                    .frame(width: 82, height: 68)
+                    .rotationEffect(.degrees(appState.isLowPower ? 0 : 3))
+                    .animation(appState.isLowPower ? .default : .easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: appState.isLowPower)
+                    .offset(y: -28)
+            } else {
+                proceduralLeaves
             }
             
-            // Terracotta pot
-            Path { path in
-                path.move(to: CGPoint(x: 4, y: 0))
-                path.addLine(to: CGPoint(x: 8, y: 34))
-                path.addLine(to: CGPoint(x: 32, y: 34))
-                path.addLine(to: CGPoint(x: 36, y: 0))
-                path.closeSubpath()
+            // Potted Base
+            if let potImg = AssetLoader.image(named: "plant-pot") {
+                Image(nsImage: potImg)
+                    .resizable()
+                    .interpolation(.none)
+                    .scaledToFit()
+                    .frame(width: 52, height: 42)
+            } else {
+                proceduralPot
             }
-            .fill(Color(red: 0.82, green: 0.42, blue: 0.25))
-            .frame(width: 40, height: 34)
-            .shadow(color: .black.opacity(0.3), radius: 3, y: 2)
         }
-        .frame(width: 70, height: 86)
+        .frame(width: 86, height: 100)
+    }
+    
+    private var proceduralLeaves: some View {
+        ZStack {
+            LeafShape()
+                .fill(Color(red: 0.18, green: 0.52, blue: 0.28))
+                .frame(width: 32, height: 48)
+                .rotationEffect(.degrees(-35))
+                .offset(x: -16, y: -8)
+            
+            LeafShape()
+                .fill(Color(red: 0.22, green: 0.60, blue: 0.32))
+                .frame(width: 34, height: 52)
+                .rotationEffect(.degrees(30))
+                .offset(x: 16, y: -10)
+            
+            LeafShape()
+                .fill(Color(red: 0.15, green: 0.45, blue: 0.22))
+                .frame(width: 30, height: 46)
+                .offset(y: -14)
+        }
+        .offset(y: -24)
+    }
+    
+    private var proceduralPot: some View {
+        Path { path in
+            path.move(to: CGPoint(x: 4, y: 0))
+            path.addLine(to: CGPoint(x: 8, y: 34))
+            path.addLine(to: CGPoint(x: 32, y: 34))
+            path.addLine(to: CGPoint(x: 36, y: 0))
+            path.closeSubpath()
+        }
+        .fill(Color(red: 0.82, green: 0.42, blue: 0.25))
+        .frame(width: 40, height: 34)
+        .shadow(color: .black.opacity(0.3), radius: 3, y: 2)
     }
 }
 

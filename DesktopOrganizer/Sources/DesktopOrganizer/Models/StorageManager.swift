@@ -18,6 +18,7 @@ public final class StorageManager: ObservableObject {
     private let notesFileURL: URL
     private let settingsFileURL: URL
     private let layoutFileURL: URL
+    private var dirSource: DispatchSourceFileSystemObject?
     
     @Published public var bookshelfItems: [URL] = []
     @Published public var carpetItems: [URL] = []
@@ -29,17 +30,20 @@ public final class StorageManager: ObservableObject {
     
     private init() {
         let home = FileManager.default.homeDirectoryForCurrentUser
-        self.baseDirectory = home.appendingPathComponent("DesktopOrganizer", isDirectory: true)
-        self.photosDirectory = baseDirectory.appendingPathComponent("Photos", isDirectory: true)
-        self.bookshelfDirectory = baseDirectory.appendingPathComponent("Bookshelf", isDirectory: true)
-        self.carpetDirectory = baseDirectory.appendingPathComponent("MagicCarpet", isDirectory: true)
+        // Exact official directory: Documents/DesktopRoom
+        self.baseDirectory = home.appendingPathComponent("Documents/DesktopRoom", isDirectory: true)
+        self.photosDirectory = baseDirectory.appendingPathComponent("photos", isDirectory: true)
+        self.bookshelfDirectory = baseDirectory.appendingPathComponent("books", isDirectory: true)
+        self.carpetDirectory = baseDirectory.appendingPathComponent("rug", isDirectory: true)
         self.notesFileURL = baseDirectory.appendingPathComponent("notes.json")
         self.settingsFileURL = baseDirectory.appendingPathComponent("settings.json")
         self.layoutFileURL = baseDirectory.appendingPathComponent("layout.json")
         
         setupDirectories()
+        migrateLegacyIfPresent()
         loadAllData()
         checkDesktopIconStatus()
+        watchDirectory()
     }
     
     private func setupDirectories() {
@@ -50,6 +54,52 @@ public final class StorageManager: ObservableObject {
                 try? fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
             }
         }
+    }
+    
+    // Migrate from old ~/DesktopOrganizer if user previously used it
+    private func migrateLegacyIfPresent() {
+        let oldDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("DesktopOrganizer", isDirectory: true)
+        guard FileManager.default.fileExists(atPath: oldDir.path) else { return }
+        
+        let fm = FileManager.default
+        let oldBooks = oldDir.appendingPathComponent("Bookshelf")
+        let oldCarpet = oldDir.appendingPathComponent("MagicCarpet")
+        let oldPhotos = oldDir.appendingPathComponent("Photos")
+        let oldNotes = oldDir.appendingPathComponent("notes.json")
+        
+        func moveContents(from src: URL, to dst: URL) {
+            guard let items = try? fm.contentsOfDirectory(at: src, includingPropertiesForKeys: nil) else { return }
+            for item in items {
+                let target = safeDestinationURL(in: dst, originalName: item.lastPathComponent)
+                try? fm.moveItem(at: item, to: target)
+            }
+        }
+        
+        moveContents(from: oldBooks, to: bookshelfDirectory)
+        moveContents(from: oldCarpet, to: carpetDirectory)
+        moveContents(from: oldPhotos, to: photosDirectory)
+        if !fm.fileExists(atPath: notesFileURL.path) && fm.fileExists(atPath: oldNotes.path) {
+            try? fm.copyItem(at: oldNotes, to: notesFileURL)
+        }
+    }
+    
+    // Auto-refresh when files change in DesktopRoom
+    private func watchDirectory() {
+        let descriptor = open(baseDirectory.path, O_EVTONLY)
+        guard descriptor >= 0 else { return }
+        let source = DispatchSource.makeFileSystemObjectSource(
+            fileDescriptor: descriptor,
+            eventMask: [.write, .rename, .delete],
+            queue: .main
+        )
+        source.setEventHandler { [weak self] in
+            self?.loadAllData()
+        }
+        source.setCancelHandler {
+            close(descriptor)
+        }
+        source.resume()
+        self.dirSource = source
     }
     
     public func loadAllData() {
@@ -199,12 +249,33 @@ public final class StorageManager: ObservableObject {
         let destURL = safeDestinationURL(in: carpetDirectory, originalName: sourceURL.lastPathComponent)
         do {
             try FileManager.default.moveItem(at: sourceURL, to: destURL)
+            setOriginAttribute(destURL: destURL, originPath: sourceURL.path)
             refreshCarpet()
         } catch {
             // fallback to copy if move fails across volumes
-            try? FileManager.default.copyItem(at: sourceURL, to: destURL)
-            refreshCarpet()
+            if (try? FileManager.default.copyItem(at: sourceURL, to: destURL)) != nil {
+                setOriginAttribute(destURL: destURL, originPath: sourceURL.path)
+                try? FileManager.default.removeItem(at: sourceURL)
+                refreshCarpet()
+            }
         }
+    }
+    
+    private func setOriginAttribute(destURL: URL, originPath: String) {
+        destURL.path.withCString { cPath in
+            originPath.withCString { cOrigin in
+                _ = setxattr(cPath, "id.desktoporganizer.origin", cOrigin, originPath.utf8.count, 0, 0)
+            }
+        }
+    }
+    
+    public func getOriginPath(for url: URL) -> String? {
+        var buffer = [CChar](repeating: 0, count: 1024)
+        let size = url.path.withCString { cPath in
+            getxattr(cPath, "id.desktoporganizer.origin", &buffer, buffer.count, 0, 0)
+        }
+        guard size > 0 else { return nil }
+        return String(bytes: buffer.prefix(size).map { UInt8($0) }, encoding: .utf8)
     }
     
     public func pickCarpetItem() {
@@ -216,6 +287,97 @@ public final class StorageManager: ObservableObject {
         if panel.runModal() == .OK {
             for url in panel.urls {
                 addCarpetItem(from: url)
+            }
+        }
+    }
+    
+    public func restoreCarpetItemToDesktop(itemURL: URL) {
+        let destinationFolder: URL
+        if let originPath = getOriginPath(for: itemURL) {
+            let parent = URL(fileURLWithPath: originPath).deletingLastPathComponent()
+            if FileManager.default.fileExists(atPath: parent.path) {
+                destinationFolder = parent
+            } else {
+                destinationFolder = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Desktop", isDirectory: true)
+            }
+        } else {
+            destinationFolder = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Desktop", isDirectory: true)
+        }
+        
+        let destURL = safeDestinationURL(in: destinationFolder, originalName: itemURL.lastPathComponent)
+        do {
+            try FileManager.default.moveItem(at: itemURL, to: destURL)
+            refreshCarpet()
+        } catch {
+            print("DesktopOrganizer: gagal mengembalikan \(itemURL.lastPathComponent): \(error)")
+        }
+    }
+    
+    public func restoreAllCarpetItems() {
+        for item in carpetItems {
+            restoreCarpetItemToDesktop(itemURL: item)
+        }
+    }
+    
+    // MARK: - Desktop Icon Mover (AppleScript Repositioning)
+    public func moveCoveredIcons() {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let scriptSource = """
+            tell application "Finder"
+                try
+                    set theNames to name of every item of desktop
+                    set thePositions to desktop position of every item of desktop
+                on error
+                    set out to {}
+                    repeat with anItem in (every item of desktop)
+                        try
+                            set p to desktop position of anItem
+                            set end of out to {name of anItem as text, item 1 of p, item 2 of p}
+                        end try
+                    end repeat
+                    return out
+                end try
+                set out to {}
+                repeat with i from 1 to count of theNames
+                    try
+                        set p to item i of thePositions
+                        set end of out to {item i of theNames as text, item 1 of p, item 2 of p}
+                    end try
+                end repeat
+                return out
+            end tell
+            """
+            var error: NSDictionary?
+            guard let script = NSAppleScript(source: scriptSource) else { return }
+            let desc = script.executeAndReturnError(&error)
+            guard error == nil else {
+                print("DesktopOrganizer: AppleScript error: \(String(describing: error))")
+                return
+            }
+            
+            let count = desc.numberOfItems
+            var nextY: Int = 100
+            for i in 1...count {
+                if let item = desc.atIndex(i), item.numberOfItems >= 3,
+                   let name = item.atIndex(1)?.stringValue,
+                   let x = item.atIndex(2)?.int32Value,
+                   let y = item.atIndex(3)?.int32Value {
+                    // If covered by shelf (x < 420) or desk/carpet (y > 450)
+                    if x < 420 || (y > 450 && x < 850) {
+                        let moveScript = """
+                        tell application "Finder"
+                            try
+                                set desktop position of item "\(name.replacingOccurrences(of: "\"", with: "\\\""))" of desktop to {1250, \(nextY)}
+                            end try
+                        end tell
+                        """
+                        if let s = NSAppleScript(source: moveScript) {
+                            var err: NSDictionary?
+                            s.executeAndReturnError(&err)
+                        }
+                        nextY += 95
+                    }
+                }
             }
         }
     }

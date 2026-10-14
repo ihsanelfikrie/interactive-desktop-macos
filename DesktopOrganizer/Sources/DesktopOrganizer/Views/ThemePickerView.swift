@@ -76,25 +76,20 @@ struct ThemeCardView: View {
     var body: some View {
         Button(action: onSelect) {
             VStack(alignment: .leading, spacing: 8) {
-                // Miniature Preview Box
+                // Miniature Pixel-Art Preview Box
                 ZStack {
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(theme.wallColorPrimary)
-                        .frame(height: 100)
-                    
-                    VStack(spacing: 0) {
-                        Spacer()
-                        // Floor
-                        Rectangle()
-                            .fill(theme.floorColor)
-                            .frame(height: 35)
+                    if let img = AssetLoader.image(named: theme.backgroundImageName) {
+                        Image(nsImage: img)
+                            .resizable()
+                            .interpolation(.none)
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 160, height: 100)
+                            .clipped()
+                    } else {
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(Color.gray.opacity(0.3))
+                            .frame(height: 100)
                     }
-                    
-                    // Theme representative icon
-                    Image(systemName: theme.iconName)
-                        .font(.system(size: 32))
-                        .foregroundColor(.white)
-                        .shadow(color: .black.opacity(0.3), radius: 2)
                 }
                 .cornerRadius(6)
                 

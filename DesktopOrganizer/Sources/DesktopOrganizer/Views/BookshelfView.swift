@@ -51,21 +51,21 @@ public struct BookshelfView: View {
                 }
                 .padding(.vertical, 8)
                 
-                // Library Rolling Ladder leaning against shelf
-                HStack {
-                    Spacer()
-                    LadderView()
-                        .frame(width: 44)
-                        .padding(.trailing, -10)
-                        .offset(y: 15)
+                // Library Rolling Ladder leaning against shelf (Draggable!)
+                if theme == .library {
+                    HStack {
+                        LadderView()
+                            .offset(y: 10)
+                        Spacer()
+                    }
                 }
                 
                 // Top label button
                 HStack {
                     Spacer()
-                    Text("\(storage.bookshelfItems.count) Buku")
+                    Text("\(storage.bookshelfItems.count) Item")
                         .font(.system(size: 9, weight: .bold))
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(.white.opacity(0.85))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(Capsule().fill(Color.black.opacity(0.45)))
@@ -104,7 +104,15 @@ public struct BookshelfView: View {
                 }
                 return true
             }
-            .help("Rak Buku: Klik untuk membuka daftar buku, atau drag & drop file ke sini")
+            .help(shelfTooltip)
+        }
+    }
+    
+    private var shelfTooltip: String {
+        switch theme {
+        case .library: return "Tarik file ke sini jadi buku. Folder jadi kardus arsip"
+        case .kos: return "Tarik file ke sini jadi map plastik. Folder jadi kardus mi"
+        case .garden: return "Tarik file ke sini jadi paket benih. Folder jadi pot bunga"
         }
     }
     
@@ -154,16 +162,16 @@ public struct BookshelfView: View {
     private var shelfWoodColor: Color {
         switch theme {
         case .library: return Color(red: 0.35, green: 0.20, blue: 0.12)
-        case .kosKosan: return Color(red: 0.68, green: 0.50, blue: 0.35)
-        case .taman: return Color(red: 0.40, green: 0.26, blue: 0.16)
+        case .kos: return Color(red: 0.68, green: 0.50, blue: 0.35)
+        case .garden: return Color(red: 0.40, green: 0.26, blue: 0.16)
         }
     }
     
     private var shelfInteriorColor: Color {
         switch theme {
         case .library: return Color(red: 0.20, green: 0.12, blue: 0.08)
-        case .kosKosan: return Color(red: 0.88, green: 0.82, blue: 0.75)
-        case .taman: return Color(red: 0.28, green: 0.18, blue: 0.12)
+        case .kos: return Color(red: 0.88, green: 0.82, blue: 0.75)
+        case .garden: return Color(red: 0.28, green: 0.18, blue: 0.12)
         }
     }
     
@@ -172,18 +180,43 @@ public struct BookshelfView: View {
     }
 }
 
-// MARK: - Leaning Ladder View
+// MARK: - Leaning & Sliding Ladder View
 struct LadderView: View {
+    @ObservedObject var appState = AppState.shared
+    
     var body: some View {
+        Group {
+            if let ladderImg = AssetLoader.image(named: "ladder") {
+                Image(nsImage: ladderImg)
+                    .resizable()
+                    .interpolation(.none)
+                    .scaledToFit()
+                    .frame(width: 50, height: 380)
+            } else {
+                proceduralLadder
+            }
+        }
+        .offset(x: appState.ladderX)
+        .gesture(
+            DragGesture()
+                .onChanged { val in
+                    appState.ladderX += val.translation.width
+                    appState.ladderX = max(-20, min(140, appState.ladderX))
+                }
+        )
+        .help("Geser tangga ke kiri atau kanan")
+    }
+    
+    private var proceduralLadder: some View {
         ZStack {
             // Two rails
             HStack(spacing: 28) {
                 RoundedRectangle(cornerRadius: 2)
                     .fill(Color(red: 0.45, green: 0.28, blue: 0.16))
-                    .frame(width: 5, height: 410)
+                    .frame(width: 5, height: 380)
                 RoundedRectangle(cornerRadius: 2)
                     .fill(Color(red: 0.45, green: 0.28, blue: 0.16))
-                    .frame(width: 5, height: 410)
+                    .frame(width: 5, height: 380)
             }
             
             // Rungs
@@ -225,7 +258,7 @@ public struct BookshelfDrawerView: View {
                 Image(systemName: "books.vertical.fill")
                     .font(.system(size: 20))
                     .foregroundColor(.brown)
-                Text("Rak Buku Organizer (\(storage.bookshelfItems.count) Buku)")
+                Text("Lemari & Rak Organizer (\(storage.bookshelfItems.count) Item)")
                     .font(.system(size: 18, weight: .bold))
                 
                 Spacer()
@@ -266,70 +299,33 @@ public struct BookshelfDrawerView: View {
                         Image(systemName: "tray")
                             .font(.system(size: 44))
                             .foregroundColor(.secondary)
-                        Text("Rak buku masih kosong.")
+                        Text("Lemari masih kosong.")
                             .font(.headline)
-                        Text("Tarik folder atau file ke rak buku, atau tekan tombol '+ Tambah File/Folder' di atas!")
+                        Text("Tarik file (akan jadi Buku) atau folder (akan jadi Kardus Arsip) ke sini!")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
                     .frame(maxWidth: .infinity, minHeight: 260)
                     .padding()
                 } else {
-                    HStack(alignment: .bottom, spacing: 10) {
+                    HStack(alignment: .bottom, spacing: 14) {
                         ForEach(Array(storage.bookshelfItems.enumerated()), id: \.element) { index, fileURL in
+                            let isFolder = fileURL.hasDirectoryPath || (try? fileURL.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
                             let color = bookColors[index % bookColors.count]
                             
                             Button(action: {
                                 storage.openInFinder(url: fileURL)
                             }) {
-                                VStack(spacing: 0) {
-                                    Spacer()
-                                    
-                                    // Vertical Book Spine representation
-                                    ZStack {
-                                        RoundedRectangle(cornerRadius: 4)
-                                            .fill(color)
-                                            .frame(width: 52, height: 210)
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 4)
-                                                    .stroke(Color.white.opacity(0.25), lineWidth: 1)
-                                            )
-                                            .shadow(color: .black.opacity(0.3), radius: 3, x: 2, y: 2)
-                                        
-                                        // Gold foil bands
-                                        VStack {
-                                            Rectangle()
-                                                .fill(Color(red: 0.95, green: 0.85, blue: 0.45))
-                                                .frame(height: 3)
-                                                .padding(.top, 10)
-                                            
-                                            Spacer()
-                                            
-                                            // Vertical title text
-                                            Text(fileURL.lastPathComponent)
-                                                .font(.system(size: 11, weight: .bold))
-                                                .foregroundColor(.white)
-                                                .lineLimit(1)
-                                                .rotationEffect(.degrees(-90))
-                                                .frame(width: 140)
-                                            
-                                            Spacer()
-                                            
-                                            Rectangle()
-                                                .fill(Color(red: 0.95, green: 0.85, blue: 0.45))
-                                                .frame(height: 3)
-                                                .padding(.bottom, 10)
-                                        }
-                                    }
-                                    
-                                    Text(fileURL.hasDirectoryPath ? "Folder" : "File")
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                        .padding(.top, 4)
+                                if isFolder {
+                                    // Kardus Arsip (Archive Box for Folders)
+                                    ArchiveBoxView(title: fileURL.lastPathComponent)
+                                } else {
+                                    // Buku Bersampul (Book Spine for Files)
+                                    BookSpineView(title: fileURL.lastPathComponent, color: color)
                                 }
                             }
                             .buttonStyle(.plain)
-                            .help("Klik untuk membuka di Finder: \(fileURL.lastPathComponent)")
+                            .help("Klik untuk membuka: \(fileURL.lastPathComponent)")
                         }
                     }
                     .padding(.horizontal, 24)
@@ -339,8 +335,141 @@ public struct BookshelfDrawerView: View {
             .frame(height: 280)
             .background(Color(NSColor.underPageBackgroundColor))
         }
-        .frame(width: 680, height: 360)
+        .frame(width: 720, height: 360)
         .cornerRadius(12)
         .shadow(color: .black.opacity(0.5), radius: 16, y: 8)
+    }
+}
+
+// MARK: - Kardus Arsip View (Untuk Folder, persis seperti di video)
+struct ArchiveBoxView: View {
+    let title: String
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            Spacer()
+            
+            ZStack {
+                // Brown Cardboard Box Body
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color(red: 0.78, green: 0.63, blue: 0.44))
+                    .frame(width: 76, height: 180)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color(red: 0.58, green: 0.44, blue: 0.28), lineWidth: 1.5)
+                    )
+                    .shadow(color: .black.opacity(0.3), radius: 3, x: 2, y: 2)
+                
+                VStack(spacing: 8) {
+                    // Box Top Flap fold line
+                    Rectangle()
+                        .fill(Color(red: 0.65, green: 0.50, blue: 0.32))
+                        .frame(height: 4)
+                        .padding(.top, 12)
+                    
+                    // Oval Hand Cutout
+                    Capsule()
+                        .fill(Color(red: 0.38, green: 0.26, blue: 0.16))
+                        .frame(width: 26, height: 8)
+                        .shadow(color: .black.opacity(0.3), radius: 1, y: 1)
+                    
+                    Spacer()
+                    
+                    // White Shipping/Archive Label with Title
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(Color(white: 0.95))
+                            .frame(width: 62, height: 85)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 3)
+                                    .stroke(Color.black.opacity(0.15), lineWidth: 1)
+                            )
+                        
+                        VStack(spacing: 2) {
+                            Image(systemName: "archivebox.fill")
+                                .font(.system(size: 13))
+                                .foregroundColor(Color(red: 0.55, green: 0.38, blue: 0.22))
+                            
+                            Text(title)
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.2))
+                                .multilineTextAlignment(.center)
+                                .lineLimit(3)
+                                .padding(.horizontal, 4)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    // Barcode lines at bottom
+                    HStack(spacing: 2) {
+                        ForEach(0..<8) { i in
+                            Rectangle()
+                                .fill(Color.black.opacity(0.3))
+                                .frame(width: i % 2 == 0 ? 1.5 : 2.5, height: 8)
+                        }
+                    }
+                    .padding(.bottom, 10)
+                }
+            }
+            
+            Text("Kardus Arsip")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(.secondary)
+                .padding(.top, 4)
+        }
+    }
+}
+
+// MARK: - Book Spine View (Untuk File)
+struct BookSpineView: View {
+    let title: String
+    let color: Color
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            Spacer()
+            
+            ZStack {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(color)
+                    .frame(width: 52, height: 210)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(Color.white.opacity(0.25), lineWidth: 1)
+                    )
+                    .shadow(color: .black.opacity(0.3), radius: 3, x: 2, y: 2)
+                
+                // Gold foil bands
+                VStack {
+                    Rectangle()
+                        .fill(Color(red: 0.95, green: 0.85, blue: 0.45))
+                        .frame(height: 3)
+                        .padding(.top, 10)
+                    
+                    Spacer()
+                    
+                    // Vertical title text
+                    Text(title)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                        .rotationEffect(.degrees(-90))
+                        .frame(width: 140)
+                    
+                    Spacer()
+                    
+                    Rectangle()
+                        .fill(Color(red: 0.95, green: 0.85, blue: 0.45))
+                        .frame(height: 3)
+                        .padding(.bottom, 10)
+                }
+            }
+            
+            Text("Buku File")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(.secondary)
+                .padding(.top, 4)
+        }
     }
 }

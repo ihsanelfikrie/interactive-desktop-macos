@@ -17,27 +17,54 @@ public final class MenuBarController {
         
         let menu = NSMenu()
         
-        let frontItem = NSMenuItem(title: "Bawa ke Depan (Front Mode)", action: #selector(bringToFrontAction), keyEquivalent: "f")
-        frontItem.target = self
-        menu.addItem(frontItem)
+        // 1. Toggle Room
+        let toggleRoomItem = NSMenuItem(title: "Tampilkan / Sembunyikan Ruangan", action: #selector(toggleRoomAction), keyEquivalent: "t")
+        toggleRoomItem.target = self
+        menu.addItem(toggleRoomItem)
         
-        let pinItem = NSMenuItem(title: "Kunci di Desktop (Desktop Layer)", action: #selector(pinToDesktopAction), keyEquivalent: "d")
-        pinItem.target = self
-        menu.addItem(pinItem)
+        // 2. Change Theme
+        let themeItem = NSMenuItem(title: "Ganti Tema...", action: #selector(changeThemeAction), keyEquivalent: "m")
+        themeItem.target = self
+        menu.addItem(themeItem)
         
         menu.addItem(NSMenuItem.separator())
         
+        // 3. Open Bookshelf Folder
+        let shelfItem = NSMenuItem(title: "Buka Folder Rak", action: #selector(openShelfFolderAction), keyEquivalent: "b")
+        shelfItem.target = self
+        menu.addItem(shelfItem)
+        
+        // 4. Open Photos Folder
+        let photosItem = NSMenuItem(title: "Buka Folder Foto", action: #selector(openPhotosFolderAction), keyEquivalent: "p")
+        photosItem.target = self
+        menu.addItem(photosItem)
+        
+        // 5. Restore All from rug to Origin
+        let restoreItem = NSMenuItem(title: "Kembalikan Semua ke Tempat Asal", action: #selector(restoreAllAction), keyEquivalent: "r")
+        restoreItem.target = self
+        menu.addItem(restoreItem)
+        
+        menu.addItem(NSMenuItem.separator())
+        
+        // 6. Move Covered Desktop Icons
+        let moveIconsItem = NSMenuItem(title: "Geser Ikon yang Tertutup", action: #selector(moveCoveredIconsAction), keyEquivalent: "g")
+        moveIconsItem.target = self
+        menu.addItem(moveIconsItem)
+        
+        // 7. Toggle Native Desktop Icons
         let toggleIconsItem = NSMenuItem(title: "Sembunyikan / Munculkan Ikon Desktop Asli", action: #selector(toggleIconsAction), keyEquivalent: "h")
         toggleIconsItem.target = self
         menu.addItem(toggleIconsItem)
         
-        let openFolderItem = NSMenuItem(title: "Buka Folder DesktopOrganizer di Finder", action: #selector(openFolderAction), keyEquivalent: "o")
-        openFolderItem.target = self
-        menu.addItem(openFolderItem)
-        
         menu.addItem(NSMenuItem.separator())
         
-        let quitItem = NSMenuItem(title: "Keluar (Quit)", action: #selector(quitAction), keyEquivalent: "q")
+        // 8. About
+        let aboutItem = NSMenuItem(title: "Tentang Desktop Organizer", action: #selector(aboutAction), keyEquivalent: "a")
+        aboutItem.target = self
+        menu.addItem(aboutItem)
+        
+        // 9. Quit
+        let quitItem = NSMenuItem(title: "Keluar", action: #selector(quitAction), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
         
@@ -45,22 +72,54 @@ public final class MenuBarController {
         self.statusItem = statusItem
     }
     
-    @objc private func bringToFrontAction() {
-        DesktopWindowManager.shared.isDesktopPinned = false
-        DesktopWindowManager.shared.bringToFront()
+    @objc private func toggleRoomAction() {
+        guard let window = DesktopWindowManager.shared.window else { return }
+        if window.isVisible {
+            window.orderOut(nil)
+        } else {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+        }
     }
     
-    @objc private func pinToDesktopAction() {
-        DesktopWindowManager.shared.isDesktopPinned = true
-        DesktopWindowManager.shared.applyWindowLevel()
+    @objc private func changeThemeAction() {
+        AppState.shared.showThemePicker = true
+        DesktopWindowManager.shared.window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+    
+    @objc private func openShelfFolderAction() {
+        StorageManager.shared.openInFinder(url: StorageManager.shared.bookshelfDirectory)
+    }
+    
+    @objc private func openPhotosFolderAction() {
+        StorageManager.shared.openInFinder(url: StorageManager.shared.photosDirectory)
+    }
+    
+    @objc private func restoreAllAction() {
+        let alert = NSAlert()
+        alert.messageText = "Kembalikan semua item ke tempat asalnya?"
+        alert.informativeText = "File yang tempat asalnya tidak diketahui akan dikembalikan ke Desktop."
+        alert.addButton(withTitle: "Kembalikan")
+        alert.addButton(withTitle: "Batal")
+        if alert.runModal() == .alertFirstButtonReturn {
+            StorageManager.shared.restoreAllCarpetItems()
+        }
+    }
+    
+    @objc private func moveCoveredIconsAction() {
+        StorageManager.shared.moveCoveredIcons()
     }
     
     @objc private func toggleIconsAction() {
         StorageManager.shared.toggleNativeDesktopIcons()
     }
     
-    @objc private func openFolderAction() {
-        StorageManager.shared.openBaseFolder()
+    @objc private func aboutAction() {
+        let alert = NSAlert()
+        alert.messageText = "Desktop Organizer"
+        alert.informativeText = "Desktop Organizer™ 1.0\nCopyright © 2026 Chelsy Lifardy. All rights reserved.\nInteractive desktop organizer for macOS."
+        alert.runModal()
     }
     
     @objc private func quitAction() {

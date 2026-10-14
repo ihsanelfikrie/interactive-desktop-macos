@@ -1,80 +1,131 @@
 import SwiftUI
+import AppKit
 
 public enum RoomTheme: String, CaseIterable, Identifiable, Codable {
     case library = "library"
-    case kosKosan = "kosKosan"
-    case taman = "taman"
+    case kos = "kos"
+    case garden = "garden"
     
     public var id: String { rawValue }
     
     public var displayName: String {
         switch self {
-        case .library: return "Perpustakaan Klasik (Library)"
-        case .kosKosan: return "Kamar Kos-Kosan Estetik"
-        case .taman: return "Taman Santai (Outdoor)"
-        }
-    }
-    
-    public var iconName: String {
-        switch self {
-        case .library: return "books.vertical.fill"
-        case .kosKosan: return "fan.desk.fill"
-        case .taman: return "leaf.fill"
+        case .library: return "Library"
+        case .kos: return "Kos Room"
+        case .garden: return "Garden"
         }
     }
     
     public var description: String {
         switch self {
         case .library:
-            return "Suasana ruang belajar klasik dengan dinding bergaris hijau botol, rak kayu jati, dan karpet mewah."
-        case .kosKosan:
-            return "Khas kamar kos Indonesia dengan dispenser galon, kasur lantai, kipas angin, dan dinding mint ceria."
-        case .taman:
-            return "Udara segar luar ruangan dengan hamparan rumput hijau, langit biru, dan bangku kayu santai."
+            return "A classic reading room. Files become books, folders become archive boxes."
+        case .kos:
+            return "An Indonesian boarding-house room. Folders are noodle cartons, files hide under the mattress."
+        case .garden:
+            return "A pixel-art garden. Folders are flower pots that grow as they fill up."
         }
     }
     
-    // Wall Background Colors
-    public var wallColorPrimary: Color {
+    public var backgroundImageName: String {
         switch self {
-        case .library: return Color(red: 0.16, green: 0.32, blue: 0.30)
-        case .kosKosan: return Color(red: 0.78, green: 0.90, blue: 0.88)
-        case .taman: return Color(red: 0.65, green: 0.84, blue: 0.95)
+        case .library: return "background"
+        case .kos: return "kos-background"
+        case .garden: return "garden-background"
         }
     }
     
-    public var wallColorSecondary: Color {
+    public var matImageName: String {
         switch self {
-        case .library: return Color(red: 0.12, green: 0.25, blue: 0.23)
-        case .kosKosan: return Color(red: 0.72, green: 0.86, blue: 0.84)
-        case .taman: return Color(red: 0.55, green: 0.78, blue: 0.92)
+        case .library: return "rug"
+        case .kos: return "kos-mat"
+        case .garden: return "garden-mat"
         }
     }
     
-    // Floor Colors
-    public var floorColor: Color {
+    public var lumpImageName: String {
         switch self {
-        case .library: return Color(red: 0.24, green: 0.15, blue: 0.10)
-        case .kosKosan: return Color(red: 0.92, green: 0.93, blue: 0.94)
-        case .taman: return Color(red: 0.30, green: 0.58, blue: 0.25)
+        case .library: return "kos-lump" // fallback lump
+        case .kos: return "kos-lump"
+        case .garden: return "garden-lump"
         }
     }
     
-    // Furniture / Wood Accent
-    public var woodColor: Color {
+    public var pileImageName: String {
         switch self {
-        case .library: return Color(red: 0.38, green: 0.23, blue: 0.14)
-        case .kosKosan: return Color(red: 0.85, green: 0.74, blue: 0.60)
-        case .taman: return Color(red: 0.45, green: 0.30, blue: 0.18)
+        case .library: return "kos-pile" // fallback pile
+        case .kos: return "kos-pile"
+        case .garden: return "garden-pile"
         }
     }
     
-    // Rug / Carpet Base Color
-    public var carpetColor: Color {
+    public var radioOffImageName: String {
         switch self {
-        case .library: return Color(red: 0.52, green: 0.12, blue: 0.18)
-        case .kosKosan: return Color(red: 0.18, green: 0.42, blue: 0.68)
-        case .taman: return Color(red: 0.88, green: 0.28, blue: 0.28)
+        case .library: return "kos-radio"
+        case .kos: return "kos-radio"
+        case .garden: return "garden-radio"
         }
+    }
+    
+    public var radioOnImageName: String {
+        switch self {
+        case .library: return "kos-radio-on"
+        case .kos: return "kos-radio-on"
+        case .garden: return "garden-radio-on"
+        }
+    }
+}
+
+public final class AssetLoader {
+    private static var cache: [String: NSImage] = [:]
+    
+    public static func image(named name: String) -> NSImage? {
+        if let cached = cache[name] {
+            return cached
+        }
+        
+        let cleanName = name.hasSuffix(".png") ? String(name.dropLast(4)) : name
+        
+        // 1. Check Bundle.module if available
+        #if SWIFT_PACKAGE
+        if let img = Bundle.module.image(forResource: cleanName) {
+            cache[name] = img
+            return img
+        }
+        if let path = Bundle.module.path(forResource: cleanName, ofType: "png"),
+           let img = NSImage(contentsOfFile: path) {
+            cache[name] = img
+            return img
+        }
+        #endif
+        
+        // 2. Check Bundle.main
+        if let img = NSImage(named: cleanName) {
+            cache[name] = img
+            return img
+        }
+        if let path = Bundle.main.path(forResource: cleanName, ofType: "png"),
+           let img = NSImage(contentsOfFile: path) {
+            cache[name] = img
+            return img
+        }
+        
+        // 3. Check inside Resources subfolder / DesktopOrganizer_DesktopOrganizer.bundle
+        let main = Bundle.main.bundleURL
+        let checks = [
+            main.appendingPathComponent("Contents/Resources/\(cleanName).png"),
+            main.appendingPathComponent("Contents/Resources/DesktopOrganizer_DesktopOrganizer.bundle/Contents/Resources/\(cleanName).png"),
+            main.deletingLastPathComponent().appendingPathComponent("DesktopOrganizer_DesktopOrganizer.bundle/Contents/Resources/\(cleanName).png"),
+            URL(fileURLWithPath: "Sources/DesktopOrganizer/Resources/\(cleanName).png")
+        ]
+        
+        for url in checks {
+            if let img = NSImage(contentsOf: url) {
+                cache[name] = img
+                return img
+            }
+        }
+        
+        return nil
     }
 }

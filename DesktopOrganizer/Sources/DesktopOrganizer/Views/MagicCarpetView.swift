@@ -32,6 +32,16 @@ public struct MagicCarpetView: View {
                         .buttonStyle(.borderedProminent)
                         .tint(.brown)
                         
+                        if !storage.carpetItems.isEmpty {
+                            Button(action: {
+                                storage.restoreAllCarpetItems()
+                            }) {
+                                Text("Kembalikan Semua ke Desktop")
+                                    .font(.system(size: 11))
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                        
                         Button(action: {
                             storage.openInFinder(url: storage.carpetDirectory)
                         }) {
@@ -62,24 +72,39 @@ public struct MagicCarpetView: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 12) {
                                 ForEach(storage.carpetItems, id: \.self) { item in
-                                    Button(action: {
-                                        storage.openInFinder(url: item)
-                                    }) {
-                                        VStack(spacing: 4) {
-                                            Image(systemName: item.hasDirectoryPath ? "folder.fill" : "doc.fill")
-                                                .font(.system(size: 24))
-                                                .foregroundColor(item.hasDirectoryPath ? .yellow : .cyan)
-                                            Text(item.lastPathComponent)
-                                                .font(.system(size: 10, weight: .medium))
-                                                .foregroundColor(.white)
-                                                .lineLimit(1)
-                                                .frame(width: 70)
+                                    ZStack(alignment: .topTrailing) {
+                                        Button(action: {
+                                            storage.openInFinder(url: item)
+                                        }) {
+                                            VStack(spacing: 4) {
+                                                Image(systemName: item.hasDirectoryPath ? "folder.fill" : "doc.fill")
+                                                    .font(.system(size: 24))
+                                                    .foregroundColor(item.hasDirectoryPath ? .yellow : .cyan)
+                                                Text(item.lastPathComponent)
+                                                    .font(.system(size: 10, weight: .medium))
+                                                    .foregroundColor(.white)
+                                                    .lineLimit(1)
+                                                    .frame(width: 70)
+                                            }
+                                            .padding(6)
+                                            .background(Color.white.opacity(0.15))
+                                            .cornerRadius(6)
                                         }
-                                        .padding(6)
-                                        .background(Color.white.opacity(0.15))
-                                        .cornerRadius(6)
+                                        .buttonStyle(.plain)
+                                        
+                                        // Quick restore button to return file back to Desktop
+                                        Button(action: {
+                                            storage.restoreCarpetItemToDesktop(itemURL: item)
+                                        }) {
+                                            Image(systemName: "arrow.up.forward.app.fill")
+                                                .font(.system(size: 11))
+                                                .foregroundColor(.yellow)
+                                                .background(Circle().fill(Color.black))
+                                        }
+                                        .buttonStyle(.plain)
+                                        .offset(x: 4, y: -4)
+                                        .help("Kembalikan file ini ke Desktop")
                                     }
-                                    .buttonStyle(.plain)
                                 }
                             }
                             .padding(.horizontal, 16)
@@ -100,35 +125,43 @@ public struct MagicCarpetView: View {
                 .transition(.scale.combined(with: .opacity))
             }
             
-            // The Oval Carpet Body
+            // The Rug / Mat / Dirt Patch Body
             ZStack {
-                // Carpet base oval
-                Ellipse()
-                    .fill(carpetColor)
-                    .frame(width: 360, height: 80)
-                    .overlay(
-                        // Golden / decorative border rim
-                        Ellipse()
-                            .stroke(appState.isCarpetTargeted ? Color.yellow : borderRimColor, lineWidth: appState.isCarpetTargeted ? 4 : 2.5)
-                            .frame(width: 346, height: 68)
-                    )
-                    .overlay(
-                        // Center ornamental pattern
-                        Ellipse()
-                            .stroke(borderRimColor.opacity(0.4), lineWidth: 1.5)
-                            .frame(width: 240, height: 42)
-                    )
-                    .shadow(color: .black.opacity(0.35), radius: 5, y: 4)
-                
-                // Fringe tassels on sides
-                HStack {
-                    TasselGroupView()
-                    Spacer()
-                    TasselGroupView()
+                if let matImg = AssetLoader.image(named: theme.matImageName) {
+                    Image(nsImage: matImg)
+                        .resizable()
+                        .interpolation(.none)
+                        .scaledToFit()
+                        .frame(width: 380, height: 95)
+                        .shadow(color: .black.opacity(0.35), radius: 5, y: 4)
+                } else {
+                    proceduralMat
                 }
-                .frame(width: 368)
                 
-                // Center label / drop cue
+                // Visible lump or pile if items are hidden underneath!
+                if storage.carpetItems.count == 1 {
+                    if let lumpImg = AssetLoader.image(named: theme.lumpImageName) {
+                        Image(nsImage: lumpImg)
+                            .resizable()
+                            .interpolation(.none)
+                            .scaledToFit()
+                            .frame(width: 44, height: 26)
+                            .offset(x: 20, y: -8)
+                            .transition(.scale)
+                    }
+                } else if storage.carpetItems.count > 1 {
+                    if let pileImg = AssetLoader.image(named: theme.pileImageName) {
+                        Image(nsImage: pileImg)
+                            .resizable()
+                            .interpolation(.none)
+                            .scaledToFit()
+                            .frame(width: 65, height: 45)
+                            .offset(x: 25, y: -12)
+                            .transition(.scale)
+                    }
+                }
+                
+                // Drop or count indicator
                 VStack(spacing: 2) {
                     if appState.isCarpetTargeted {
                         HStack(spacing: 6) {
@@ -137,28 +170,24 @@ public struct MagicCarpetView: View {
                         }
                         .font(.system(size: 12, weight: .bold))
                         .foregroundColor(.yellow)
-                    } else {
-                        if storage.carpetItems.count > 0 {
-                            HStack(spacing: 4) {
-                                Image(systemName: "lock.shield.fill")
-                                    .font(.system(size: 10))
-                                Text("\(storage.carpetItems.count) item di bawah karpet")
-                                    .font(.system(size: 10, weight: .semibold))
-                            }
-                            .foregroundColor(.white.opacity(0.95))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 3)
-                            .background(Capsule().fill(Color.black.opacity(0.4)))
-                        } else {
-                            Text("Magic Carpet (Klik untuk Angkat)")
-                                .font(.system(size: 10, weight: .medium, design: .serif))
-                                .foregroundColor(.white.opacity(0.7))
+                        .padding(6)
+                        .background(Capsule().fill(Color.black.opacity(0.65)))
+                    } else if storage.carpetItems.count > 0 {
+                        HStack(spacing: 4) {
+                            Image(systemName: "eye.slash.fill")
+                                .font(.system(size: 10))
+                            Text("\(storage.carpetItems.count) file tersembunyi")
+                                .font(.system(size: 10, weight: .semibold))
                         }
+                        .foregroundColor(.white.opacity(0.95))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 3)
+                        .background(Capsule().fill(Color.black.opacity(0.55)))
                     }
                 }
             }
             .contentShape(Rectangle())
-            .scaleEffect(appState.isCarpetLifted ? 0.92 : 1.0)
+            .scaleEffect(appState.isCarpetLifted ? 0.95 : 1.0)
             .onTapGesture {
                 withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
                     appState.isCarpetLifted.toggle()
@@ -175,23 +204,44 @@ public struct MagicCarpetView: View {
                 }
                 return true
             }
-            .help("Magic Carpet: Tarik file ke sini untuk menyembunyikannya, atau klik untuk membuka!")
+            .help("geser untuk membukanya, klik untuk mengintip. Ke atas file di desktop untuk menyembunyikannya.")
+        }
+    }
+    
+    private var proceduralMat: some View {
+        ZStack {
+            Ellipse()
+                .fill(carpetColor)
+                .frame(width: 360, height: 80)
+                .overlay(
+                    Ellipse()
+                        .stroke(appState.isCarpetTargeted ? Color.yellow : borderRimColor, lineWidth: appState.isCarpetTargeted ? 4 : 2.5)
+                        .frame(width: 346, height: 68)
+                )
+                .shadow(color: .black.opacity(0.35), radius: 5, y: 4)
+            
+            HStack {
+                TasselGroupView()
+                Spacer()
+                TasselGroupView()
+            }
+            .frame(width: 368)
         }
     }
     
     private var carpetColor: Color {
         switch theme {
         case .library: return Color(red: 0.52, green: 0.12, blue: 0.18)
-        case .kosKosan: return Color(red: 0.18, green: 0.42, blue: 0.68)
-        case .taman: return Color(red: 0.82, green: 0.25, blue: 0.25)
+        case .kos: return Color(red: 0.18, green: 0.42, blue: 0.68)
+        case .garden: return Color(red: 0.82, green: 0.25, blue: 0.25)
         }
     }
     
     private var borderRimColor: Color {
         switch theme {
         case .library: return Color(red: 0.88, green: 0.72, blue: 0.32)
-        case .kosKosan: return Color(red: 0.95, green: 0.95, blue: 0.95)
-        case .taman: return Color(red: 1.0, green: 0.90, blue: 0.70)
+        case .kos: return Color(red: 0.95, green: 0.95, blue: 0.95)
+        case .garden: return Color(red: 1.0, green: 0.90, blue: 0.70)
         }
     }
 }
