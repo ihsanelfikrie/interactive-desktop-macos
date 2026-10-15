@@ -146,6 +146,11 @@ public struct DesktopRootView: View {
                 TrashCanView()
                     .position(x: w * 0.710, y: h * 0.738)
                 
+                // Native Indonesian Swallow Flip-Flops (Sendal Jepit on Grass Floor - Click to Open Google Chrome)
+                SandalJepitView()
+                    .position(x: w * 0.445, y: h * 0.788)
+                    .zIndex(15)
+                
                 // 3. Ambient Night Dimmer when Lamp is Off
                 if !appState.lampOn {
                     Color.black.opacity(0.65)

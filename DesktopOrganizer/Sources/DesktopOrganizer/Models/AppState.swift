@@ -120,6 +120,7 @@ public final class AppState: ObservableObject {
     @Published public var hoveredPhotoSlot: Int? = nil
     @Published public var hoveredShelfURL: URL? = nil
     @Published public var hoveredFlyoutURL: URL? = nil
+    @Published public var isHoveringSandal: Bool = false
     
     // Sticky Notes state
     @Published public var addingTaskForNoteId: UUID? = nil
