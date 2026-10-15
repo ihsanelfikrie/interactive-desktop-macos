@@ -197,10 +197,10 @@ public struct DesktopRootView: View {
                 
                 // Dreadnought Acoustic Guitar on Stand (Standing on left lawn beneath wall shelf)
                 let acousticH = h * 0.58
-                let acousticW = acousticH * 0.365
+                let acousticW = acousticH * 0.44
                 AcousticGuitarView()
                     .frame(width: acousticW, height: acousticH)
-                    .position(x: w * 0.092, y: h * 0.665)
+                    .position(x: w * 0.096, y: h * 0.665)
                     .zIndex(15)
                 
                 // Cartoon Wastebasket (Beside Desk on Floor)
