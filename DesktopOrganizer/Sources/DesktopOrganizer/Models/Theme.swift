@@ -50,10 +50,22 @@ public enum RoomTheme: String, CaseIterable, Identifiable, Codable {
 }
 
 public final class AssetLoader {
-    private static var cache: [String: NSImage] = [:]
+    private static let cache: NSCache<NSString, NSImage> = {
+        let c = NSCache<NSString, NSImage>()
+        c.countLimit = 64
+        c.totalCostLimit = 40 * 1024 * 1024 // 40MB max, auto-purged under RAM pressure
+        return c
+    }()
+    
+    @discardableResult
+    private static func cacheImage(_ img: NSImage, for name: String) -> NSImage {
+        let cost = Int(img.size.width * img.size.height * 4)
+        cache.setObject(img, forKey: name as NSString, cost: cost)
+        return img
+    }
     
     public static func image(named name: String) -> NSImage? {
-        if let cached = cache[name] {
+        if let cached = cache.object(forKey: name as NSString) {
             return cached
         }
         
@@ -62,25 +74,21 @@ public final class AssetLoader {
         // 1. Check Bundle.module if available
         #if SWIFT_PACKAGE
         if let img = Bundle.module.image(forResource: cleanName) {
-            cache[name] = img
-            return img
+            return cacheImage(img, for: name)
         }
         if let path = Bundle.module.path(forResource: cleanName, ofType: "png"),
            let img = NSImage(contentsOfFile: path) {
-            cache[name] = img
-            return img
+            return cacheImage(img, for: name)
         }
         #endif
         
         // 2. Check Bundle.main
         if let img = NSImage(named: cleanName) {
-            cache[name] = img
-            return img
+            return cacheImage(img, for: name)
         }
         if let path = Bundle.main.path(forResource: cleanName, ofType: "png"),
            let img = NSImage(contentsOfFile: path) {
-            cache[name] = img
-            return img
+            return cacheImage(img, for: name)
         }
         
         // 3. Check inside Resources subfolder / Custom Desktop Mac.app
@@ -93,8 +101,7 @@ public final class AssetLoader {
         
         for url in checks {
             if let img = NSImage(contentsOf: url) {
-                cache[name] = img
-                return img
+                return cacheImage(img, for: name)
             }
         }
         

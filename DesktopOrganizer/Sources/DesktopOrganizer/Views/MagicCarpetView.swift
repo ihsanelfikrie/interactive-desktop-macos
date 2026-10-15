@@ -5,7 +5,11 @@ import UniformTypeIdentifiers
 // MARK: - Fast In-Memory Icon Cache (Prevents Blocking I/O During Drag Passes)
 final class FileIconCache {
     static let shared = FileIconCache()
-    private let cache = NSCache<NSURL, NSImage>()
+    private let cache: NSCache<NSURL, NSImage> = {
+        let c = NSCache<NSURL, NSImage>()
+        c.countLimit = 64
+        return c
+    }()
     
     func icon(for url: URL) -> NSImage {
         let key = url as NSURL
