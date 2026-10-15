@@ -39,55 +39,10 @@ public struct CorkboardView: View {
                     )
                 }
                 
-                // Bottom Toolbar: Wind Gust & Toggle (Left) + Add Memo (Right)
+                // Bottom Toolbar: Add Memo (Right)
                 VStack {
                     Spacer()
-                    HStack(spacing: 6) {
-                        // Breeze Wind Gust Trigger Button
-                        Button(action: {
-                            withAnimation(.easeOut(duration: 0.2)) {
-                                appState.lastManualWindGust = Date().timeIntervalSinceReferenceDate
-                            }
-                        }) {
-                            HStack(spacing: 3) {
-                                Image(systemName: "wind")
-                                    .font(.system(size: 9, weight: .bold))
-                                Text("Tiup 💨")
-                                    .font(.system(size: 8, weight: .bold))
-                            }
-                            .foregroundColor(SANSColors.dark)
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 4)
-                            .background(
-                                Capsule()
-                                    .fill(Color.white.opacity(0.92))
-                                    .overlay(Capsule().stroke(SANSColors.dark.opacity(0.15), lineWidth: 1))
-                                    .shadow(color: .black.opacity(0.15), radius: 2, y: 1)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .help("Tiup angin untuk mengibarkan semua memo!")
-                        
-                        // Breeze Ambient Toggle Button
-                        Button(action: {
-                            withAnimation(.spring()) {
-                                appState.windBreezeEnabled.toggle()
-                            }
-                        }) {
-                            Image(systemName: appState.windBreezeEnabled ? "fan.fill" : "fan.slash")
-                                .font(.system(size: 8, weight: .semibold))
-                                .foregroundColor(appState.windBreezeEnabled ? SANSColors.primaryBlue : Color.gray)
-                                .padding(4)
-                                .background(
-                                    Circle()
-                                        .fill(Color.white.opacity(0.92))
-                                        .overlay(Circle().stroke(SANSColors.dark.opacity(0.15), lineWidth: 1))
-                                        .shadow(color: .black.opacity(0.12), radius: 1, y: 0.5)
-                                )
-                        }
-                        .buttonStyle(.plain)
-                        .help(appState.windBreezeEnabled ? "Animasi Angin Aktif (Klik untuk Matikan)" : "Animasi Angin Mati (Klik untuk Aktifkan)")
-                        
+                    HStack {
                         Spacer()
                         
                         // Add Note '+' Button
