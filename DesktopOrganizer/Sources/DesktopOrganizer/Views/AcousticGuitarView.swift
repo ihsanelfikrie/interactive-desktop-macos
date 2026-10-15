@@ -122,29 +122,30 @@ private func drawAcousticGuitar(ctx: GraphicsContext, w: CGFloat, h: CGFloat) {
     ctx.fill(Capsule().path(in: CGRect(x: w * 0.50 - footR * 0.8, y: h * 0.965 - footR * 0.5, width: footR * 1.6, height: footR)), with: .color(.black))
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // 2. DREADNOUGHT ACOUSTIC BODY (Smooth Continuous Bézier Curves)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 2. DREADNOUGHT ACOUSTIC BODY (Proportional Dreadnought Curves)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     var bodyPath = Path()
     // Start at neck joint right side
-    bodyPath.move(to: p(0.566, 0.490))
+    bodyPath.move(to: p(0.559, 0.490))
     // 1. Upper bout shoulder
-    bodyPath.addCurve(to: p(0.810, 0.595), control1: p(0.680, 0.490), control2: p(0.810, 0.535))
-    // 2. Waist taper
-    bodyPath.addCurve(to: p(0.750, 0.670), control1: p(0.810, 0.630), control2: p(0.750, 0.640))
-    // 3. Lower bout resonant hip swell
-    bodyPath.addCurve(to: p(0.910, 0.810), control1: p(0.750, 0.705), control2: p(0.910, 0.750))
-    // 4. Bottom round sweep to centerline
-    bodyPath.addCurve(to: p(0.500, 0.890), control1: p(0.910, 0.865), control2: p(0.680, 0.890))
+    bodyPath.addCurve(to: p(0.725, 0.575), control1: p(0.640, 0.490), control2: p(0.725, 0.525))
+    // 2. Upper bout down into waist taper
+    bodyPath.addCurve(to: p(0.655, 0.650), control1: p(0.725, 0.615), control2: p(0.655, 0.625))
+    // 3. Waist out into lower bout resonant hip swell
+    bodyPath.addCurve(to: p(0.845, 0.760), control1: p(0.655, 0.695), control2: p(0.845, 0.710))
+    // 4. Lower bout hip down to bottom centerline
+    bodyPath.addCurve(to: p(0.500, 0.885), control1: p(0.845, 0.835), control2: p(0.690, 0.885))
     
     // Left side (mirrored along centerline x = 0.500)
-    // 4. Mirror bottom sweep to left lower bout
-    bodyPath.addCurve(to: p(0.090, 0.810), control1: p(0.320, 0.890), control2: p(0.090, 0.865))
-    // 3. Mirror lower bout hip to waist
-    bodyPath.addCurve(to: p(0.250, 0.670), control1: p(0.090, 0.750), control2: p(0.250, 0.705))
-    // 2. Mirror waist to upper bout shoulder
-    bodyPath.addCurve(to: p(0.190, 0.595), control1: p(0.250, 0.640), control2: p(0.190, 0.630))
-    // 1. Mirror upper bout shoulder to neck joint left
-    bodyPath.addCurve(to: p(0.434, 0.490), control1: p(0.190, 0.535), control2: p(0.320, 0.490))
+    // 4. Mirror bottom sweep to left lower bout hip
+    bodyPath.addCurve(to: p(0.155, 0.760), control1: p(0.310, 0.885), control2: p(0.155, 0.835))
+    // 3. Mirror lower bout hip into waist
+    bodyPath.addCurve(to: p(0.345, 0.650), control1: p(0.155, 0.710), control2: p(0.345, 0.695))
+    // 2. Mirror waist up to upper bout shoulder
+    bodyPath.addCurve(to: p(0.275, 0.575), control1: p(0.345, 0.625), control2: p(0.275, 0.615))
+    // 1. Mirror upper bout shoulder to neck joint left side
+    bodyPath.addCurve(to: p(0.441, 0.490), control1: p(0.275, 0.525), control2: p(0.360, 0.490))
     bodyPath.closeSubpath()
     
     // Solid Sitka Spruce soundboard with warm natural honey/amber acoustic glow
@@ -163,7 +164,7 @@ private func drawAcousticGuitar(ctx: GraphicsContext, w: CGFloat, h: CGFloat) {
     // Natural wood grain sheen (fine vertical line overlay)
     var grainPath = Path()
     for g in 0...30 {
-        let gx = w * (0.10 + CGFloat(g) * 0.027)
+        let gx = w * (0.16 + CGFloat(g) * 0.023)
         grainPath.move(to: CGPoint(x: gx, y: h * 0.50))
         grainPath.addLine(to: CGPoint(x: gx, y: h * 0.88))
     }
@@ -171,8 +172,8 @@ private func drawAcousticGuitar(ctx: GraphicsContext, w: CGFloat, h: CGFloat) {
     
     // Soft acoustic soundboard lacquer reflection (diagonal gloss sheen)
     var glossPath = Path()
-    glossPath.move(to: p(0.22, 0.53))
-    glossPath.addQuadCurve(to: p(0.33, 0.83), control: p(0.20, 0.68))
+    glossPath.move(to: p(0.25, 0.53))
+    glossPath.addQuadCurve(to: p(0.34, 0.83), control: p(0.22, 0.68))
     ctx.stroke(glossPath, with: .color(Color.white.opacity(0.18)), style: StrokeStyle(lineWidth: 3.5, lineCap: .round))
     
     // Multi-ply Body Binding: Outer ivory cream rim + inner dark purfling pinstripe
@@ -184,7 +185,7 @@ private func drawAcousticGuitar(ctx: GraphicsContext, w: CGFloat, h: CGFloat) {
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     let shCx = w * 0.50
     let shCy = h * 0.615
-    let shR  = w * 0.120
+    let shR  = w * 0.115
     
     // Rosette outer ring (Abalone / Pearl multi-colored purfling)
     let rosOuterR = shR * 1.48
@@ -224,36 +225,42 @@ private func drawAcousticGuitar(ctx: GraphicsContext, w: CGFloat, h: CGFloat) {
              with: .color(Color(red: 0.35, green: 0.26, blue: 0.18).opacity(0.55)))
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // 4. ACOUSTIC TORTOISESHELL TEARDROP PICKGUARD
+    // 4. ACOUSTIC TORTOISESHELL TEARDROP PICKGUARD (Concentric with Rosette)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     var pgPath = Path()
-    let pgTop = CGPoint(x: shCx + rosOuterR * 0.72, y: shCy - rosOuterR * 0.68)
-    pgPath.move(to: pgTop)
-    
-    // Inner concave contour hugging rosette ring
-    pgPath.addQuadCurve(
-        to: CGPoint(x: shCx + rosOuterR * 0.72, y: shCy + rosOuterR * 0.70),
-        control: CGPoint(x: shCx + rosOuterR * 0.98, y: shCy)
+    let innerGap = rosOuterR * 1.04
+    // Inner concentric arc hugging rosette
+    pgPath.addArc(
+        center: CGPoint(x: shCx, y: shCy),
+        radius: innerGap,
+        startAngle: .degrees(-35),
+        endAngle: .degrees(65),
+        clockwise: false
     )
-    
-    // Outer teardrop belly sweeping down & right
+    let pEndArc = CGPoint(
+        x: shCx + innerGap * cos(65.0 * .pi / 180.0),
+        y: shCy + innerGap * sin(65.0 * .pi / 180.0)
+    )
+    // Lower belly curve sweeping down towards waist
     pgPath.addCurve(
-        to: CGPoint(x: shCx + w * 0.25, y: shCy + rosOuterR * 0.85),
-        control1: CGPoint(x: shCx + rosOuterR * 0.70, y: shCy + rosOuterR * 1.05),
-        control2: CGPoint(x: shCx + w * 0.19, y: shCy + rosOuterR * 1.15)
+        to: CGPoint(x: shCx + w * 0.22, y: shCy + rosOuterR * 0.95),
+        control1: CGPoint(x: pEndArc.x + w * 0.04, y: pEndArc.y + h * 0.02),
+        control2: CGPoint(x: shCx + w * 0.16, y: shCy + rosOuterR * 1.05)
     )
-    
-    // Rounded teardrop lobe
+    // Teardrop rounded lobe
     pgPath.addQuadCurve(
-        to: CGPoint(x: shCx + w * 0.26, y: shCy + rosOuterR * 0.40),
-        control: CGPoint(x: shCx + w * 0.29, y: shCy + rosOuterR * 0.65)
+        to: CGPoint(x: shCx + w * 0.24, y: shCy + rosOuterR * 0.45),
+        control: CGPoint(x: shCx + w * 0.265, y: shCy + rosOuterR * 0.72)
     )
-    
-    // Upper sweep back to starting top corner
+    // Upper sweep back to starting arc point
+    let pStartArc = CGPoint(
+        x: shCx + innerGap * cos(-35.0 * .pi / 180.0),
+        y: shCy + innerGap * sin(-35.0 * .pi / 180.0)
+    )
     pgPath.addCurve(
-        to: pgTop,
-        control1: CGPoint(x: shCx + w * 0.24, y: shCy - rosOuterR * 0.20),
-        control2: CGPoint(x: shCx + w * 0.16, y: shCy - rosOuterR * 0.65)
+        to: pStartArc,
+        control1: CGPoint(x: shCx + w * 0.22, y: shCy - rosOuterR * 0.10),
+        control2: CGPoint(x: shCx + w * 0.18, y: pStartArc.y)
     )
     pgPath.closeSubpath()
     
@@ -272,10 +279,10 @@ private func drawAcousticGuitar(ctx: GraphicsContext, w: CGFloat, h: CGFloat) {
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // 5. ROSEWOOD BELLY BRIDGE, BONE SADDLE & BRIDGE PINS
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    let brW = w * 0.340
-    let brH = h * 0.040
+    let brW = w * 0.295
+    let brH = h * 0.038
     let brX = neckCx - brW / 2
-    let brY = h * 0.765
+    let brY = h * 0.748
     
     // Traditional acoustic belly bridge silhouette
     var brPath = Path()
@@ -590,9 +597,9 @@ private func drawAcousticGuitar(ctx: GraphicsContext, w: CGFloat, h: CGFloat) {
     let prongW = max(5.0, neckW * 0.038)
     let prongH = max(11.0, h * 0.022)
     
-    for cxRel in [0.240, 0.760] as [CGFloat] {
+    for cxRel in [0.270, 0.730] as [CGFloat] {
         let px = w * cxRel
-        let py = h * 0.890
+        let py = h * 0.882
         let pRect = CGRect(x: px - prongW / 2, y: py - prongH * 0.6, width: prongW, height: prongH)
         ctx.fill(Capsule().path(in: pRect), with: .linearGradient(
             Gradient(colors: [
