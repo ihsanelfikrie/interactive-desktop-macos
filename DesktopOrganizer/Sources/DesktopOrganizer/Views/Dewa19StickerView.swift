@@ -8,7 +8,7 @@ public struct Dewa19StickerView: View {
     public let width: CGFloat
     public let height: CGFloat
     
-    public init(width: CGFloat = 72, height: CGFloat = 48) {
+    public init(width: CGFloat = 52, height: CGFloat = 35) {
         self.width = width
         self.height = height
     }
@@ -43,15 +43,15 @@ public struct Dewa19StickerView: View {
             let w = size.width
             let h = size.height
             
-            // 1. Black sticker background
+            // 1. Black sticker background with sharp lancip corners (no rounding)
             let bgRect = CGRect(origin: .zero, size: size)
-            context.fill(Path(roundedRect: bgRect, cornerRadius: 4), with: .color(.black))
+            context.fill(Path(bgRect), with: .color(.black))
             
-            // White die-cut border
+            // Sharp white perimeter border
             context.stroke(
-                Path(roundedRect: bgRect.insetBy(dx: 1.2, dy: 1.2), cornerRadius: 3),
+                Path(bgRect.insetBy(dx: 0.8, dy: 0.8)),
                 with: .color(.white),
-                lineWidth: 1.4
+                lineWidth: 1.0
             )
             
             // 2. Red "19" Block (placed below E)
@@ -96,13 +96,13 @@ public struct Dewa19StickerView: View {
             ctxA.draw(ctxA.resolve(textA), at: .zero)
         }
         .frame(width: width, height: height)
-        .rotationEffect(.degrees(isHovered ? -1.5 : -3.5))
-        .scaleEffect(isHovered ? 1.05 : 1.0)
+        .rotationEffect(.degrees(isHovered ? -1.2 : -3.0))
+        .scaleEffect(isHovered ? 1.06 : 1.0)
         .shadow(
-            color: Color.black.opacity(isHovered ? 0.42 : 0.28),
-            radius: isHovered ? 4.5 : 2.8,
+            color: Color.black.opacity(isHovered ? 0.38 : 0.25),
+            radius: isHovered ? 3.5 : 2.2,
             x: 0.5,
-            y: isHovered ? 2.5 : 1.6
+            y: isHovered ? 2.0 : 1.2
         )
         .animation(.spring(response: 0.28, dampingFraction: 0.75), value: isHovered)
         .contentShape(Rectangle())
