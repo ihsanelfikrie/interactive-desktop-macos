@@ -59,6 +59,9 @@ public struct BookshelfView: View {
                         }
                         if !storage.bookshelfItems.isEmpty {
                             Divider()
+                            Button("Keluarkan Semua ke Lantai Rumput") {
+                                storage.ejectAllBookshelfItemsToFloor()
+                            }
                             Button("Kembalikan Semua ke Desktop") {
                                 storage.restoreAllBookshelfItems()
                             }
@@ -285,6 +288,12 @@ struct ShelfItemView: View {
             Button("Buka") { NSWorkspace.shared.open(url) }
             Button("Tampilkan di Finder") { storage.openInFinder(url: url) }
             Divider()
+            Button("Keluarkan ke Lantai Rumput") {
+                withAnimation(AppState.appleDismissSpring) {
+                    appState.activeShelfPopoverURL = nil
+                    storage.ejectBookshelfItemToFloor(itemURL: url)
+                }
+            }
             Button("Kembalikan ke Desktop") { storage.restoreBookshelfItemToDesktop(itemURL: url) }
             Button("Buang ke Tempat Sampah", role: .destructive) { storage.removeBookshelfItem(itemURL: url) }
         }
@@ -1138,6 +1147,14 @@ public struct BookshelfDrawerView: View {
                     
                     if !storage.bookshelfItems.isEmpty {
                         Button(action: {
+                            storage.ejectAllBookshelfItemsToFloor()
+                        }) {
+                            Text("Keluarkan Semua ke Lantai")
+                                .font(.system(size: 11))
+                        }
+                        .buttonStyle(.bordered)
+                        
+                        Button(action: {
                             storage.restoreAllBookshelfItems()
                         }) {
                             Text("Kembalikan Semua")
@@ -1262,6 +1279,18 @@ public struct BookshelfDrawerView: View {
                                         }
                                         .buttonStyle(.plain)
                                         .help("Tampilkan di Finder")
+                                        
+                                        Button(action: {
+                                            storage.ejectBookshelfItemToFloor(itemURL: item)
+                                        }) {
+                                            Image(systemName: "arrow.down.forward.and.arrow.up.backward")
+                                                .font(.system(size: 11))
+                                                .foregroundColor(SANSColors.lime)
+                                                .frame(width: 26, height: 26)
+                                                .background(Circle().fill(Color.white.opacity(0.12)))
+                                        }
+                                        .buttonStyle(.plain)
+                                        .help("Keluarkan ke Lantai Rumput")
                                         
                                         Button(action: {
                                             storage.restoreBookshelfItemToDesktop(itemURL: item)

@@ -67,18 +67,53 @@ public struct MagicCarpetView: View {
         
         ZStack(alignment: .topLeading) {
             // LAYER 1: Full Lawn Drop Zone (Transparent drop receiver across entire grass floor)
+            // LAYER 1: Full Lawn Drop Zone & Marquee Multi-Select ("Blok") Area
             Color.clear
                 .contentShape(Rectangle())
                 .frame(width: w, height: floorHeight)
                 .position(x: w * 0.5, y: floorMinY + (floorHeight * 0.5))
                 .onDrop(of: [.fileURL, .folder, .directory, .item], delegate: FloorDropDelegate(screenSize: screenSize, storage: storage))
-                .onTapGesture {
-                    if floorState.isCarpetLifted {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-                            floorState.isCarpetLifted = false
+                .gesture(
+                    DragGesture(minimumDistance: 3, coordinateSpace: .global)
+                        .onChanged { value in
+                            floorState.isMarqueeSelecting = true
+                            floorState.marqueeStart = value.startLocation
+                            floorState.marqueeCurrent = value.location
+                            
+                            let start = value.startLocation
+                            let curr = value.location
+                            let box = CGRect(
+                                x: min(start.x, curr.x),
+                                y: min(start.y, curr.y),
+                                width: max(abs(curr.x - start.x), 1),
+                                height: max(abs(curr.y - start.y), 1)
+                            )
+                            
+                            var newlySelected: Set<String> = []
+                            for item in storage.carpetItems {
+                                let p = storage.positionForFloorItem(filename: item.lastPathComponent, index: 0, total: 1)
+                                let itemPt = CGPoint(x: p.x * w, y: p.y * h)
+                                if box.contains(itemPt) {
+                                    newlySelected.insert(item.lastPathComponent)
+                                }
+                            }
+                            floorState.selectedFileNames = newlySelected
                         }
-                    }
-                }
+                        .onEnded { value in
+                            let dist = hypot(value.translation.width, value.translation.height)
+                            if dist < 5 {
+                                floorState.clearSelection()
+                                if floorState.isCarpetLifted {
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                                        floorState.isCarpetLifted = false
+                                    }
+                                }
+                            }
+                            floorState.isMarqueeSelecting = false
+                            floorState.marqueeStart = nil
+                            floorState.marqueeCurrent = nil
+                        }
+                )
                 .overlay(
                     Group {
                         if floorState.isFloorTargeted {
@@ -87,6 +122,24 @@ public struct MagicCarpetView: View {
                     }
                 )
             
+            // Marquee ("Blok") Selection Box Visualizer
+            if floorState.isMarqueeSelecting,
+               let start = floorState.marqueeStart,
+               let curr = floorState.marqueeCurrent {
+                let box = CGRect(
+                    x: min(start.x, curr.x),
+                    y: min(start.y, curr.y),
+                    width: max(abs(curr.x - start.x), 1),
+                    height: max(abs(curr.y - start.y), 1)
+                )
+                Rectangle()
+                    .stroke(SANSColors.lime, style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
+                    .background(Rectangle().fill(SANSColors.primaryBlue.opacity(0.18)))
+                    .frame(width: box.width, height: box.height)
+                    .position(x: box.midX, y: box.midY)
+                    .allowsHitTesting(false)
+            }
+            
             // LAYER 2: Files & Folders placed on the grass lawn
             ForEach(Array(storage.carpetItems.enumerated()), id: \.element) { idx, item in
                 let basePos = storage.positionForFloorItem(filename: item.lastPathComponent, index: idx, total: storage.carpetItems.count)
@@ -94,13 +147,16 @@ public struct MagicCarpetView: View {
                 let basePixelY = basePos.y * h
                 let isCovered = carpetRect.contains(CGPoint(x: basePixelX, y: basePixelY))
                 let isThisDragging = floorState.draggingFloorFileName == item.lastPathComponent
+                let isSelected = floorState.selectedFileNames.contains(item.lastPathComponent)
+                let isPartDragging = isSelected && floorState.draggingFloorFileName != nil
+                let liveOffset = (isThisDragging || isPartDragging) ? floorState.floorFileDragTranslation : .zero
                 let isVisible = !isCovered || floorState.isCarpetLifted
                 
                 if isVisible {
                     FloorItemView(itemURL: item, isCovered: isCovered, screenSize: screenSize)
                         .position(x: basePixelX, y: basePixelY)
-                        .offset(isThisDragging ? floorState.floorFileDragTranslation : .zero)
-                        .zIndex(isThisDragging ? 35 : (floorState.isCarpetLifted ? 25 : (isCovered ? 5 : 22)))
+                        .offset(liveOffset)
+                        .zIndex(isThisDragging ? 40 : (isPartDragging ? 38 : (isSelected ? 32 : (floorState.isCarpetLifted ? 25 : (isCovered ? 5 : 22)))))
                         .transition(.scale.combined(with: .opacity))
                 }
             }
@@ -110,6 +166,35 @@ public struct MagicCarpetView: View {
                 .position(x: baseCarpetX, y: baseCarpetY)
                 .offset(floorState.carpetDragOffset)
                 .zIndex(20)
+            
+            // LAYER 4: Floating Multi-Select ("Blok") Action Bar
+            if !floorState.selectedFileNames.isEmpty && !floorState.isCarpetDragging && floorState.draggingFloorFileName == nil {
+                FloorMultiSelectActionBar(
+                    selectedCount: floorState.selectedFileNames.count,
+                    onAddToBookshelf: {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                            storage.moveFloorItemsToBookshelf(filenames: Array(floorState.selectedFileNames))
+                            floorState.clearSelection()
+                        }
+                    },
+                    onClearSelection: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            floorState.clearSelection()
+                        }
+                    },
+                    onTrashAll: {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                            for name in floorState.selectedFileNames {
+                                storage.removeFloorItem(itemURL: storage.carpetDirectory.appendingPathComponent(name))
+                            }
+                            floorState.clearSelection()
+                        }
+                    }
+                )
+                .position(x: w * 0.5, y: h * 0.94)
+                .zIndex(50)
+                .transition(.scale(scale: 0.9).combined(with: .opacity))
+            }
         }
         .frame(width: w, height: h)
     }
@@ -145,6 +230,73 @@ struct FloorDropHighlightOverlay: View {
         }
         .allowsHitTesting(false)
         .transition(.opacity)
+    }
+}
+
+// MARK: - Floating Multi-Select Action Bar ("Blok")
+struct FloorMultiSelectActionBar: View {
+    let selectedCount: Int
+    let onAddToBookshelf: () -> Void
+    let onClearSelection: () -> Void
+    let onTrashAll: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(SANSColors.lime)
+                    .font(.system(size: 14, weight: .bold))
+                Text("\(selectedCount) File Dipilih")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.white)
+            }
+            .padding(.trailing, 4)
+            
+            Button(action: onAddToBookshelf) {
+                HStack(spacing: 5) {
+                    Image(systemName: "books.vertical.fill")
+                        .font(.system(size: 11))
+                    Text("Simpan ke Rak Buku")
+                        .font(.system(size: 11, weight: .semibold))
+                }
+                .foregroundColor(.black)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(Capsule().fill(SANSColors.lime))
+            }
+            .buttonStyle(.plain)
+            .help("Pindahkan semua file yang diblok ke rak buku")
+            
+            Button(action: onTrashAll) {
+                Image(systemName: "trash.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(.red.opacity(0.9))
+                    .padding(5)
+                    .background(Circle().fill(Color.white.opacity(0.12)))
+            }
+            .buttonStyle(.plain)
+            .help("Buang semua file yang diblok ke tong sampah")
+            
+            Button(action: onClearSelection) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.white.opacity(0.7))
+                    .padding(5)
+            }
+            .buttonStyle(.plain)
+            .help("Lepas pilihan blok")
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 7)
+        .background(
+            Capsule()
+                .fill(Color(red: 0.12, green: 0.14, blue: 0.18).opacity(0.95))
+                .shadow(color: .black.opacity(0.55), radius: 10, y: 5)
+        )
+        .overlay(
+            Capsule()
+                .stroke(SANSColors.lime.opacity(0.6), lineWidth: 1.2)
+        )
     }
 }
 
@@ -295,9 +447,13 @@ struct FloorItemView: View {
     
     var body: some View {
         let isDraggingThis = floorState.draggingFloorFileName == itemURL.lastPathComponent
+        let isSelected = floorState.selectedFileNames.contains(itemURL.lastPathComponent)
         let isHovered = floorState.hoveredFloorFileName == itemURL.lastPathComponent
         let w = screenSize.width
         let h = screenSize.height
+        
+        let hash = abs(itemURL.lastPathComponent.hashValue)
+        let casualAngle = Double((hash % 21) - 10) // -10° ... +10° natural scatter tilt
         
         VStack(spacing: 3) {
             ZStack(alignment: .topTrailing) {
@@ -318,8 +474,17 @@ struct FloorItemView: View {
                         .offset(x: -24, y: -4)
                 }
                 
+                // Multi-select checkmark indicator
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(SANSColors.lime)
+                        .background(Circle().fill(Color.black))
+                        .offset(x: -26, y: -4)
+                }
+                
                 // Quick restore button on hover
-                if isHovered {
+                if isHovered && !isSelected {
                     Button(action: {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                             storage.restoreCarpetItemToDesktop(itemURL: itemURL)
@@ -342,19 +507,20 @@ struct FloorItemView: View {
                 .foregroundColor(.white)
                 .lineLimit(1)
                 .truncationMode(.middle)
-                .frame(maxWidth: 82)
+                .frame(maxWidth: 86)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
                 .background(
                     Capsule()
-                        .fill(Color.black.opacity(0.72))
+                        .fill(isSelected ? SANSColors.primaryBlue.opacity(0.9) : Color.black.opacity(0.72))
                 )
                 .overlay(
                     Capsule()
-                        .stroke(isCovered ? Color.yellow.opacity(0.4) : Color.white.opacity(0.18), lineWidth: 0.8)
+                        .stroke(isSelected ? SANSColors.lime : (isCovered ? Color.yellow.opacity(0.4) : Color.white.opacity(0.18)), lineWidth: isSelected ? 1.5 : 0.8)
                 )
                 .shadow(color: .black.opacity(0.4), radius: 2, y: 1)
         }
+        .rotationEffect(.degrees((isDraggingThis || isSelected) ? 0 : casualAngle))
         .contentShape(Rectangle())
         .onHover { hovering in
             floorState.hoveredFloorFileName = hovering ? itemURL.lastPathComponent : nil
@@ -364,18 +530,86 @@ struct FloorItemView: View {
                 .onChanged { value in
                     floorState.draggingFloorFileName = itemURL.lastPathComponent
                     floorState.floorFileDragTranslation = value.translation
+                    
+                    let basePos = storage.positionForFloorItem(filename: itemURL.lastPathComponent, index: 0, total: 1)
+                    let curPt = CGPoint(x: (basePos.x * w) + value.translation.width, y: (basePos.y * h) + value.translation.height)
+                    
+                    let bookshelfRect = CGRect(x: (w * 0.1678) - (w * 0.2444 * 0.5) - 30, y: (h * 0.3705) - (h * 0.2860 * 0.5) - 30, width: (w * 0.2444) + 60, height: (h * 0.2860) + 60)
+                    let trashPt = CGPoint(x: w * 0.710, y: h * 0.738)
+                    
+                    AppState.shared.isBookshelfTargeted = bookshelfRect.contains(curPt)
+                    AppState.shared.isTrashTargeted = hypot(curPt.x - trashPt.x, curPt.y - trashPt.y) < 65
                 }
                 .onEnded { value in
+                    AppState.shared.isBookshelfTargeted = false
+                    AppState.shared.isTrashTargeted = false
+                    
                     let dist = hypot(value.translation.width, value.translation.height)
                     if dist < 5 {
-                        AppState.shared.toggleQuickView(.carpetItem(url: itemURL))
+                        if NSEvent.modifierFlags.contains(.shift) || NSEvent.modifierFlags.contains(.command) {
+                            floorState.toggleSelection(for: itemURL.lastPathComponent)
+                        } else {
+                            AppState.shared.toggleQuickView(.carpetItem(url: itemURL))
+                        }
                     } else {
                         let basePos = storage.positionForFloorItem(filename: itemURL.lastPathComponent, index: 0, total: 1)
-                        let newScreenX = (basePos.x * w) + value.translation.width
-                        let newScreenY = (basePos.y * h) + value.translation.height
-                        let clampedX = min(w * 0.96, max(w * 0.04, newScreenX))
-                        let clampedY = min(h * 0.96, max(h * 0.68, newScreenY))
-                        storage.setFloorPosition(for: itemURL.lastPathComponent, normX: Double(clampedX / w), normY: Double(clampedY / h))
+                        let releasePoint = CGPoint(x: (basePos.x * w) + value.translation.width, y: (basePos.y * h) + value.translation.height)
+                        
+                        let isGroup = isSelected && floorState.selectedFileNames.count > 1
+                        let groupFiles = isGroup ? Array(floorState.selectedFileNames) : [itemURL.lastPathComponent]
+                        
+                        // 1. Check Bookshelf Drop (Moves single or all selected files into shelf)
+                        let bookshelfRect = CGRect(x: (w * 0.1678) - (w * 0.2444 * 0.5) - 30, y: (h * 0.3705) - (h * 0.2860 * 0.5) - 30, width: (w * 0.2444) + 60, height: (h * 0.2860) + 60)
+                        if bookshelfRect.contains(releasePoint) {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                                storage.moveFloorItemsToBookshelf(filenames: groupFiles)
+                                floorState.clearSelection()
+                            }
+                            floorState.draggingFloorFileName = nil
+                            floorState.floorFileDragTranslation = .zero
+                            return
+                        }
+                        
+                        // 2. Check Photo Frame Drop (Only if image file)
+                        let galleryRect = CGRect(x: (w * 0.83125) - (w * 0.220 * 0.5) - 30, y: (h * 0.320) - (h * 0.440 * 0.5) - 30, width: (w * 0.220) + 60, height: (h * 0.440) + 60)
+                        if galleryRect.contains(releasePoint) && StorageManager.isImageFile(itemURL) {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                                storage.assignFirstAvailablePhoto(from: itemURL)
+                                storage.removeFloorItem(itemURL: itemURL)
+                                floorState.selectedFileNames.remove(itemURL.lastPathComponent)
+                            }
+                            floorState.draggingFloorFileName = nil
+                            floorState.floorFileDragTranslation = .zero
+                            return
+                        }
+                        
+                        // 3. Check Trash Drop
+                        let trashPoint = CGPoint(x: w * 0.710, y: h * 0.738)
+                        if hypot(releasePoint.x - trashPoint.x, releasePoint.y - trashPoint.y) < 65 {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                                for name in groupFiles {
+                                    storage.removeFloorItem(itemURL: storage.carpetDirectory.appendingPathComponent(name))
+                                }
+                                floorState.clearSelection()
+                            }
+                            floorState.draggingFloorFileName = nil
+                            floorState.floorFileDragTranslation = .zero
+                            return
+                        }
+                        
+                        // 4. Normal floor repositioning
+                        if isGroup {
+                            for name in floorState.selectedFileNames {
+                                let orig = storage.positionForFloorItem(filename: name, index: 0, total: 1)
+                                let nX = min(w * 0.96, max(w * 0.04, (orig.x * w) + value.translation.width))
+                                let nY = min(h * 0.96, max(h * 0.68, (orig.y * h) + value.translation.height))
+                                storage.setFloorPosition(for: name, normX: Double(nX / w), normY: Double(nY / h))
+                            }
+                        } else {
+                            let clampedX = min(w * 0.96, max(w * 0.04, releasePoint.x))
+                            let clampedY = min(h * 0.96, max(h * 0.68, releasePoint.y))
+                            storage.setFloorPosition(for: itemURL.lastPathComponent, normX: Double(clampedX / w), normY: Double(clampedY / h))
+                        }
                         floorState.draggingFloorFileName = nil
                         floorState.floorFileDragTranslation = .zero
                     }
@@ -386,10 +620,48 @@ struct FloorItemView: View {
                 NSWorkspace.shared.open(itemURL)
             }
         )
-        .help("\(itemURL.lastPathComponent): Geser ke mana saja di lantai, geser ke karpet untuk sembunyikan, klik 2x untuk membuka")
+        .help("\(itemURL.lastPathComponent): Geser ke mana saja di lantai, geser ke rak buku untuk simpan, klik 2x untuk membuka")
         .contextMenu {
+            if isSelected && floorState.selectedFileNames.count > 1 {
+                Button("Masukkan \(floorState.selectedFileNames.count) File ke Rak Buku") {
+                    withAnimation(.spring()) {
+                        storage.moveFloorItemsToBookshelf(filenames: Array(floorState.selectedFileNames))
+                        floorState.clearSelection()
+                    }
+                }
+                Button("Buang \(floorState.selectedFileNames.count) File ke Tempat Sampah", role: .destructive) {
+                    withAnimation(.spring()) {
+                        for name in floorState.selectedFileNames {
+                            storage.removeFloorItem(itemURL: storage.carpetDirectory.appendingPathComponent(name))
+                        }
+                        floorState.clearSelection()
+                    }
+                }
+                Button("Lepas Blok Pilihan") {
+                    floorState.clearSelection()
+                }
+                Divider()
+            }
+            
+            Button(isSelected ? "Lepas Pilihan (Unselect)" : "Pilih File Ini (Blok)") {
+                floorState.toggleSelection(for: itemURL.lastPathComponent)
+            }
             Button("Buka \(itemURL.lastPathComponent)") {
                 NSWorkspace.shared.open(itemURL)
+            }
+            if StorageManager.isImageFile(itemURL) {
+                Button("Pasang ke Bingkai Foto") {
+                    withAnimation(.spring()) {
+                        storage.assignFirstAvailablePhoto(from: itemURL)
+                        storage.removeFloorItem(itemURL: itemURL)
+                        floorState.selectedFileNames.remove(itemURL.lastPathComponent)
+                    }
+                }
+            }
+            Button("Masukkan ke Rak Buku") {
+                withAnimation(.spring()) {
+                    storage.moveFloorItemsToBookshelf(filenames: [itemURL.lastPathComponent])
+                }
             }
             Button("Kembalikan ke Desktop") {
                 withAnimation(.spring()) {

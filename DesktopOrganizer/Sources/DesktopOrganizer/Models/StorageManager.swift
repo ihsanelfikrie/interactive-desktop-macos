@@ -372,6 +372,31 @@ public final class StorageManager: ObservableObject {
         }
     }
     
+    public func ejectBookshelfItemToFloor(itemURL: URL) {
+        let destURL = safeDestinationURL(in: carpetDirectory, originalName: itemURL.lastPathComponent)
+        do {
+            try FileManager.default.moveItem(at: itemURL, to: destURL)
+            let scat = Self.scatteredPosition(for: destURL.lastPathComponent)
+            setFloorPosition(for: destURL.lastPathComponent, normX: Double(scat.x), normY: Double(scat.y))
+            refreshBookshelf()
+            refreshCarpet()
+        } catch {
+            if (try? FileManager.default.copyItem(at: itemURL, to: destURL)) != nil {
+                try? FileManager.default.removeItem(at: itemURL)
+                let scat = Self.scatteredPosition(for: destURL.lastPathComponent)
+                setFloorPosition(for: destURL.lastPathComponent, normX: Double(scat.x), normY: Double(scat.y))
+                refreshBookshelf()
+                refreshCarpet()
+            }
+        }
+    }
+    
+    public func ejectAllBookshelfItemsToFloor() {
+        for item in bookshelfItems {
+            ejectBookshelfItemToFloor(itemURL: item)
+        }
+    }
+    
     public func removeBookshelfItem(itemURL: URL) {
         _ = moveToTrash(url: itemURL)
     }
@@ -529,18 +554,46 @@ public final class StorageManager: ObservableObject {
         saveFloorPositions()
     }
     
+    public static func isImageFile(_ url: URL) -> Bool {
+        let validExtensions: Set<String> = ["jpg", "jpeg", "png", "heic", "webp", "gif", "tiff", "bmp", "icns"]
+        if validExtensions.contains(url.pathExtension.lowercased()) {
+            return true
+        }
+        if let type = UTType(filenameExtension: url.pathExtension), type.conforms(to: .image) {
+            return true
+        }
+        return false
+    }
+    
+    // Natural scattered coordinates across grass lawn
+    public static func scatteredPosition(for filename: String) -> CGPoint {
+        let hash = abs(filename.hashValue)
+        let jitterX = Double(hash % 1000) / 1000.0
+        let jitterY = Double((hash / 1000) % 1000) / 1000.0
+        let normX = 0.15 + (jitterX * 0.70)
+        let normY = 0.72 + (jitterY * 0.22)
+        return CGPoint(x: normX, y: normY)
+    }
+    
     public func positionForFloorItem(filename: String, index: Int, total: Int) -> CGPoint {
         if let stored = floorItemPositions[filename] {
             let clampedX = min(0.96, max(0.04, CGFloat(stored.x)))
             let clampedY = min(0.96, max(0.68, CGFloat(stored.y)))
             return CGPoint(x: clampedX, y: clampedY)
         }
-        let carpetX = CGFloat(carpetPositionNorm.x)
-        let carpetY = CGFloat(carpetPositionNorm.y)
-        let spread: CGFloat = total > 1 ? (CGFloat(index) / CGFloat(max(1, total - 1)) - 0.5) : 0
-        let defX = carpetX + (spread * 0.12)
-        let defY = carpetY
-        return CGPoint(x: defX, y: defY)
+        return Self.scatteredPosition(for: filename)
+    }
+    
+    public func moveFloorItemsToBookshelf(filenames: [String]) {
+        for name in filenames {
+            let fileURL = carpetDirectory.appendingPathComponent(name)
+            guard FileManager.default.fileExists(atPath: fileURL.path) else { continue }
+            addBookshelfItem(from: fileURL)
+            floorItemPositions.removeValue(forKey: name)
+        }
+        saveFloorPositions()
+        refreshCarpet()
+        refreshBookshelf()
     }
     
     public func addFloorItem(from sourceURL: URL, at normPos: CGPoint) {
@@ -730,6 +783,41 @@ public final class StorageManager: ObservableObject {
             resetTransform(for: slotIndex)
             refreshPhotos()
         }
+    }
+    
+    public func ejectPhotoToFloor(slotIndex: Int) {
+        guard let existing = photoSlots[slotIndex] else { return }
+        let destURL = safeDestinationURL(in: carpetDirectory, originalName: existing.lastPathComponent)
+        do {
+            try FileManager.default.moveItem(at: existing, to: destURL)
+            let scat = Self.scatteredPosition(for: destURL.lastPathComponent)
+            setFloorPosition(for: destURL.lastPathComponent, normX: Double(scat.x), normY: Double(scat.y))
+            resetTransform(for: slotIndex)
+            refreshPhotos()
+            refreshCarpet()
+        } catch {
+            if (try? FileManager.default.copyItem(at: existing, to: destURL)) != nil {
+                try? FileManager.default.removeItem(at: existing)
+                let scat = Self.scatteredPosition(for: destURL.lastPathComponent)
+                setFloorPosition(for: destURL.lastPathComponent, normX: Double(scat.x), normY: Double(scat.y))
+                resetTransform(for: slotIndex)
+                refreshPhotos()
+                refreshCarpet()
+            }
+        }
+    }
+    
+    @discardableResult
+    public func assignFirstAvailablePhoto(from fileURL: URL) -> Bool {
+        guard Self.isImageFile(fileURL) else { return false }
+        for slot in 0..<6 {
+            if photoSlots[slot] == nil {
+                assignPhoto(sourceURL: fileURL, slotIndex: slot)
+                return true
+            }
+        }
+        assignPhoto(sourceURL: fileURL, slotIndex: 0)
+        return true
     }
     
     public func transform(for slotIndex: Int) -> PhotoTransform {

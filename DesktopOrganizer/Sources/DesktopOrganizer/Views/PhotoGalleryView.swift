@@ -276,17 +276,17 @@ struct PhotoFrameItemView: View {
                         Spacer()
                         Button(action: {
                             withAnimation(.spring()) {
-                                storage.removePhoto(slotIndex: slotIndex)
+                                storage.ejectPhotoToFloor(slotIndex: slotIndex)
                             }
                         }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 13))
-                                .foregroundColor(SANSColors.pink)
-                                .background(Circle().fill(Color.white))
+                            Image(systemName: "arrow.down.forward.and.arrow.up.backward.circle.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(SANSColors.lime)
+                                .background(Circle().fill(Color.black.opacity(0.85)))
                         }
                         .buttonStyle(.plain)
                         .padding(5)
-                        .help("Hapus foto dari bingkai")
+                        .help("Keluarkan foto ke lantai rumput")
                     }
                     Spacer()
                 }
@@ -300,7 +300,7 @@ struct PhotoFrameItemView: View {
                 appState.hoveredPhotoSlot = nil
             }
         }
-        .onDrop(of: [.fileURL], isTargeted: Binding(
+        .onDrop(of: [.fileURL, .image], isTargeted: Binding(
             get: { appState.targetedPhotoSlot == slotIndex },
             set: { targeted in
                 appState.targetedPhotoSlot = targeted ? slotIndex : nil
@@ -308,8 +308,10 @@ struct PhotoFrameItemView: View {
         )) { providers in
             for provider in providers {
                 StorageManager.extractFileURL(from: provider) { url in
-                    withAnimation(.spring()) {
-                        storage.assignPhoto(sourceURL: url, slotIndex: slotIndex)
+                    if StorageManager.isImageFile(url) {
+                        withAnimation(.spring()) {
+                            storage.assignPhoto(sourceURL: url, slotIndex: slotIndex)
+                        }
                     }
                 }
             }
@@ -323,7 +325,13 @@ struct PhotoFrameItemView: View {
                 Button("Ganti Foto...") {
                     storage.pickPhoto(forSlot: slotIndex)
                 }
-                Button("Hapus Foto dari Bingkai") {
+                Divider()
+                Button("Keluarkan ke Lantai Rumput") {
+                    withAnimation(.spring()) {
+                        storage.ejectPhotoToFloor(slotIndex: slotIndex)
+                    }
+                }
+                Button("Hapus Foto dari Bingkai", role: .destructive) {
                     withAnimation(.spring()) {
                         storage.removePhoto(slotIndex: slotIndex)
                     }

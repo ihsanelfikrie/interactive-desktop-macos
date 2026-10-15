@@ -30,7 +30,32 @@ public final class FloorInteractionState: ObservableObject {
     @Published public var floorFileDragTranslation: CGSize = .zero
     @Published public var hoveredFloorFileName: String? = nil
     
+    // Multi-Selection ("Blok") State
+    @Published public var selectedFileNames: Set<String> = []
+    @Published public var isMarqueeSelecting: Bool = false
+    @Published public var marqueeStart: CGPoint? = nil
+    @Published public var marqueeCurrent: CGPoint? = nil
+    
     public init() {}
+    
+    public func clearSelection() {
+        selectedFileNames.removeAll()
+        isMarqueeSelecting = false
+        marqueeStart = nil
+        marqueeCurrent = nil
+    }
+    
+    public func toggleSelection(for fileName: String) {
+        if selectedFileNames.contains(fileName) {
+            selectedFileNames.remove(fileName)
+        } else {
+            selectedFileNames.insert(fileName)
+        }
+    }
+    
+    public func selectAll(fileNames: [String]) {
+        selectedFileNames = Set(fileNames)
+    }
 }
 
 public final class AppState: ObservableObject {
