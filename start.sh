@@ -7,5 +7,9 @@ if [ ! -d "$DIR/Custom Desktop Mac.app" ]; then
     echo "📦 Aplikasi belum dibundle. Mengompilasi dan mengemas otomatis..."
     "$DIR/DesktopOrganizer/bundle_app.sh"
 fi
-open "$DIR/Custom Desktop Mac.app"
+if [ -d "/Applications/Custom Desktop Mac.app" ]; then
+    open "/Applications/Custom Desktop Mac.app"
+else
+    open "$DIR/Custom Desktop Mac.app"
+fi
 echo "✨ Custom Desktop Mac berhasil dijalankan!"
