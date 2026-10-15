@@ -2,244 +2,373 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 
+// MARK: - Fast In-Memory Icon Cache (Prevents Blocking I/O During Drag Passes)
+final class FileIconCache {
+    static let shared = FileIconCache()
+    private let cache = NSCache<NSURL, NSImage>()
+    
+    func icon(for url: URL) -> NSImage {
+        let key = url as NSURL
+        if let cached = cache.object(forKey: key) {
+            return cached
+        }
+        let icon = NSWorkspace.shared.icon(forFile: url.path)
+        cache.setObject(icon, forKey: key)
+        return icon
+    }
+}
+
+// MARK: - Magic Carpet & Grass Floor File Interactive View
 public struct MagicCarpetView: View {
     @ObservedObject var storage = StorageManager.shared
-    @ObservedObject var appState = AppState.shared
+    @ObservedObject var floorState = FloorInteractionState.shared
     let theme: RoomTheme
+    let screenSize: CGSize
     
-    public init(theme: RoomTheme) {
+    public init(theme: RoomTheme, screenSize: CGSize = CGSize(width: 1440, height: 900)) {
         self.theme = theme
+        self.screenSize = screenSize
     }
     
     public var body: some View {
-        let dragRatio = max(-1.0, min(1.0, appState.carpetSlideOffset / 320.0))
-        let dragAngle = Double(dragRatio) * (appState.isCarpetDragging ? 2.8 : 0.6)
-        let liftAngle = Double(-dragRatio) * (appState.isCarpetDragging ? 7.2 : 1.8)
+        let w = screenSize.width
+        let h = screenSize.height
+        let floorMinY = h * 0.68
+        let floorHeight = h - floorMinY
         
-        ZStack(alignment: .center) {
-            // LAYER 1 (Bottom, lying directly on the wooden floor):
-            // The secret files & folders hidden under the carpet (revealed when carpet slides)
-            CarpetFloorSecretView(items: storage.carpetItems)
-                .frame(width: 660, height: 125)
-                .opacity(abs(appState.carpetSlideOffset) > 6 ? 1.0 : 0.0)
-                .animation(.easeInOut(duration: 0.2), value: abs(appState.carpetSlideOffset) > 6)
-            
-            // LAYER 2 (Top, sits over the files and physically slides when held/dragged):
-            // The Carpet / Rug itself with realistic cloth drag dynamics
-            CarpetMatBodyView(theme: theme, itemCount: storage.carpetItems.count)
-                .offset(x: appState.carpetSlideOffset, y: appState.isCarpetDragging ? -5 : 0)
-                .rotationEffect(.degrees(dragAngle))
-                .rotation3DEffect(
-                    .degrees(liftAngle),
-                    axis: (x: 0, y: 1, z: 0.12),
-                    anchor: dragRatio >= 0 ? .leading : .trailing
-                )
-                .shadow(
-                    color: Color.black.opacity(appState.isCarpetDragging ? 0.48 : 0.35),
-                    radius: appState.isCarpetDragging ? 16 : 8,
-                    x: CGFloat(dragRatio * -8),
-                    y: appState.isCarpetDragging ? 14 : 6
-                )
-                .zIndex(2)
-                .contentShape(Rectangle())
-                .gesture(
-                    DragGesture(minimumDistance: 3)
-                        .onChanged { value in
-                            appState.isCarpetDragging = true
-                            let base: CGFloat = appState.isCarpetLifted ? (appState.carpetSlideOffset > 0 ? 320.0 : -320.0) : 0.0
-                            let newOffset = max(-420, min(420, base + value.translation.width))
-                            appState.carpetSlideOffset = newOffset
-                        }
-                        .onEnded { value in
-                            appState.isCarpetDragging = false
-                            withAnimation(.spring(response: 0.42, dampingFraction: 0.68)) {
-                                if appState.carpetSlideOffset > 50 {
-                                    appState.carpetSlideOffset = 320
-                                    appState.isCarpetLifted = true
-                                } else if appState.carpetSlideOffset < -50 {
-                                    appState.carpetSlideOffset = -320
-                                    appState.isCarpetLifted = true
-                                } else {
-                                    appState.carpetSlideOffset = 0
-                                    appState.isCarpetLifted = false
-                                }
-                            }
-                        }
-                )
-                .onTapGesture {
-                    withAnimation(.spring(response: 0.45, dampingFraction: 0.70)) {
-                        appState.isCarpetLifted.toggle()
-                        appState.carpetSlideOffset = appState.isCarpetLifted ? -320 : 0
-                    }
-                }
-                .onDrop(of: [.fileURL], isTargeted: Binding(
-                    get: { appState.isCarpetTargeted },
-                    set: { appState.isCarpetTargeted = $0 }
-                )) { providers in
-                    for provider in providers {
-                        StorageManager.extractFileURL(from: provider) { url in
-                            withAnimation(.spring()) {
-                                storage.addCarpetItem(from: url)
-                            }
-                        }
-                    }
-                    return true
-                }
-                .contextMenu {
-                    if abs(appState.carpetSlideOffset) > 10 {
-                        Button("Tutup Karpet (Sembunyikan File)") {
-                            withAnimation(.spring(response: 0.42, dampingFraction: 0.70)) {
-                                appState.carpetSlideOffset = 0
-                                appState.isCarpetLifted = false
-                            }
-                        }
-                    } else {
-                        Button("Geser Karpet ke Kiri") {
-                            withAnimation(.spring(response: 0.42, dampingFraction: 0.70)) {
-                                appState.carpetSlideOffset = -320
-                                appState.isCarpetLifted = true
-                            }
-                        }
-                        Button("Geser Karpet ke Kanan") {
-                            withAnimation(.spring(response: 0.42, dampingFraction: 0.70)) {
-                                appState.carpetSlideOffset = 320
-                                appState.isCarpetLifted = true
-                            }
-                        }
-                    }
-                    
-                    Button("Pilih File untuk Disembunyikan...") {
-                        storage.pickCarpetItem()
-                    }
-                    
-                    if !storage.carpetItems.isEmpty {
-                        Divider()
-                        Button("Kembalikan Semua File ke Desktop") {
-                            withAnimation(.spring()) {
-                                storage.restoreAllCarpetItems()
-                            }
-                        }
-                    }
-                    
-                    Divider()
-                    Button("Buka Folder Karpet di Finder") {
-                        storage.openInFinder(url: storage.carpetDirectory)
-                    }
-                }
-        }
-        // 3D Floor Perspective: Tilts carpet flat on the floor in authentic perspective
-        .rotation3DEffect(
-            .degrees(50),
-            axis: (x: 1, y: 0, z: 0),
-            anchor: .center,
-            perspective: 0.55
+        let baseCarpetX = storage.carpetPositionNorm.x * w
+        let baseCarpetY = storage.carpetPositionNorm.y * h
+        
+        let liveCarpetCenterX = baseCarpetX + floorState.carpetDragOffset.width
+        let liveCarpetCenterY = baseCarpetY + floorState.carpetDragOffset.height
+        
+        // Rug effective bounding box on screen (carpet is 634 pt wide, 120 pt tall with perspective)
+        let rugW: CGFloat = 634
+        let rugH: CGFloat = 120
+        let carpetRect = CGRect(
+            x: liveCarpetCenterX - (rugW * 0.5),
+            y: liveCarpetCenterY - (rugH * 0.5),
+            width: rugW,
+            height: rugH
         )
-        .shadow(color: Color.black.opacity(0.35), radius: 10, x: 0, y: 8)
-        .help("Karpet: Geser atau klik untuk membuka. Tarik file ke atas karpet untuk menyembunyikannya.")
+        
+        // Count how many files are covered beneath the carpet
+        let coveredFilesCount = storage.carpetItems.filter { item in
+            let pos = storage.positionForFloorItem(filename: item.lastPathComponent, index: 0, total: 1)
+            let fX = pos.x * w
+            let fY = pos.y * h
+            return carpetRect.contains(CGPoint(x: fX, y: fY))
+        }.count
+        
+        ZStack(alignment: .topLeading) {
+            // LAYER 1: Full Lawn Drop Zone (Transparent drop receiver across entire grass floor)
+            Color.clear
+                .contentShape(Rectangle())
+                .frame(width: w, height: floorHeight)
+                .position(x: w * 0.5, y: floorMinY + (floorHeight * 0.5))
+                .onDrop(of: [.fileURL], delegate: FloorDropDelegate(screenSize: screenSize, storage: storage))
+                .overlay(
+                    Group {
+                        if floorState.isFloorTargeted {
+                            FloorDropHighlightOverlay()
+                        }
+                    }
+                )
+            
+            // LAYER 2: Files & Folders placed on the grass lawn
+            ForEach(Array(storage.carpetItems.enumerated()), id: \.element) { idx, item in
+                let basePos = storage.positionForFloorItem(filename: item.lastPathComponent, index: idx, total: storage.carpetItems.count)
+                let isThisDragging = floorState.draggingFloorFileName == item.lastPathComponent
+                let curX = (basePos.x * w) + (isThisDragging ? floorState.floorFileDragTranslation.width : 0)
+                let curY = (basePos.y * h) + (isThisDragging ? floorState.floorFileDragTranslation.height : 0)
+                let isCovered = carpetRect.contains(CGPoint(x: curX, y: curY))
+                let isVisible = !isCovered || floorState.isCarpetLifted
+                
+                if isVisible {
+                    FloorItemView(itemURL: item, isCovered: isCovered, screenSize: screenSize)
+                        .position(x: basePos.x * w, y: basePos.y * h)
+                        .offset(isThisDragging ? floorState.floorFileDragTranslation : .zero)
+                        .zIndex(isThisDragging ? 35 : (isCovered ? 5 : 7))
+                        .transition(.scale.combined(with: .opacity))
+                }
+            }
+            
+            // LAYER 3: The Movable Arabic Carpet (Can be moved to any area to cover files)
+            MovableCarpetMatView(theme: theme, coveredCount: coveredFilesCount, screenSize: screenSize)
+                .position(x: baseCarpetX, y: baseCarpetY)
+                .offset(floorState.carpetDragOffset)
+                .zIndex(20)
+        }
+        .frame(width: w, height: h)
     }
 }
 
-// MARK: - Secret Floor Stash (Revealed when carpet slides aside)
-struct CarpetFloorSecretView: View {
-    let items: [URL]
-    @ObservedObject var storage = StorageManager.shared
-    @ObservedObject var appState = AppState.shared
-    
+// MARK: - Floor Drop Highlight Overlay
+struct FloorDropHighlightOverlay: View {
     var body: some View {
         ZStack {
-            if items.isEmpty {
-                // Empty guide dashed outline on floor
-                if appState.carpetSlideOffset > 25 {
-                    HStack(spacing: 6) {
-                        Image(systemName: "tray.and.arrow.down")
-                            .font(.system(size: 13, weight: .bold))
-                        Text("Tarik file ke sini untuk menyembunyikan")
-                            .font(.system(size: 11, weight: .semibold))
-                    }
-                    .foregroundColor(Color.white.opacity(0.45))
-                    .frame(width: 320, height: 60)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
-                            .foregroundColor(Color.white.opacity(0.25))
-                    )
-                    .transition(.opacity)
-                }
-            } else {
-                // Secret files lying on the wooden floor planks
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(items, id: \.self) { item in
-                            FloorFileItemView(itemURL: item)
-                        }
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                }
-                .frame(width: 360, height: 75)
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(
+                    Color(red: 0.40, green: 0.90, blue: 0.50).opacity(0.85),
+                    style: StrokeStyle(lineWidth: 2.5, dash: [8, 6])
+                )
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color(red: 0.20, green: 0.80, blue: 0.40).opacity(0.12))
+                )
+                .padding(14)
+            
+            HStack(spacing: 8) {
+                Image(systemName: "tray.and.arrow.down.fill")
+                    .font(.system(size: 15, weight: .bold))
+                Text("Taruh File / Folder di Lantai Rumput")
+                    .font(.system(size: 12, weight: .bold))
             }
+            .foregroundColor(.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(Capsule().fill(Color.black.opacity(0.78)))
+            .overlay(Capsule().stroke(Color(red: 0.40, green: 0.90, blue: 0.50).opacity(0.85), lineWidth: 1.5))
+            .shadow(color: .black.opacity(0.4), radius: 6, y: 3)
         }
+        .allowsHitTesting(false)
+        .transition(.opacity)
     }
 }
 
-// MARK: - Individual File lying on the floor
-struct FloorFileItemView: View {
-    let itemURL: URL
-    let iconImage: NSImage
+// MARK: - Movable Carpet Mat View (Seamless Fluid Dragging)
+struct MovableCarpetMatView: View {
+    let theme: RoomTheme
+    let coveredCount: Int
+    let screenSize: CGSize
+    
+    @ObservedObject var floorState = FloorInteractionState.shared
     @ObservedObject var storage = StorageManager.shared
     
-    init(itemURL: URL) {
+    var body: some View {
+        let w = screenSize.width
+        let h = screenSize.height
+        
+        let isLifted = floorState.isCarpetLifted
+        let isDragging = floorState.isCarpetDragging
+        
+        ZStack {
+            // Carpet visual body with 3D floor perspective
+            CarpetMatBodyView(theme: theme, itemCount: coveredCount, isLifted: isLifted)
+                // 3D curl / lift effect when peeking
+                .rotation3DEffect(
+                    .degrees(isLifted ? -26 : 0),
+                    axis: (x: 1, y: 0, z: 0),
+                    anchor: .top
+                )
+                .scaleEffect(y: isLifted ? 0.74 : 1.0, anchor: .top)
+                .offset(y: isLifted ? -16 : 0)
+                // Floor perspective
+                .rotation3DEffect(
+                    .degrees(50),
+                    axis: (x: 1, y: 0, z: 0),
+                    anchor: .center,
+                    perspective: 0.55
+                )
+                .shadow(
+                    color: Color.black.opacity(isDragging ? 0.55 : (isLifted ? 0.45 : 0.35)),
+                    radius: isDragging ? 18 : (isLifted ? 12 : 7),
+                    x: 0,
+                    y: isDragging ? 14 : (isLifted ? 10 : 5)
+                )
+        }
+        .frame(width: 634, height: 130)
+        .contentShape(Rectangle())
+        .gesture(
+            DragGesture(minimumDistance: 2, coordinateSpace: .global)
+                .onChanged { value in
+                    floorState.isCarpetDragging = true
+                    
+                    let baseCarpetX = storage.carpetPositionNorm.x * w
+                    let baseCarpetY = storage.carpetPositionNorm.y * h
+                    let proposedX = baseCarpetX + value.translation.width
+                    let proposedY = baseCarpetY + value.translation.height
+                    
+                    // Clamped strictly to floor bounds (safe from Dock and furniture)
+                    let clampedX = min(w * 0.82, max(w * 0.18, proposedX))
+                    let clampedY = min(h * 0.86, max(h * 0.70, proposedY))
+                    
+                    floorState.carpetDragOffset = CGSize(
+                        width: clampedX - baseCarpetX,
+                        height: clampedY - baseCarpetY
+                    )
+                }
+                .onEnded { value in
+                    let dist = hypot(value.translation.width, value.translation.height)
+                    floorState.isCarpetDragging = false
+                    
+                    if dist < 6 {
+                        // Click / tap action: toggle peek / lift
+                        withAnimation(.spring(response: 0.36, dampingFraction: 0.72)) {
+                            floorState.isCarpetLifted.toggle()
+                        }
+                        floorState.carpetDragOffset = .zero
+                    } else {
+                        // Drag completed: save new position
+                        let baseCarpetX = storage.carpetPositionNorm.x * w
+                        let baseCarpetY = storage.carpetPositionNorm.y * h
+                        let finalX = baseCarpetX + floorState.carpetDragOffset.width
+                        let finalY = baseCarpetY + floorState.carpetDragOffset.height
+                        
+                        let normX = Double(finalX / w)
+                        let normY = Double(finalY / h)
+                        
+                        storage.setCarpetPosition(normX: normX, normY: normY)
+                        floorState.carpetDragOffset = .zero
+                    }
+                }
+        )
+        .contextMenu {
+            Button(isLifted ? "Tutup Karpet (Sembunyikan File)" : "Buka / Intip Karpet (Perlihatkan File)") {
+                withAnimation(.spring(response: 0.36, dampingFraction: 0.72)) {
+                    floorState.isCarpetLifted.toggle()
+                }
+            }
+            
+            Button("Pilih File untuk Disembunyikan...") {
+                storage.pickCarpetItem()
+            }
+            
+            Button("Kembalikan Karpet ke Posisi Tengah") {
+                withAnimation(.spring(response: 0.40, dampingFraction: 0.75)) {
+                    storage.setCarpetPosition(normX: 0.498, normY: 0.82)
+                }
+            }
+            
+            if !storage.carpetItems.isEmpty {
+                Divider()
+                Button("Kembalikan Semua File ke Desktop") {
+                    withAnimation(.spring()) {
+                        storage.restoreAllCarpetItems()
+                    }
+                }
+            }
+            
+            Divider()
+            Button("Buka Folder Karpet di Finder") {
+                storage.openInFinder(url: storage.carpetDirectory)
+            }
+        }
+        .help("Karpet Arabik: Geser ke mana saja di lantai untuk menutupi file. Klik 1x untuk membuka / mengintip.")
+    }
+}
+
+// MARK: - Floor Item View (Files & Folders lying on grass)
+struct FloorItemView: View {
+    let itemURL: URL
+    let isCovered: Bool
+    let screenSize: CGSize
+    let iconImage: NSImage
+    
+    @ObservedObject var floorState = FloorInteractionState.shared
+    @ObservedObject var storage = StorageManager.shared
+    
+    init(itemURL: URL, isCovered: Bool, screenSize: CGSize) {
         self.itemURL = itemURL
-        self.iconImage = NSWorkspace.shared.icon(forFile: itemURL.path)
+        self.isCovered = isCovered
+        self.screenSize = screenSize
+        self.iconImage = FileIconCache.shared.icon(for: itemURL)
     }
     
     var body: some View {
-        VStack(spacing: 4) {
+        let isDraggingThis = floorState.draggingFloorFileName == itemURL.lastPathComponent
+        let isHovered = floorState.hoveredFloorFileName == itemURL.lastPathComponent
+        let w = screenSize.width
+        let h = screenSize.height
+        
+        VStack(spacing: 3) {
             ZStack(alignment: .topTrailing) {
-                // Physical file icon on floor with cast shadow
+                // Physical file/folder icon on grass
                 Image(nsImage: iconImage)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 36, height: 36)
-                    .shadow(color: .black.opacity(0.4), radius: 3, x: 0, y: 2)
+                    .frame(width: 44, height: 44)
+                    .shadow(color: .black.opacity(isDraggingThis ? 0.65 : 0.40), radius: isDraggingThis ? 8 : 4, x: 0, y: isDraggingThis ? 6 : 3)
+                    .scaleEffect(isDraggingThis ? 1.15 : (isHovered ? 1.05 : 1.0))
                 
-                // Quick restore button
-                Button(action: {
-                    withAnimation(.spring()) {
-                        storage.restoreCarpetItemToDesktop(itemURL: itemURL)
-                    }
-                }) {
-                    Image(systemName: "arrow.up.forward.circle.fill")
-                        .font(.system(size: 13))
-                        .foregroundColor(.yellow)
+                // If covered under carpet but revealed, eye-slash indicator
+                if isCovered {
+                    Image(systemName: "eye.slash.circle.fill")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(Color(red: 0.98, green: 0.88, blue: 0.50))
                         .background(Circle().fill(Color.black.opacity(0.85)))
+                        .offset(x: -24, y: -4)
                 }
-                .buttonStyle(.plain)
-                .offset(x: 6, y: -6)
-                .help("Kembalikan file ini ke Desktop")
+                
+                // Quick restore button on hover
+                if isHovered {
+                    Button(action: {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                            storage.restoreCarpetItemToDesktop(itemURL: itemURL)
+                        }
+                    }) {
+                        Image(systemName: "arrow.up.forward.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(.yellow)
+                            .background(Circle().fill(Color.black.opacity(0.85)))
+                    }
+                    .buttonStyle(.plain)
+                    .offset(x: 6, y: -6)
+                    .help("Kembalikan file ini ke Desktop")
+                }
             }
             
             // Filename pill
             Text(itemURL.lastPathComponent)
-                .font(.system(size: 9, weight: .bold))
+                .font(.system(size: 9.5, weight: .semibold))
                 .foregroundColor(.white)
                 .lineLimit(1)
-                .frame(width: 68)
-                .padding(.horizontal, 4)
-                .padding(.vertical, 1.5)
+                .truncationMode(.middle)
+                .frame(maxWidth: 82)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
                 .background(
                     Capsule()
-                        .fill(Color.black.opacity(0.65))
+                        .fill(Color.black.opacity(0.72))
                 )
+                .overlay(
+                    Capsule()
+                        .stroke(isCovered ? Color.yellow.opacity(0.4) : Color.white.opacity(0.18), lineWidth: 0.8)
+                )
+                .shadow(color: .black.opacity(0.4), radius: 2, y: 1)
         }
         .contentShape(Rectangle())
-        .onTapGesture(count: 2) {
-            NSWorkspace.shared.open(itemURL)
+        .onHover { hovering in
+            floorState.hoveredFloorFileName = hovering ? itemURL.lastPathComponent : nil
         }
-        .onTapGesture {
-            AppState.shared.toggleQuickView(.carpetItem(url: itemURL))
-        }
-        .help("\(itemURL.lastPathComponent): Klik untuk melihat detail, klik 2x untuk membuka")
+        .gesture(
+            DragGesture(minimumDistance: 2, coordinateSpace: .global)
+                .onChanged { value in
+                    floorState.draggingFloorFileName = itemURL.lastPathComponent
+                    floorState.floorFileDragTranslation = value.translation
+                }
+                .onEnded { value in
+                    let dist = hypot(value.translation.width, value.translation.height)
+                    if dist < 5 {
+                        AppState.shared.toggleQuickView(.carpetItem(url: itemURL))
+                    } else {
+                        let basePos = storage.positionForFloorItem(filename: itemURL.lastPathComponent, index: 0, total: 1)
+                        let newScreenX = (basePos.x * w) + value.translation.width
+                        let newScreenY = (basePos.y * h) + value.translation.height
+                        let clampedX = min(w * 0.96, max(w * 0.04, newScreenX))
+                        let clampedY = min(h * 0.96, max(h * 0.68, newScreenY))
+                        storage.setFloorPosition(for: itemURL.lastPathComponent, normX: Double(clampedX / w), normY: Double(clampedY / h))
+                        floorState.draggingFloorFileName = nil
+                        floorState.floorFileDragTranslation = .zero
+                    }
+                }
+        )
+        .simultaneousGesture(
+            TapGesture(count: 2).onEnded {
+                NSWorkspace.shared.open(itemURL)
+            }
+        )
+        .help("\(itemURL.lastPathComponent): Geser ke mana saja di lantai, geser ke karpet untuk sembunyikan, klik 2x untuk membuka")
         .contextMenu {
             Button("Buka \(itemURL.lastPathComponent)") {
                 NSWorkspace.shared.open(itemURL)
@@ -255,11 +384,54 @@ struct FloorFileItemView: View {
             Divider()
             Button("Buang ke Tempat Sampah", role: .destructive) {
                 withAnimation(.spring()) {
-                    _ = storage.moveToTrash(url: itemURL)
-                    storage.refreshCarpet()
+                    storage.removeFloorItem(itemURL: itemURL)
                 }
             }
         }
+    }
+}
+
+// MARK: - Floor Drop Delegate
+struct FloorDropDelegate: DropDelegate {
+    let screenSize: CGSize
+    let storage: StorageManager
+    @ObservedObject var floorState = FloorInteractionState.shared
+    
+    init(screenSize: CGSize, storage: StorageManager) {
+        self.screenSize = screenSize
+        self.storage = storage
+    }
+    
+    func dropEntered(info: DropInfo) {
+        floorState.isFloorTargeted = true
+    }
+    func dropExited(info: DropInfo) {
+        floorState.isFloorTargeted = false
+    }
+    func validateDrop(info: DropInfo) -> Bool {
+        return info.hasItemsConforming(to: [.fileURL])
+    }
+    func performDrop(info: DropInfo) -> Bool {
+        floorState.isFloorTargeted = false
+        let loc = info.location
+        let w = screenSize.width
+        let h = screenSize.height
+        let floorMinY = h * 0.68
+        let screenX = loc.x
+        let screenY = floorMinY + loc.y
+        let normX = min(0.95, max(0.05, screenX / w))
+        let normY = min(0.96, max(0.68, screenY / h))
+        
+        let providers = info.itemProviders(for: [.fileURL])
+        guard !providers.isEmpty else { return false }
+        for provider in providers {
+            StorageManager.extractFileURL(from: provider) { url in
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                    storage.addFloorItem(from: url, at: CGPoint(x: normX, y: normY))
+                }
+            }
+        }
+        return true
     }
 }
 
@@ -267,15 +439,16 @@ struct FloorFileItemView: View {
 struct CarpetMatBodyView: View {
     let theme: RoomTheme
     let itemCount: Int
-    @ObservedObject var appState = AppState.shared
+    let isLifted: Bool
+    @ObservedObject var floorState = FloorInteractionState.shared
     
     var body: some View {
         ZStack {
             // Rectangular Arabic Carpet Body with Fringes & Ornate Arabesque Pattern
             ArabicRugView()
             
-            // Physical bumps on top of carpet when items are hidden inside
-            if itemCount > 0 {
+            // Physical bumps on top of carpet when items are hidden inside (only when flat)
+            if itemCount > 0 && !isLifted {
                 ZStack {
                     CarpetLumpView()
                         .offset(x: -80, y: -6)
@@ -293,9 +466,9 @@ struct CarpetMatBodyView: View {
                 .transition(.scale)
             }
             
-            // Drop target or Hidden items count indicator
+            // Hidden items count indicator or peek indicator
             VStack {
-                if appState.isCarpetTargeted {
+                if floorState.isCarpetTargeted {
                     HStack(spacing: 5) {
                         Image(systemName: "arrow.down.circle.fill")
                         Text("Sembunyikan ke Bawah Karpet Arabik")
@@ -307,11 +480,24 @@ struct CarpetMatBodyView: View {
                     .background(Capsule().fill(Color.black.opacity(0.80)))
                     .overlay(Capsule().stroke(Color(red: 0.88, green: 0.74, blue: 0.40), lineWidth: 1))
                     .transition(.scale)
-                } else if itemCount > 0 && abs(appState.carpetSlideOffset) < 20 {
+                } else if isLifted {
+                    HStack(spacing: 5) {
+                        Image(systemName: "eye.fill")
+                            .font(.system(size: 9))
+                        Text(itemCount > 0 ? "\(itemCount) file terlihat (Klik untuk tutup)" : "Karpet Terbuka")
+                            .font(.system(size: 9, weight: .bold))
+                    }
+                    .foregroundColor(Color(red: 0.98, green: 0.88, blue: 0.50))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Capsule().fill(Color.black.opacity(0.80)))
+                    .overlay(Capsule().stroke(Color(red: 0.98, green: 0.88, blue: 0.50).opacity(0.5), lineWidth: 0.8))
+                    .transition(.opacity)
+                } else if itemCount > 0 {
                     HStack(spacing: 4) {
                         Image(systemName: "eye.slash.fill")
                             .font(.system(size: 9))
-                        Text("\(itemCount) file tersembunyi")
+                        Text("\(itemCount) file tersembunyi (Klik untuk intip)")
                             .font(.system(size: 9, weight: .bold))
                     }
                     .foregroundColor(.white.opacity(0.95))
@@ -323,7 +509,7 @@ struct CarpetMatBodyView: View {
                 }
             }
         }
-        .scaleEffect(appState.isCarpetDragging ? 0.98 : 1.0)
+        .scaleEffect(floorState.isCarpetDragging ? 0.985 : 1.0)
     }
 }
 
@@ -331,12 +517,12 @@ struct CarpetMatBodyView: View {
 struct CarpetClothFoldsView: View {
     let width: CGFloat
     let height: CGFloat
-    @ObservedObject var appState = AppState.shared
+    @ObservedObject var floorState = FloorInteractionState.shared
     
     var body: some View {
-        let offset = appState.carpetSlideOffset
-        let isMoving = appState.isCarpetDragging || abs(offset) > 10
-        let foldOpacity = appState.isCarpetDragging ? 0.85 : (abs(offset) > 20 ? 0.45 : 0.14)
+        let offset = floorState.carpetDragOffset.width
+        let isMoving = floorState.isCarpetDragging
+        let foldOpacity = floorState.isCarpetDragging ? 0.75 : 0.14
         let dragDir: CGFloat = offset >= 0 ? 1.0 : -1.0
         
         ZStack {
@@ -345,7 +531,7 @@ struct CarpetClothFoldsView: View {
                 ForEach(0..<6, id: \.self) { i in
                     let foldPhase = CGFloat(i)
                     // Wave ripple traveling displacement based on drag offset
-                    let waveShift = sin((offset * 0.038) + foldPhase * 1.3) * 11.0
+                    let waveShift = isMoving ? sin((offset * 0.038) + foldPhase * 1.3) * 8.0 : 0
                     
                     HStack(spacing: 0) {
                         // Crease Shadow Trough (dark fold indention)
@@ -373,7 +559,7 @@ struct CarpetClothFoldsView: View {
                         .frame(width: width * 0.042)
                     }
                     .offset(x: waveShift, y: 0)
-                    .rotationEffect(.degrees(Double((i % 2 == 0 ? 1 : -1) * 3) * (appState.isCarpetDragging ? 1.2 : 0.4)))
+                    .rotationEffect(.degrees(Double((i % 2 == 0 ? 1 : -1) * 2) * (isMoving ? 1.0 : 0.3)))
                     
                     if i < 5 {
                         Spacer()
@@ -388,7 +574,7 @@ struct CarpetClothFoldsView: View {
             if isMoving {
                 LinearGradient(
                     colors: [
-                        Color.black.opacity(0.38 * foldOpacity),
+                        Color.black.opacity(0.32 * foldOpacity),
                         Color.clear
                     ],
                     startPoint: dragDir > 0 ? .leading : .trailing,
@@ -401,13 +587,12 @@ struct CarpetClothFoldsView: View {
         }
         .frame(width: width, height: height)
         .clipShape(RoundedRectangle(cornerRadius: 3))
-        .animation(.easeInOut(duration: 0.18), value: appState.isCarpetDragging)
     }
 }
 
 // MARK: - Authentic Rectangular Arabic / Oriental Persian Rug View (Enlarged with Cloth Dynamics)
 struct ArabicRugView: View {
-    @ObservedObject var appState = AppState.shared
+    @ObservedObject var floorState = FloorInteractionState.shared
     
     let rugWidth: CGFloat = 610
     let rugHeight: CGFloat = 156
@@ -519,7 +704,7 @@ struct ArabicRugView: View {
                     .allowsHitTesting(false)
                 
                 // Interactive Drop Target Highlight
-                if appState.isCarpetTargeted {
+                if floorState.isCarpetTargeted {
                     RoundedRectangle(cornerRadius: 3)
                         .stroke(Color.yellow, lineWidth: 3)
                         .shadow(color: Color.yellow.opacity(0.8), radius: 8)
@@ -553,11 +738,11 @@ struct ArabicRugView: View {
 // MARK: - Left & Right Fringe Tassels (Rumbai Ujung Karpet dengan Efek Kibasan Kain)
 struct RugFringeEdge: View {
     let isLeading: Bool
-    @ObservedObject var appState = AppState.shared
+    @ObservedObject var floorState = FloorInteractionState.shared
     
     var body: some View {
-        let dragRatio = max(-1.0, min(1.0, appState.carpetSlideOffset / 320.0))
-        let flutterAngle = Double(dragRatio) * (isLeading ? -6.5 : 6.5) * (appState.isCarpetDragging ? 1.0 : 0.3)
+        let dragRatio = max(-1.0, min(1.0, floorState.carpetDragOffset.width / 240.0))
+        let flutterAngle = Double(dragRatio) * (isLeading ? -5.0 : 5.0) * (floorState.isCarpetDragging ? 1.0 : 0.0)
         
         HStack(spacing: 0) {
             if !isLeading {

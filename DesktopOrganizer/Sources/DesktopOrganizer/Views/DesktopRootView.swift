@@ -46,7 +46,7 @@ public struct DesktopRootView: View {
                 let plantH = plantW * (310.0 / 140.0)
                 PottedPlantView()
                     .frame(width: plantW, height: plantH)
-                    .position(x: w * 0.296, y: (h * 0.770) - (plantH / 2))
+                    .position(x: w * 0.296, y: (h * 0.795) - (plantH / 2))
                 
                 // Modern Executive Workstation Desk (Clean, Spacious Dual-Pedestal)
                 let deskW = w * 0.335
@@ -111,21 +111,22 @@ public struct DesktopRootView: View {
                     .frame(width: w * 0.220, height: h * 0.440)
                     .position(x: w * 0.83125, y: h * 0.320)
                 
+                // Floor Lawn & Movable Carpet (Drop files anywhere on grass floor, movable hiding carpet)
+                MagicCarpetView(theme: appState.currentTheme, screenSize: geo.size)
+                    .frame(width: w, height: h)
+                    .position(x: w * 0.5, y: h * 0.5)
+                    .zIndex(12)
+                
                 // Fender Stratocaster Guitar on Stand (Standing on lawn beneath photo gallery)
-                let guitarH = h * 0.390
-                let guitarW = guitarH * (475.0 / 1380.0)
+                let guitarH = h * 0.58
+                let guitarW = guitarH * 0.3442
                 StratocasterGuitarView()
                     .frame(width: guitarW, height: guitarH)
-                    .position(x: w * 0.885, y: h * 0.720)
+                    .position(x: w * 0.87, y: h * 0.67)
                 
                 // Cartoon Wastebasket (Beside Desk on Floor)
                 TrashCanView()
                     .position(x: w * 0.710, y: h * 0.738)
-                
-                // Floor Rug / Magic Carpet (Centered in Front of Desk - Enlarged with Cloth Dynamics)
-                MagicCarpetView(theme: appState.currentTheme)
-                    .frame(width: w * 0.620, height: h * 0.208)
-                    .position(x: w * 0.498, y: h * 0.835)
                 
                 // 3. Ambient Night Dimmer when Lamp is Off
                 if !appState.lampOn {

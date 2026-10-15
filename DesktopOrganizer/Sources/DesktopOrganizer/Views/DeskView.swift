@@ -584,31 +584,105 @@ public struct WorkstationMonitorView: View {
                                     
                                     Spacer()
                                     
-                                    // Mini desktop dock glow
-                                    Capsule()
-                                        .fill(Color.white.opacity(0.15))
-                                        .frame(width: 70, height: 5)
-                                        .blur(radius: 1)
-                                        .padding(.bottom, 5)
+                                    // Mini macOS dock with colorful micro app icons
+                                    HStack(spacing: 3) {
+                                        ForEach(0..<6, id: \.self) { i in
+                                            let iconColors: [Color] = [
+                                                Color(red: 0.18, green: 0.55, blue: 0.95), // Finder blue
+                                                Color(red: 0.95, green: 0.30, blue: 0.25), // Music red
+                                                Color(red: 0.20, green: 0.75, blue: 0.45), // Messages green
+                                                Color(red: 0.98, green: 0.65, blue: 0.15), // Notes yellow
+                                                Color(red: 0.60, green: 0.35, blue: 0.85), // Podcasts purple
+                                                Color(red: 0.30, green: 0.75, blue: 0.85)  // Safari cyan
+                                            ]
+                                            RoundedRectangle(cornerRadius: 1)
+                                                .fill(iconColors[i % iconColors.count])
+                                                .frame(width: 4, height: 4)
+                                        }
+                                    }
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 2)
+                                    .background(
+                                        Capsule()
+                                            .fill(Color.white.opacity(0.18))
+                                            .overlay(Capsule().stroke(Color.white.opacity(0.30), lineWidth: 0.5))
+                                    )
+                                    .shadow(color: .black.opacity(0.25), radius: 1, y: 1)
+                                    .padding(.bottom, 4)
                                 }
                                 .frame(width: 167, height: 104)
                             )
                         
-                        // Glass Glare Sheen Reflection
-                        Path { path in
-                            path.move(to: CGPoint(x: 10, y: 5))
-                            path.addLine(to: CGPoint(x: 110, y: 5))
-                            path.addLine(to: CGPoint(x: 40, y: 105))
-                            path.addLine(to: CGPoint(x: 5, y: 105))
-                            path.closeSubpath()
-                        }
-                        .fill(
+                        // Pristine Apple Retina Studio Glass Reflection & Bevel Catchlight
+                        ZStack {
+                            // 1. Subtle Optical Anti-Reflective Coating Sheen (Nano-texture Violet/Cyan Tint)
                             LinearGradient(
-                                colors: [Color.white.opacity(0.12), Color.white.opacity(0.01)],
+                                stops: [
+                                    .init(color: Color(red: 0.50, green: 0.35, blue: 0.90).opacity(0.05), location: 0.0),
+                                    .init(color: Color(red: 0.20, green: 0.65, blue: 0.85).opacity(0.03), location: 0.35),
+                                    .init(color: Color.clear, location: 0.70)
+                                ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
-                        )
+                            
+                            // 2. Corner Specular Softbox Flare (Top-Left Ambient Light Source)
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white.opacity(0.18),
+                                    Color.white.opacity(0.07),
+                                    Color.white.opacity(0.02),
+                                    Color.clear
+                                ]),
+                                center: .topLeading,
+                                startRadius: 0,
+                                endRadius: 85
+                            )
+                            
+                            // 3. Studio Window Pane Reflections (Two Soft Diffuse Light Bands)
+                            HStack(spacing: 10) {
+                                Rectangle()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [Color.white.opacity(0.14), Color.white.opacity(0.01)],
+                                            startPoint: .top,
+                                            endPoint: .bottom
+                                        )
+                                    )
+                                    .frame(width: 28, height: 160)
+                                    .rotationEffect(.degrees(-30))
+                                
+                                Rectangle()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [Color.white.opacity(0.09), Color.white.opacity(0.01)],
+                                            startPoint: .top,
+                                            endPoint: .bottom
+                                        )
+                                    )
+                                    .frame(width: 14, height: 160)
+                                    .rotationEffect(.degrees(-30))
+                            }
+                            .blur(radius: 3.5)
+                            .offset(x: -28, y: -12)
+                            
+                            // 4. Crisp Inner Glass Perimeter Catchlight (0.75pt Bezel Reflection)
+                            RoundedRectangle(cornerRadius: 7)
+                                .stroke(
+                                    LinearGradient(
+                                        stops: [
+                                            .init(color: Color.white.opacity(0.42), location: 0.0),
+                                            .init(color: Color.white.opacity(0.15), location: 0.25),
+                                            .init(color: Color.white.opacity(0.03), location: 0.55),
+                                            .init(color: Color.clear, location: 0.80)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 0.75
+                                )
+                        }
+                        .frame(width: 167, height: 104)
                         .clipShape(RoundedRectangle(cornerRadius: 7))
                         .allowsHitTesting(false)
                     }
@@ -724,134 +798,156 @@ public struct DeskLampView: View {
 }
 
 // MARK: - Vector Boudoir Lamp Components
+struct LampShadeShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let topInset: CGFloat = rect.width * 0.22
+        path.move(to: CGPoint(x: rect.minX + topInset, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX - topInset, y: rect.minY))
+        path.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.maxY), control: CGPoint(x: rect.maxX - (topInset * 0.35), y: rect.midY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+        path.addQuadCurve(to: CGPoint(x: rect.minX + topInset, y: rect.minY), control: CGPoint(x: rect.minX + (topInset * 0.35), y: rect.midY))
+        path.closeSubpath()
+        return path
+    }
+}
+
 struct BoudoirEmeraldLampVector: View {
     let isOn: Bool
     
+    private var brassGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                Color(red: 0.96, green: 0.88, blue: 0.60),
+                Color(red: 0.82, green: 0.65, blue: 0.35),
+                Color(red: 0.68, green: 0.48, blue: 0.22)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+    
+    private var brassVerticalGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                Color(red: 0.94, green: 0.86, blue: 0.58),
+                Color(red: 0.72, green: 0.54, blue: 0.26)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
-            // Brass Finial Tip
+            // 1. Brass Finial Tip (Sits securely on top of shade)
             ZStack {
                 Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color(red: 0.95, green: 0.86, blue: 0.55), Color(red: 0.75, green: 0.58, blue: 0.28)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .fill(brassGradient)
                     .frame(width: 6, height: 6)
                 Rectangle()
-                    .fill(Color(red: 0.85, green: 0.68, blue: 0.35))
+                    .fill(Color(red: 0.82, green: 0.64, blue: 0.32))
                     .frame(width: 3, height: 4)
                     .offset(y: 3)
             }
             .offset(y: 2)
             .zIndex(5)
             
-            // Fluted / Scalloped Bell Shade
+            // 2. Fluted Silk Shade (Pleat lines strictly contained inside)
             ZStack(alignment: .bottom) {
-                // Main Fluted Shade Trapezoid / Bell
-                Path { path in
-                    path.move(to: CGPoint(x: 20, y: 0))
-                    path.addLine(to: CGPoint(x: 52, y: 0))
-                    path.addQuadCurve(to: CGPoint(x: 68, y: 46), control: CGPoint(x: 62, y: 22))
-                    path.addLine(to: CGPoint(x: 4, y: 46))
-                    path.addQuadCurve(to: CGPoint(x: 20, y: 0), control: CGPoint(x: 10, y: 22))
-                    path.closeSubpath()
-                }
-                .fill(
-                    isOn ?
-                    LinearGradient(
-                        colors: [
-                            Color(red: 1.0, green: 0.96, blue: 0.82),
-                            Color(red: 1.0, green: 0.88, blue: 0.60),
-                            Color(red: 0.98, green: 0.78, blue: 0.42)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    ) :
-                    LinearGradient(
-                        colors: [
-                            Color(red: 0.94, green: 0.92, blue: 0.86),
-                            Color(red: 0.86, green: 0.83, blue: 0.76),
-                            Color(red: 0.78, green: 0.74, blue: 0.66)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .shadow(color: isOn ? Color.yellow.opacity(0.4) : Color.black.opacity(0.2), radius: isOn ? 6 : 2, y: 2)
-                
-                // Pleated Vertical Ribbing on Shade
-                HStack(spacing: 7) {
-                    ForEach(0..<7, id: \.self) { _ in
-                        Rectangle()
-                            .fill(
-                                isOn ?
-                                Color(red: 0.92, green: 0.74, blue: 0.38).opacity(0.4) :
-                                Color.black.opacity(0.10)
-                            )
-                            .frame(width: 1, height: 42)
-                    }
-                }
-                
-                // Scalloped Bottom Hem Trim (Antique Gold piping)
-                HStack(spacing: 0) {
-                    ForEach(0..<8, id: \.self) { _ in
-                        Circle()
-                            .stroke(
-                                LinearGradient(
-                                    colors: [Color(red: 0.92, green: 0.80, blue: 0.48), Color(red: 0.72, green: 0.54, blue: 0.26)],
-                                    startPoint: .top, endPoint: .bottom
-                                ),
-                                lineWidth: 1.2
-                            )
-                            .frame(width: 8.5, height: 5)
-                            .offset(y: 2)
-                    }
-                }
-                .frame(width: 68)
-            }
-            .frame(width: 72, height: 48)
-            
-            // Brass Neck Collar with Dual Pull Chains
-            ZStack {
-                // Brass Collar Ring
-                RoundedRectangle(cornerRadius: 1.5)
+                // Main Shade Body
+                LampShadeShape()
                     .fill(
+                        isOn ?
                         LinearGradient(
-                            colors: [Color(red: 0.96, green: 0.88, blue: 0.60), Color(red: 0.76, green: 0.58, blue: 0.28)],
+                            colors: [
+                                Color(red: 1.0, green: 0.97, blue: 0.86),
+                                Color(red: 1.0, green: 0.89, blue: 0.62),
+                                Color(red: 0.98, green: 0.78, blue: 0.42)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ) :
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.94, green: 0.92, blue: 0.86),
+                                Color(red: 0.86, green: 0.83, blue: 0.76),
+                                Color(red: 0.78, green: 0.74, blue: 0.66)
+                            ],
                             startPoint: .top,
                             endPoint: .bottom
                         )
                     )
-                    .frame(width: 14, height: 6)
+                    .shadow(color: isOn ? Color.yellow.opacity(0.35) : Color.black.opacity(0.18), radius: isOn ? 5 : 2, y: 2)
                 
-                // Left & Right Brass Pull Chains
-                HStack(spacing: 24) {
-                    VStack(spacing: 1.5) {
-                        ForEach(0..<5, id: \.self) { _ in
-                            Circle().fill(Color(red: 0.88, green: 0.74, blue: 0.38)).frame(width: 1.8, height: 1.8)
-                        }
-                        Circle().fill(Color(red: 0.95, green: 0.82, blue: 0.44)).frame(width: 3.5, height: 3.5)
-                    }
-                    VStack(spacing: 1.5) {
-                        ForEach(0..<6, id: \.self) { _ in
-                            Circle().fill(Color(red: 0.88, green: 0.74, blue: 0.38)).frame(width: 1.8, height: 1.8)
-                        }
-                        Circle().fill(Color(red: 0.95, green: 0.82, blue: 0.44)).frame(width: 3.5, height: 3.5)
+                // Pleated Vertical Fluting (Clipped so lines never protrude into empty air)
+                HStack(spacing: 5.5) {
+                    ForEach(0..<9, id: \.self) { _ in
+                        Rectangle()
+                            .fill(
+                                isOn ?
+                                Color(red: 0.90, green: 0.72, blue: 0.36).opacity(0.40) :
+                                Color.black.opacity(0.09)
+                            )
+                            .frame(width: 1, height: 46)
                     }
                 }
-                .offset(y: 8)
+                .clipShape(LampShadeShape())
+                
+                // Antique Gold Top Rim Band
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(brassGradient)
+                    .frame(width: 36, height: 2.5)
+                    .position(x: 34, y: 1.25)
+                
+                // Antique Gold Bottom Hem Piping (Clean tailored trim, no floating hoop rings)
+                RoundedRectangle(cornerRadius: 1.5)
+                    .fill(brassGradient)
+                    .frame(width: 68, height: 3.5)
+                    .shadow(color: Color.black.opacity(0.2), radius: 1, y: 1)
             }
-            .offset(y: -1)
+            .frame(width: 68, height: 46)
+            
+            // 3. Solid Central Brass Neck Column & Socket (Physically connects Shade to Urn!)
+            ZStack(alignment: .center) {
+                // Continuous vertical solid brass rod connecting shade directly into urn
+                Rectangle()
+                    .fill(brassVerticalGradient)
+                    .frame(width: 6, height: 16)
+                
+                // Brass socket collar housing
+                RoundedRectangle(cornerRadius: 1.5)
+                    .fill(brassGradient)
+                    .frame(width: 14, height: 6)
+                
+                // Single realistic brass pull chain hanging from the socket collar
+                VStack(spacing: 1.2) {
+                    ForEach(0..<6, id: \.self) { _ in
+                        Circle()
+                            .fill(Color(red: 0.90, green: 0.76, blue: 0.40))
+                            .frame(width: 1.8, height: 1.8)
+                    }
+                    // Teardrop fob
+                    Capsule()
+                        .fill(brassGradient)
+                        .frame(width: 3.2, height: 5.5)
+                }
+                .offset(x: 10, y: 7)
+            }
+            .frame(width: 28, height: 16)
             .zIndex(4)
             
-            // Ribbed Emerald Ceramic Urn Body
-            ZStack {
-                // Urn Shadow
+            // 4. Ribbed Emerald Ceramic Urn Body
+            ZStack(alignment: .top) {
+                // Upper brass seating collar cup
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(brassGradient)
+                    .frame(width: 16, height: 3)
+                    .zIndex(2)
+                
+                // Urn Body Shadow
                 Ellipse()
-                    .fill(Color.black.opacity(0.20))
+                    .fill(Color.black.opacity(0.22))
                     .frame(width: 28, height: 36)
                     .blur(radius: 2)
                     .offset(y: 2)
@@ -861,7 +957,7 @@ struct BoudoirEmeraldLampVector: View {
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color(red: 0.12, green: 0.55, blue: 0.38),
+                                Color(red: 0.12, green: 0.56, blue: 0.38),
                                 Color(red: 0.06, green: 0.38, blue: 0.24),
                                 Color(red: 0.02, green: 0.22, blue: 0.14)
                             ],
@@ -875,13 +971,13 @@ struct BoudoirEmeraldLampVector: View {
                             .stroke(Color(red: 0.04, green: 0.26, blue: 0.16), lineWidth: 1)
                     )
                 
-                // Glossy Glass Reflection Highlight
+                // Glossy Curved Glass Reflection Highlight
                 Path { path in
                     path.addArc(center: CGPoint(x: 10, y: 16), radius: 8, startAngle: .degrees(130), endAngle: .degrees(230), clockwise: false)
                 }
                 .stroke(Color.white.opacity(0.65), style: StrokeStyle(lineWidth: 2, lineCap: .round))
                 
-                // Subtle Vertical Fluting / Ribs on Urn
+                // Subtle Vertical Fluting on Urn
                 HStack(spacing: 4) {
                     ForEach(0..<3, id: \.self) { _ in
                         Rectangle()
@@ -889,44 +985,28 @@ struct BoudoirEmeraldLampVector: View {
                             .frame(width: 1, height: 26)
                     }
                 }
+                .offset(y: 5)
             }
             .frame(width: 32, height: 38)
-            .offset(y: 2)
             
-            // Stepped Tiered Brass Pedestal Base
+            // 5. Stepped Tiered Brass Pedestal Base
             VStack(spacing: 1) {
                 // Upper Brass Ring Collar
                 RoundedRectangle(cornerRadius: 1)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color(red: 0.95, green: 0.86, blue: 0.55), Color(red: 0.72, green: 0.54, blue: 0.26)],
-                            startPoint: .leading, endPoint: .trailing
-                        )
-                    )
+                    .fill(brassVerticalGradient)
                     .frame(width: 18, height: 4)
                 
                 // Middle Stepped Disc
                 RoundedRectangle(cornerRadius: 1.5)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color(red: 0.92, green: 0.82, blue: 0.50), Color(red: 0.68, green: 0.48, blue: 0.22)],
-                            startPoint: .leading, endPoint: .trailing
-                        )
-                    )
+                    .fill(brassVerticalGradient)
                     .frame(width: 28, height: 5)
                 
                 // Heavy Wide Beveled Base Plinth
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color(red: 0.96, green: 0.88, blue: 0.58), Color(red: 0.70, green: 0.52, blue: 0.24)],
-                            startPoint: .top, endPoint: .bottom
-                        )
-                    )
+                    .fill(brassGradient)
                     .frame(width: 38, height: 6)
                     .shadow(color: .black.opacity(0.35), radius: 2, y: 2)
             }
-            .offset(y: 1)
         }
         .frame(width: 76, height: 122)
     }
@@ -934,26 +1014,77 @@ struct BoudoirEmeraldLampVector: View {
 
 
 
-// MARK: - Animated Floating Music Notes
+// MARK: - Animated Floating Music Notes (Continuous Rise, Sway & Fade Loop)
 struct FloatingNotesView: View {
+    @ObservedObject var appState = AppState.shared
+    
+    private struct NoteParticle {
+        let symbol: String
+        let color: Color
+        let size: CGFloat
+        let baseX: CGFloat
+        let delay: Double
+        let swaySpeed: Double
+        let floatDistance: CGFloat
+    }
+    
+    private let particles: [NoteParticle] = [
+        NoteParticle(symbol: "♪", color: SANSColors.lime, size: 14, baseX: -14, delay: 0.0, swaySpeed: 2.8, floatDistance: 24),
+        NoteParticle(symbol: "♫", color: Color(red: 1.0, green: 0.85, blue: 0.25), size: 17, baseX: -2, delay: 0.55, swaySpeed: 2.2, floatDistance: 30),
+        NoteParticle(symbol: "♩", color: SANSColors.pink, size: 12, baseX: 10, delay: 1.10, swaySpeed: 3.2, floatDistance: 22),
+        NoteParticle(symbol: "♬", color: Color(red: 0.40, green: 0.88, blue: 1.0), size: 15, baseX: 4, delay: 1.65, swaySpeed: 2.5, floatDistance: 28)
+    ]
+    
     var body: some View {
-        HStack(spacing: 5) {
-            Text("♪")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundColor(SANSColors.lime)
-                .offset(y: -10)
+        let updateRate: TimeInterval = appState.isWindowVisible ? (1.0 / 30.0) : 1.0
+        TimelineView(.periodic(from: .now, by: updateRate)) { timeline in
+            let time = timeline.date.timeIntervalSinceReferenceDate
+            let loopDuration: Double = 2.2
             
-            Text("♫")
-                .font(.system(size: 16, weight: .bold))
-                .foregroundColor(Color.yellow)
-                .offset(y: -17)
-            
-            Text("♩")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundColor(SANSColors.pink)
-                .offset(y: -12)
+            ZStack {
+                ForEach(0..<particles.count, id: \.self) { idx in
+                    let p = particles[idx]
+                    // Loop progress 0.0 -> 1.0 for each note with delay offset
+                    let rawProgress = (time + p.delay).truncatingRemainder(dividingBy: loopDuration) / loopDuration
+                    let progress = min(max(rawProgress, 0.0), 1.0)
+                    
+                    // Smooth fade-in (first 20%) and fade-out (last 30%)
+                    let opacity: Double = {
+                        if progress < 0.20 {
+                            return progress / 0.20
+                        } else if progress > 0.70 {
+                            return max(0.0, (1.0 - progress) / 0.30)
+                        } else {
+                            return 1.0
+                        }
+                    }()
+                    
+                    // Scale: pop in slightly, float up, dissolve
+                    let scale: CGFloat = {
+                        if progress < 0.20 {
+                            return 0.6 + CGFloat(progress / 0.20) * 0.4
+                        } else {
+                            return 1.0 + CGFloat(sin(progress * .pi)) * 0.15
+                        }
+                    }()
+                    
+                    // Vertical rise & horizontal graceful sway
+                    let offsetY = -4 - (progress * p.floatDistance)
+                    let offsetX = p.baseX + CGFloat(sin((time * p.swaySpeed) + Double(idx))) * 4.5
+                    let rotation = sin((time * 2.0) + Double(idx)) * 12.0
+                    
+                    Text(p.symbol)
+                        .font(.system(size: p.size, weight: .bold))
+                        .foregroundColor(p.color)
+                        .scaleEffect(scale)
+                        .rotationEffect(.degrees(rotation))
+                        .offset(x: offsetX, y: offsetY)
+                        .opacity(opacity)
+                        .shadow(color: p.color.opacity(0.80), radius: 3, x: 0, y: 1)
+                }
+            }
+            .frame(width: 48, height: 42)
         }
-        .shadow(color: Color.yellow.opacity(0.8), radius: 3)
     }
 }
 

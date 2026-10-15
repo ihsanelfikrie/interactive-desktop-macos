@@ -149,11 +149,11 @@ public struct BookshelfView: View {
         var shelves: [[URL]] = [[], []]
         var currentShelf = 0
         var currentWidth: CGFloat = 0
-        let spacing: CGFloat = 1
+        let spacing: CGFloat = 1.5
         
         for url in storage.bookshelfItems {
             let isFolder = ShelfItemView.isFolder(url)
-            let itemWidth: CGFloat = isFolder ? 72 : 26
+            let itemWidth = ShelfItemView.calculateItemWidth(for: url, isFolder: isFolder)
             
             if currentWidth + itemWidth > totalWidth && !shelves[currentShelf].isEmpty {
                 currentShelf += 1
@@ -170,9 +170,9 @@ public struct BookshelfView: View {
     
     @ViewBuilder
     private func shelfRow(items: [URL], width: CGFloat, rowHeight: CGFloat, shelfIndex: Int) -> some View {
-        HStack(alignment: .bottom, spacing: 1) {
-            ForEach(items, id: \.self) { url in
-                ShelfItemView(url: url, theme: theme, shelfIndex: shelfIndex)
+        HStack(alignment: .bottom, spacing: 1.5) {
+            ForEach(Array(items.enumerated()), id: \.element) { index, url in
+                ShelfItemView(url: url, theme: theme, shelfIndex: shelfIndex, itemIndex: index)
             }
             Spacer()
         }
@@ -188,14 +188,27 @@ struct ShelfItemView: View {
     let url: URL
     let theme: RoomTheme
     let shelfIndex: Int
+    let itemIndex: Int
     let isFolder: Bool
     let bookHeight: CGFloat
+    let itemWidth: CGFloat
+    let subItemsCount: Int
 
-    init(url: URL, theme: RoomTheme, shelfIndex: Int) {
+    init(url: URL, theme: RoomTheme, shelfIndex: Int, itemIndex: Int = 0) {
         self.url = url
         self.theme = theme
         self.shelfIndex = shelfIndex
-        self.isFolder = ShelfItemView.isFolder(url)
+        self.itemIndex = itemIndex
+        let isDir = ShelfItemView.isFolder(url)
+        self.isFolder = isDir
+        if isDir {
+            let count = (try? FileManager.default.contentsOfDirectory(atPath: url.path))?.count ?? 0
+            self.subItemsCount = count
+            self.itemWidth = ShelfItemView.calculateItemWidth(for: url, isFolder: true, subItemsCount: count)
+        } else {
+            self.subItemsCount = 0
+            self.itemWidth = ShelfItemView.calculateItemWidth(for: url, isFolder: false, subItemsCount: 0)
+        }
         self.bookHeight = ShelfItemView.calculateBookHeight(for: url)
     }
 
@@ -205,11 +218,27 @@ struct ShelfItemView: View {
         guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue else {
             return false
         }
-        // Application bundles (.app) and file packages are single applications/files -> represented as books
         if url.pathExtension.lowercased() == "app" || NSWorkspace.shared.isFilePackage(atPath: url.path) {
             return false
         }
         return true
+    }
+
+    public static func calculateItemWidth(for url: URL, isFolder: Bool, subItemsCount: Int = -1) -> CGFloat {
+        if isFolder {
+            let subItems = subItemsCount >= 0 ? subItemsCount : ((try? FileManager.default.contentsOfDirectory(atPath: url.path))?.count ?? 0)
+            if subItems > 35 {
+                return 80
+            } else if subItems > 10 {
+                return 72
+            } else {
+                return 64
+            }
+        } else {
+            let seed = abs(url.lastPathComponent.hashValue)
+            let widths: [CGFloat] = [23, 26, 29, 33, 24]
+            return widths[seed % widths.count]
+        }
     }
 
     public static func calculateBookHeight(for url: URL) -> CGFloat {
@@ -220,13 +249,13 @@ struct ShelfItemView: View {
             if let binSize = (try? FileManager.default.attributesOfItem(atPath: binURL.path)[.size] as? Int64), binSize > 0 {
                 fileBytes = binSize
             } else {
-                fileBytes = 40 * 1024 * 1024 // 40MB app standard
+                fileBytes = 40 * 1024 * 1024
             }
         }
         let bytes = max(Double(fileBytes), 1024.0)
         let logVal = log10(bytes)
         let normalized = min(max((logVal - 3.0) / 5.0, 0.0), 1.0)
-        return 64 + CGFloat(normalized) * 38
+        return 65 + CGFloat(normalized) * 36
     }
 
     var body: some View {
@@ -257,160 +286,743 @@ struct ShelfItemView: View {
         .help("\(url.lastPathComponent) (Klik untuk melihat info/file terbaru, klik 2x untuk membuka)")
     }
 
-    // Classic library palette for book spines
+    // Classic rich library palette for book spines
     private static let bookColors: [Color] = [
         Color(red: 0.58, green: 0.16, blue: 0.18), // Crimson Wine
         Color(red: 0.14, green: 0.22, blue: 0.35), // Prussian Navy
         Color(red: 0.16, green: 0.34, blue: 0.22), // Forest Green
-        Color(red: 0.68, green: 0.42, blue: 0.15), // Warm Ochre
-        Color(red: 0.20, green: 0.22, blue: 0.25), // Dark Charcoal
-        Color(red: 0.45, green: 0.16, blue: 0.40), // Vintage Plum
-        Color(red: 0.65, green: 0.28, blue: 0.18)  // Terracotta
+        Color(red: 0.72, green: 0.44, blue: 0.15), // Warm Ochre
+        Color(red: 0.20, green: 0.22, blue: 0.26), // Dark Charcoal
+        Color(red: 0.48, green: 0.16, blue: 0.42), // Royal Plum
+        Color(red: 0.68, green: 0.28, blue: 0.18), // Terracotta
+        Color(red: 0.15, green: 0.35, blue: 0.38), // Petrol Teal
+        Color(red: 0.42, green: 0.25, blue: 0.18), // Rich Mocha
+        Color(red: 0.25, green: 0.20, blue: 0.38)  // Midnight Violet
     ]
 
-    // File → Authentic Book Spine. Height scales with file size (heavier = taller).
+    // MARK: - Varied Book Spines (5 Distinct Illustrated Archetypes)
     private var fileView: some View {
-        let colorIdx = abs(url.lastPathComponent.hashValue) % ShelfItemView.bookColors.count
-        let color = ShelfItemView.bookColors[colorIdx]
+        let seed = abs(url.lastPathComponent.hashValue)
+        let colorIndex = (itemIndex * 7 + shelfIndex * 3 + seed) % ShelfItemView.bookColors.count
+        let color = ShelfItemView.bookColors[colorIndex]
+        let styleIdx = (itemIndex * 3 + shelfIndex * 2 + (seed / 7)) % 5
         let label = url.deletingPathExtension().lastPathComponent
-        let bookWidth: CGFloat = 26
+        let bookW = itemWidth
+        let bookH = bookHeight
+        let ext = url.pathExtension.uppercased()
 
         return ZStack(alignment: .bottom) {
             ZStack(alignment: .center) {
-                // Book spine curvature gradient
-                RoundedRectangle(cornerRadius: 3)
+                // Book spine base with curvature shading
+                RoundedRectangle(cornerRadius: 2.5)
                     .fill(
                         LinearGradient(
                             colors: [
-                                color.opacity(0.88),
+                                color.opacity(0.82),
                                 color,
-                                color.opacity(0.82)
+                                color.opacity(0.96),
+                                color.opacity(0.78)
                             ],
                             startPoint: .leading,
                             endPoint: .trailing
                         )
                     )
                     .overlay(
-                        RoundedRectangle(cornerRadius: 3)
-                            .stroke(Color.white.opacity(0.25), lineWidth: 0.6)
+                        RoundedRectangle(cornerRadius: 2.5)
+                            .stroke(Color.white.opacity(0.20), lineWidth: 0.6)
                     )
-                    .frame(width: bookWidth, height: bookHeight)
-
-                // Gold foil embossed accent lines (2 top, 2 bottom)
+                    .frame(width: bookW, height: bookH)
+                
+                // Headband cloth rim at top and bottom
                 VStack {
-                    VStack(spacing: 2) {
-                        Rectangle()
-                            .fill(Color(red: 0.92, green: 0.82, blue: 0.55).opacity(0.75))
-                            .frame(height: 1)
-                        Rectangle()
-                            .fill(Color(red: 0.92, green: 0.82, blue: 0.55).opacity(0.75))
-                            .frame(height: 1)
-                    }
-                    .padding(.horizontal, 2)
-                    .padding(.top, 6)
-
+                    BookHeadbandStrip(width: bookW)
                     Spacer()
-
-                    VStack(spacing: 2) {
-                        Rectangle()
-                            .fill(Color(red: 0.92, green: 0.82, blue: 0.55).opacity(0.75))
-                            .frame(height: 1)
-                        Rectangle()
-                            .fill(Color(red: 0.92, green: 0.82, blue: 0.55).opacity(0.75))
-                            .frame(height: 1)
-                    }
-                    .padding(.horizontal, 2)
-                    .padding(.bottom, 6)
+                    BookHeadbandStrip(width: bookW)
                 }
-                .frame(width: bookWidth, height: bookHeight)
-
+                .frame(width: bookW, height: bookH)
+                
+                // Visual Style Variants
+                Group {
+                    switch styleIdx {
+                    case 0:
+                        ClassicGiltSpineAccents(width: bookW, height: bookH)
+                    case 1:
+                        ModernRibbonSpineAccents(width: bookW, height: bookH, seed: seed)
+                    case 2:
+                        VintageShieldSpineAccents(width: bookW, height: bookH)
+                    case 3:
+                        TechManualSpineAccents(width: bookW, height: bookH, ext: ext)
+                    default:
+                        PocketStarSpineAccents(width: bookW, height: bookH)
+                    }
+                }
+                
                 // Rotated Spine Title Text
                 Text(label)
-                    .font(.system(size: 8.5, weight: .bold))
-                    .foregroundColor(Color(red: 0.97, green: 0.95, blue: 0.90))
+                    .font(.system(size: bookW >= 28 ? 9 : 8, weight: .bold))
+                    .foregroundColor(styleIdx == 2 ? Color(red: 0.15, green: 0.12, blue: 0.10) : Color(red: 0.98, green: 0.96, blue: 0.92))
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .minimumScaleFactor(0.55)
-                    .frame(width: bookHeight - 24, height: bookWidth)
+                    .frame(width: bookH - 26, height: bookW - 4)
                     .rotationEffect(.degrees(-90))
-                    .frame(width: bookWidth, height: bookHeight)
-                    .shadow(color: .black.opacity(0.75), radius: 1, y: 1)
+                    .frame(width: bookW, height: bookH)
+                    .shadow(color: styleIdx == 2 ? .clear : .black.opacity(0.7), radius: 1, y: 0.5)
                     .allowsHitTesting(false)
             }
-            .frame(width: bookWidth, height: bookHeight)
-            .clipped()
-            .shadow(color: .black.opacity(0.25), radius: 3, y: 3)
+            .frame(width: bookW, height: bookH)
+            .shadow(color: .black.opacity(0.25), radius: 2.5, y: 2.5)
+            // Subtle artistic lean for pocket volumes
+            .rotationEffect(.degrees(styleIdx == 4 ? ((seed % 2 == 0) ? -3.5 : 3.5) : 0), anchor: .bottom)
         }
-        .frame(width: bookWidth, height: bookHeight)
+        .frame(width: bookW, height: bookH)
     }
 
-    // Folder → Kraft Archive Box. Height scales with number of items inside (heavier folder = taller box).
+    // MARK: - Varied Cardboard Archive Boxes (4 Distinct Box Types)
     private var folderView: some View {
-        let subItems = (try? FileManager.default.contentsOfDirectory(atPath: url.path))?.count ?? 0
+        let subItems = subItemsCount
         let label = url.lastPathComponent
-        let boxWidth: CGFloat = 72
+        let boxStyle = (itemIndex + shelfIndex * 3) % 4
+        let boxW = itemWidth
         
-        // Map item count → box height 64–102pt; heavier folder with more files = taller archive box
-        // shortcut: counts top-level items with sqrt scaling for instant 60fps render without disk blocking; when to upgrade: if recursive byte sum is cached in background
         let normalized = min(sqrt(Double(subItems)) / 6.0, 1.0)
-        let boxHeight: CGFloat = 64 + CGFloat(normalized) * 38
+        let boxH: CGFloat = 66 + CGFloat(normalized) * 36
 
         return ZStack(alignment: .bottom) {
             ZStack(alignment: .top) {
-                // Cardboard box body
-                RoundedRectangle(cornerRadius: 3)
+                switch boxStyle {
+                case 0:
+                    ClassicBankerBoxView(width: boxW, height: boxH, label: label, count: subItems)
+                case 1:
+                    IndustrialMetalBoxView(width: boxW, height: boxH, label: label, count: subItems)
+                case 2:
+                    TwoToneLidBoxView(width: boxW, height: boxH, label: label, count: subItems, seed: itemIndex)
+                default:
+                    BrassCornerBoxView(width: boxW, height: boxH, label: label, count: subItems)
+                }
+            }
+            .frame(width: boxW, height: boxH)
+            .shadow(color: .black.opacity(0.25), radius: 3, y: 3)
+        }
+        .frame(width: boxW, height: boxH)
+    }
+}
+
+// MARK: - Book Spine Style Helpers
+
+// Top and bottom woven cloth headband (kapitalband)
+struct BookHeadbandStrip: View {
+    let width: CGFloat
+    var body: some View {
+        HStack(spacing: 1.5) {
+            ForEach(0..<Int(width / 2.5), id: \.self) { i in
+                Rectangle()
+                    .fill((i % 2 == 0) ? Color(red: 0.94, green: 0.92, blue: 0.85) : Color(red: 0.70, green: 0.20, blue: 0.20))
+                    .frame(width: 1.2, height: 1.8)
+            }
+        }
+        .frame(width: width, height: 1.8)
+    }
+}
+
+// Style 0: Classic Gilt Embossed Antique Leather (Raised Bands)
+struct ClassicGiltSpineAccents: View {
+    let width: CGFloat
+    let height: CGFloat
+    
+    var body: some View {
+        VStack {
+            // Top gilt double lines
+            VStack(spacing: 2) {
+                Rectangle().fill(Color(red: 0.92, green: 0.82, blue: 0.52).opacity(0.85)).frame(height: 1)
+                Rectangle().fill(Color(red: 0.92, green: 0.82, blue: 0.52).opacity(0.85)).frame(height: 1)
+            }
+            .padding(.horizontal, 2)
+            .padding(.top, 6)
+            
+            // Raised embossed rib
+            SpineRib(width: width)
+                .padding(.top, 4)
+            
+            Spacer()
+            
+            // Center gold filigree star
+            Image(systemName: "sparkle")
+                .font(.system(size: 7))
+                .foregroundColor(Color(red: 0.94, green: 0.84, blue: 0.55).opacity(0.85))
+            
+            Spacer()
+            
+            // Raised embossed rib
+            SpineRib(width: width)
+                .padding(.bottom, 4)
+            
+            // Bottom gilt double lines
+            VStack(spacing: 2) {
+                Rectangle().fill(Color(red: 0.92, green: 0.82, blue: 0.52).opacity(0.85)).frame(height: 1)
+                Rectangle().fill(Color(red: 0.92, green: 0.82, blue: 0.52).opacity(0.85)).frame(height: 1)
+            }
+            .padding(.horizontal, 2)
+            .padding(.bottom, 6)
+        }
+        .frame(width: width, height: height)
+    }
+}
+
+// Embossed raised band ridge across spine
+struct SpineRib: View {
+    let width: CGFloat
+    var body: some View {
+        VStack(spacing: 0) {
+            Rectangle().fill(Color.white.opacity(0.25)).frame(width: width, height: 0.7)
+            Rectangle().fill(Color.black.opacity(0.35)).frame(width: width, height: 0.8)
+        }
+    }
+}
+
+// Style 1: Modern Journal with Silk Bookmark Ribbon
+struct ModernRibbonSpineAccents: View {
+    let width: CGFloat
+    let height: CGFloat
+    let seed: Int
+    
+    var body: some View {
+        let ribbonColors: [Color] = [
+            Color(red: 0.85, green: 0.15, blue: 0.22), // Crimson silk
+            Color(red: 0.90, green: 0.74, blue: 0.32), // Gold silk
+            Color(red: 0.18, green: 0.65, blue: 0.42), // Emerald silk
+            Color(red: 0.25, green: 0.55, blue: 0.88)  // Cerulean silk
+        ]
+        let ribbonColor = ribbonColors[seed % ribbonColors.count]
+        
+        ZStack(alignment: .topTrailing) {
+            // Silk bookmark ribbon extending slightly above the spine
+            VStack(spacing: 0) {
+                Rectangle()
                     .fill(
                         LinearGradient(
-                            colors: [
-                                Color(red: 0.77, green: 0.59, blue: 0.41),
-                                Color(red: 0.69, green: 0.51, blue: 0.34)
-                            ],
+                            colors: [ribbonColor.opacity(0.85), ribbonColor, ribbonColor.opacity(0.75)],
                             startPoint: .top,
                             endPoint: .bottom
                         )
                     )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 3)
-                            .stroke(Color(red: 0.52, green: 0.38, blue: 0.24), lineWidth: 0.8)
-                    )
-
-                // Top lid fold flap
+                    .frame(width: 3.5, height: 18)
+                    .shadow(color: .black.opacity(0.3), radius: 1, x: -0.5, y: 1)
+            }
+            .offset(x: -width * 0.22, y: -4)
+            
+            // Clean modern top/bottom borders
+            VStack {
                 Rectangle()
-                    .fill(Color(red: 0.62, green: 0.44, blue: 0.28))
-                    .frame(height: 8)
-                    .clipShape(RoundedRectangle(cornerRadius: 2))
-                    .padding(.horizontal, 2)
-                    .padding(.top, 2)
+                    .fill(Color.white.opacity(0.35))
+                    .frame(width: width * 0.75, height: 1)
+                    .padding(.top, 7)
+                
+                Spacer()
+                
+                Rectangle()
+                    .fill(Color.white.opacity(0.35))
+                    .frame(width: width * 0.75, height: 1)
+                    .padding(.bottom, 7)
+            }
+        }
+        .frame(width: width, height: height)
+    }
+}
 
-                // Front white paper label card
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(Color(red: 0.97, green: 0.97, blue: 0.95))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 2)
-                            .stroke(Color(red: 0.74, green: 0.70, blue: 0.65), lineWidth: 0.7)
+// Style 2: Vintage Linen with Paper Title Shield
+struct VintageShieldSpineAccents: View {
+    let width: CGFloat
+    let height: CGFloat
+    
+    var body: some View {
+        ZStack {
+            // Darker quarters at top and bottom
+            VStack {
+                Rectangle()
+                    .fill(Color.black.opacity(0.22))
+                    .frame(width: width, height: 12)
+                Spacer()
+                Rectangle()
+                    .fill(Color.black.opacity(0.22))
+                    .frame(width: width, height: 12)
+            }
+            
+            // Cream paper title shield in upper center
+            RoundedRectangle(cornerRadius: 2)
+                .fill(
+                    LinearGradient(
+                        colors: [Color(red: 0.97, green: 0.96, blue: 0.91), Color(red: 0.92, green: 0.89, blue: 0.82)],
+                        startPoint: .top,
+                        endPoint: .bottom
                     )
-                    .frame(width: boxWidth * 0.85, height: min(38, boxHeight - 20))
-                    .overlay(
-                        VStack(spacing: 2) {
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 2)
+                        .stroke(Color(red: 0.72, green: 0.62, blue: 0.44), lineWidth: 0.8)
+                )
+                .frame(width: width - 4, height: height - 30)
+                .shadow(color: .black.opacity(0.20), radius: 1.5, y: 1)
+        }
+        .frame(width: width, height: height)
+    }
+}
+
+// Style 3: Technical Manual with Color Classification Tag Badge
+struct TechManualSpineAccents: View {
+    let width: CGFloat
+    let height: CGFloat
+    let ext: String
+    
+    var body: some View {
+        VStack {
+            // Colored classification tag pill at top
+            let tagColor: Color = ext == "APP" ? Color.purple : (ext == "PDF" ? Color.red : (ext == "SWIFT" ? Color.orange : Color(red: 0.20, green: 0.68, blue: 0.75)))
+            
+            ZStack {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(tagColor)
+                    .frame(width: width - 5, height: 11)
+                
+                Text(ext.isEmpty ? "DOC" : String(ext.prefix(3)))
+                    .font(.system(size: 6.5, weight: .heavy))
+                    .foregroundColor(.white)
+            }
+            .padding(.top, 6)
+            
+            Spacer()
+            
+            // Horizontal index grooves at bottom
+            HStack(spacing: 2) {
+                ForEach(0..<3, id: \.self) { _ in
+                    Rectangle()
+                        .fill(Color.white.opacity(0.35))
+                        .frame(width: 3, height: 1.2)
+                }
+            }
+            .padding(.bottom, 6)
+        }
+        .frame(width: width, height: height)
+    }
+}
+
+// Style 4: Pocket Edition with Gold Foil Stars
+struct PocketStarSpineAccents: View {
+    let width: CGFloat
+    let height: CGFloat
+    
+    var body: some View {
+        VStack {
+            Image(systemName: "star.fill")
+                .font(.system(size: 6))
+                .foregroundColor(Color(red: 0.94, green: 0.84, blue: 0.52))
+                .padding(.top, 7)
+            
+            Spacer()
+            
+            Image(systemName: "star.fill")
+                .font(.system(size: 6))
+                .foregroundColor(Color(red: 0.94, green: 0.84, blue: 0.52))
+                .padding(.bottom, 7)
+        }
+        .frame(width: width, height: height)
+    }
+}
+
+
+// MARK: - Box Style Helpers (4 Distinct Archive Box Designs)
+
+// Box Style 0: Classic Banker's Corrugated Box with Handle Hole & Taped Label
+struct ClassicBankerBoxView: View {
+    let width: CGFloat
+    let height: CGFloat
+    let label: String
+    let count: Int
+    
+    var body: some View {
+        ZStack(alignment: .top) {
+            // Corrugated kraft body
+            RoundedRectangle(cornerRadius: 3)
+                .fill(
+                    LinearGradient(
+                        colors: [Color(red: 0.78, green: 0.60, blue: 0.42), Color(red: 0.68, green: 0.50, blue: 0.33)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .overlay(RoundedRectangle(cornerRadius: 3).stroke(Color(red: 0.52, green: 0.38, blue: 0.24), lineWidth: 0.8))
+            
+            // Darker cardboard lid fold
+            Rectangle()
+                .fill(Color(red: 0.60, green: 0.42, blue: 0.26))
+                .frame(height: 8.5)
+                .clipShape(RoundedRectangle(cornerRadius: 2))
+                .padding(.horizontal, 2)
+                .padding(.top, 2)
+            
+            // Stamped shipping arrow stencil at bottom right
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    Text("↑ ↑")
+                        .font(.system(size: 9, weight: .black))
+                        .foregroundColor(Color.black.opacity(0.28))
+                        .padding(.trailing, 6)
+                        .padding(.bottom, 4)
+                }
+            }
+            
+            // White label attached with masking tape
+            VStack(spacing: 3) {
+                // Oval finger-pull handle cutout
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(red: 0.20, green: 0.15, blue: 0.10), Color(red: 0.38, green: 0.28, blue: 0.20)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(width: 20, height: 6)
+                    .overlay(Capsule().stroke(Color(red: 0.45, green: 0.32, blue: 0.22), lineWidth: 0.6))
+                    .shadow(color: .black.opacity(0.3), radius: 1, y: 1)
+                    .padding(.top, 14)
+                
+                // Masking-taped index card
+                ZStack {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color(red: 0.98, green: 0.97, blue: 0.95))
+                        .overlay(RoundedRectangle(cornerRadius: 2).stroke(Color(red: 0.76, green: 0.72, blue: 0.66), lineWidth: 0.7))
+                        .frame(width: width * 0.84, height: min(34, height - 28))
+                        .shadow(color: .black.opacity(0.12), radius: 1, y: 1)
+                    
+                    VStack(spacing: 1.5) {
+                        Text(label)
+                            .font(.system(size: 8.5, weight: .bold))
+                            .foregroundColor(Color(red: 0.16, green: 0.13, blue: 0.10))
+                            .lineLimit(2)
+                            .multilineTextAlignment(.center)
+                            .minimumScaleFactor(0.65)
+                        Text("\(count) file")
+                            .font(.system(size: 7.5, weight: .medium))
+                            .foregroundColor(Color(red: 0.48, green: 0.44, blue: 0.38))
+                    }
+                    .padding(.horizontal, 3)
+                    
+                    // Two masking tape strips on top & bottom edge
+                    VStack {
+                        Rectangle()
+                            .fill(Color(red: 0.94, green: 0.92, blue: 0.82).opacity(0.75))
+                            .frame(width: width * 0.45, height: 3.5)
+                        Spacer()
+                        Rectangle()
+                            .fill(Color(red: 0.94, green: 0.92, blue: 0.82).opacity(0.75))
+                            .frame(width: width * 0.45, height: 3.5)
+                    }
+                    .frame(width: width * 0.84, height: min(34, height - 28) + 4)
+                }
+            }
+        }
+    }
+}
+
+// Box Style 1: Industrial Slate Grayboard Box with Metal Brass Rivet Frame
+struct IndustrialMetalBoxView: View {
+    let width: CGFloat
+    let height: CGFloat
+    let label: String
+    let count: Int
+    
+    var body: some View {
+        ZStack(alignment: .top) {
+            // Dark industrial pressed grayboard body
+            RoundedRectangle(cornerRadius: 3)
+                .fill(
+                    LinearGradient(
+                        colors: [Color(red: 0.34, green: 0.37, blue: 0.43), Color(red: 0.26, green: 0.28, blue: 0.33)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .overlay(RoundedRectangle(cornerRadius: 3).stroke(Color(red: 0.20, green: 0.22, blue: 0.26), lineWidth: 0.8))
+            
+            // Black reinforced cloth lid
+            Rectangle()
+                .fill(Color(red: 0.18, green: 0.19, blue: 0.22))
+                .frame(height: 9)
+                .clipShape(RoundedRectangle(cornerRadius: 2))
+                .overlay(
+                    Rectangle()
+                        .stroke(Color.white.opacity(0.15), style: StrokeStyle(lineWidth: 0.8, dash: [2, 2]))
+                        .frame(height: 1)
+                        .padding(.top, 7),
+                    alignment: .top
+                )
+                .padding(.horizontal, 2)
+                .padding(.top, 2)
+            
+            VStack(spacing: 5) {
+                // Metallic brass label frame holder with 4 corner rivets
+                ZStack {
+                    RoundedRectangle(cornerRadius: 2.5)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(red: 0.88, green: 0.76, blue: 0.45), Color(red: 0.65, green: 0.52, blue: 0.28)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: width * 0.86, height: min(34, height - 28))
+                        .shadow(color: .black.opacity(0.25), radius: 1.5, y: 1)
+                    
+                    // Inner paper card
+                    RoundedRectangle(cornerRadius: 1.5)
+                        .fill(Color(red: 0.95, green: 0.94, blue: 0.89))
+                        .frame(width: width * 0.86 - 4, height: min(34, height - 28) - 4)
+                        .overlay(
+                            VStack(spacing: 1.5) {
+                                Text(label)
+                                    .font(.system(size: 8.5, weight: .bold))
+                                    .foregroundColor(Color(red: 0.12, green: 0.12, blue: 0.12))
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.center)
+                                    .minimumScaleFactor(0.65)
+                                Text("\(count) file")
+                                    .font(.system(size: 7, weight: .semibold))
+                                    .foregroundColor(Color(red: 0.45, green: 0.42, blue: 0.38))
+                            }
+                            .padding(.horizontal, 3)
+                        )
+                    
+                    // 4 metallic rivets in corners
+                    VStack {
+                        HStack {
+                            Circle().fill(Color(red: 0.35, green: 0.25, blue: 0.12)).frame(width: 2.2, height: 2.2)
+                            Spacer()
+                            Circle().fill(Color(red: 0.35, green: 0.25, blue: 0.12)).frame(width: 2.2, height: 2.2)
+                        }
+                        Spacer()
+                        HStack {
+                            Circle().fill(Color(red: 0.35, green: 0.25, blue: 0.12)).frame(width: 2.2, height: 2.2)
+                            Spacer()
+                            Circle().fill(Color(red: 0.35, green: 0.25, blue: 0.12)).frame(width: 2.2, height: 2.2)
+                        }
+                    }
+                    .frame(width: width * 0.86 - 1.5, height: min(34, height - 28) - 1.5)
+                }
+                .padding(.top, 16)
+                
+                // Metal brass grommet finger-pull ring
+                Circle()
+                    .stroke(
+                        LinearGradient(
+                            colors: [Color(red: 0.90, green: 0.78, blue: 0.48), Color(red: 0.65, green: 0.52, blue: 0.28)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.4
+                    )
+                    .background(Circle().fill(Color(red: 0.12, green: 0.13, blue: 0.15)))
+                    .frame(width: 9, height: 9)
+                    .shadow(color: .black.opacity(0.4), radius: 1, y: 1)
+            }
+        }
+    }
+}
+
+// Box Style 2: Two-Tone Studio Box with Dark Contrast Lid (Navy or Forest Green)
+struct TwoToneLidBoxView: View {
+    let width: CGFloat
+    let height: CGFloat
+    let label: String
+    let count: Int
+    let seed: Int
+    
+    var body: some View {
+        let isNavy = seed % 2 == 0
+        let lidColor = isNavy ? Color(red: 0.12, green: 0.18, blue: 0.28) : Color(red: 0.12, green: 0.25, blue: 0.16)
+        
+        ZStack(alignment: .top) {
+            // Light tan cardboard body
+            RoundedRectangle(cornerRadius: 3)
+                .fill(
+                    LinearGradient(
+                        colors: [Color(red: 0.82, green: 0.68, blue: 0.52), Color(red: 0.74, green: 0.58, blue: 0.42)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .overlay(RoundedRectangle(cornerRadius: 3).stroke(Color(red: 0.58, green: 0.45, blue: 0.32), lineWidth: 0.8))
+            
+            // Heavy contrast lid with overhang
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [lidColor.opacity(0.92), lidColor],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(height: 11)
+                .clipShape(RoundedRectangle(cornerRadius: 2.5))
+                .shadow(color: .black.opacity(0.28), radius: 1.5, y: 1.5)
+                .padding(.horizontal, 1)
+                .padding(.top, 1)
+            
+            // Red vertical archive classification stripe
+            HStack {
+                Rectangle()
+                    .fill(Color(red: 0.80, green: 0.22, blue: 0.22))
+                    .frame(width: 3.5)
+                    .padding(.leading, 8)
+                    .padding(.top, 12)
+                Spacer()
+            }
+            
+            // Clean white/manila shipping card
+            VStack {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color(red: 0.98, green: 0.98, blue: 0.96))
+                        .overlay(RoundedRectangle(cornerRadius: 2).stroke(Color.black.opacity(0.12), lineWidth: 0.7))
+                        .frame(width: width * 0.76, height: min(34, height - 26))
+                        .shadow(color: .black.opacity(0.10), radius: 1, y: 1)
+                    
+                    VStack(spacing: 2) {
+                        HStack(spacing: 3) {
+                            Circle().fill(Color(red: 0.25, green: 0.65, blue: 0.35)).frame(width: 4, height: 4)
                             Text(label)
                                 .font(.system(size: 8.5, weight: .bold))
-                                .foregroundColor(Color(red: 0.15, green: 0.12, blue: 0.10))
+                                .foregroundColor(Color(red: 0.14, green: 0.12, blue: 0.10))
                                 .lineLimit(2)
                                 .multilineTextAlignment(.center)
                                 .minimumScaleFactor(0.65)
+                        }
+                        Text("\(count) file")
+                            .font(.system(size: 7, weight: .medium))
+                            .foregroundColor(Color(red: 0.45, green: 0.42, blue: 0.38))
+                    }
+                    .padding(.horizontal, 4)
+                }
+                .padding(.top, 16)
+                
+                Spacer()
+                
+                // Small round string-tie button
+                Circle()
+                    .fill(Color(red: 0.88, green: 0.78, blue: 0.60))
+                    .overlay(Circle().stroke(Color.black.opacity(0.2), lineWidth: 0.6))
+                    .frame(width: 5.5, height: 5.5)
+                    .padding(.bottom, 6)
+            }
+        }
+    }
+}
 
-                            Text("\(subItems) file")
+// Box Style 3: Vintage Reinforced Box with Brass Metal Corners
+struct BrassCornerBoxView: View {
+    let width: CGFloat
+    let height: CGFloat
+    let label: String
+    let count: Int
+    
+    var body: some View {
+        ZStack(alignment: .top) {
+            // Warm leatherboard kraft body
+            RoundedRectangle(cornerRadius: 3)
+                .fill(
+                    LinearGradient(
+                        colors: [Color(red: 0.76, green: 0.54, blue: 0.35), Color(red: 0.65, green: 0.44, blue: 0.26)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .overlay(RoundedRectangle(cornerRadius: 3).stroke(Color(red: 0.48, green: 0.32, blue: 0.18), lineWidth: 0.8))
+            
+            // Top lid rim
+            Rectangle()
+                .fill(Color(red: 0.56, green: 0.38, blue: 0.22))
+                .frame(height: 8)
+                .clipShape(RoundedRectangle(cornerRadius: 2))
+                .padding(.horizontal, 2)
+                .padding(.top, 2)
+            
+            // Horizontal reinforced brown tape band across middle
+            Rectangle()
+                .fill(Color(red: 0.50, green: 0.32, blue: 0.18).opacity(0.38))
+                .frame(width: width, height: 12)
+                .position(x: width * 0.5, y: height * 0.5)
+            
+            // 4 Brass metallic corner brackets
+            VStack {
+                HStack {
+                    BrassCornerBracket(isTop: true, isLeading: true)
+                    Spacer()
+                    BrassCornerBracket(isTop: true, isLeading: false)
+                }
+                Spacer()
+                HStack {
+                    BrassCornerBracket(isTop: false, isLeading: true)
+                    Spacer()
+                    BrassCornerBracket(isTop: false, isLeading: false)
+                }
+            }
+            .frame(width: width, height: height)
+            
+            // Clean white label
+            VStack {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color(red: 0.98, green: 0.97, blue: 0.94))
+                    .overlay(RoundedRectangle(cornerRadius: 2).stroke(Color(red: 0.68, green: 0.55, blue: 0.38), lineWidth: 0.8))
+                    .frame(width: width * 0.80, height: min(34, height - 26))
+                    .overlay(
+                        VStack(spacing: 1.5) {
+                            Text(label)
+                                .font(.system(size: 8.5, weight: .bold))
+                                .foregroundColor(Color(red: 0.16, green: 0.12, blue: 0.08))
+                                .lineLimit(2)
+                                .multilineTextAlignment(.center)
+                                .minimumScaleFactor(0.65)
+                            Text("\(count) file")
                                 .font(.system(size: 7.5, weight: .medium))
-                                .foregroundColor(Color(red: 0.45, green: 0.42, blue: 0.38))
+                                .foregroundColor(Color(red: 0.48, green: 0.42, blue: 0.36))
                         }
                         .padding(.horizontal, 3)
                     )
-                    .padding(.top, 18)
+                    .shadow(color: .black.opacity(0.18), radius: 1.5, y: 1)
+                    .padding(.top, 16)
             }
-            .frame(width: boxWidth, height: boxHeight)
-            .shadow(color: .black.opacity(0.22), radius: 3, y: 3)
         }
-        .frame(width: boxWidth, height: boxHeight)
+    }
+}
+
+// Metallic brass corner protector with center rivet
+struct BrassCornerBracket: View {
+    let isTop: Bool
+    let isLeading: Bool
+    
+    var body: some View {
+        ZStack {
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [Color(red: 0.92, green: 0.80, blue: 0.48), Color(red: 0.65, green: 0.52, blue: 0.26)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 7, height: 7)
+                .overlay(Rectangle().stroke(Color(red: 0.45, green: 0.35, blue: 0.15), lineWidth: 0.4))
+            
+            Circle()
+                .fill(Color(red: 0.30, green: 0.22, blue: 0.10))
+                .frame(width: 1.8, height: 1.8)
+        }
+        .padding(.top, isTop ? 2 : 0)
+        .padding(.bottom, isTop ? 0 : 2)
+        .padding(.leading, isLeading ? 2 : 0)
+        .padding(.trailing, isLeading ? 0 : 2)
     }
 }
 

@@ -7,6 +7,24 @@ import ImageIO
 public struct StoredPosition: Codable {
     public var x: Double
     public var y: Double
+    
+    public init(x: Double, y: Double) {
+        self.x = x
+        self.y = y
+    }
+}
+
+public struct FloorLayoutData: Codable {
+    public var carpetPosition: StoredPosition
+    public var itemPositions: [String: StoredPosition]
+    
+    public init(
+        carpetPosition: StoredPosition = StoredPosition(x: 0.498, y: 0.835),
+        itemPositions: [String: StoredPosition] = [:]
+    ) {
+        self.carpetPosition = carpetPosition
+        self.itemPositions = itemPositions
+    }
 }
 
 public struct PhotoTransform: Codable, Equatable {
@@ -34,10 +52,13 @@ public final class StorageManager: ObservableObject {
     private let settingsFileURL: URL
     private let layoutFileURL: URL
     private let transformsFileURL: URL
+    private let floorPositionsFileURL: URL
     private var dirSource: DispatchSourceFileSystemObject?
     
     @Published public var bookshelfItems: [URL] = []
     @Published public var carpetItems: [URL] = []
+    @Published public var carpetPositionNorm: StoredPosition = StoredPosition(x: 0.498, y: 0.82)
+    @Published public var floorItemPositions: [String: StoredPosition] = [:]
     @Published public var photoSlots: [Int: URL] = [:]
     @Published public var cachedPhotos: [Int: NSImage] = [:]
     @Published public var photoTransforms: [Int: PhotoTransform] = [:]
@@ -56,6 +77,7 @@ public final class StorageManager: ObservableObject {
         self.settingsFileURL = baseDirectory.appendingPathComponent("settings.json")
         self.layoutFileURL = baseDirectory.appendingPathComponent("layout.json")
         self.transformsFileURL = baseDirectory.appendingPathComponent("photo_transforms.json")
+        self.floorPositionsFileURL = baseDirectory.appendingPathComponent("floor_positions.json")
         
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
@@ -144,6 +166,7 @@ public final class StorageManager: ObservableObject {
     public func loadAllData() {
         refreshBookshelf()
         refreshCarpet()
+        loadFloorPositions()
         refreshPhotos()
         loadPhotoTransforms()
         loadStickyNotes()
@@ -371,12 +394,14 @@ public final class StorageManager: ObservableObject {
         do {
             try FileManager.default.moveItem(at: sourceURL, to: destURL)
             setOriginAttribute(destURL: destURL, originPath: sourceURL.path)
+            setFloorPosition(for: destURL.lastPathComponent, normX: carpetPositionNorm.x, normY: carpetPositionNorm.y)
             refreshCarpet()
         } catch {
             // fallback to copy if move fails across volumes
             if (try? FileManager.default.copyItem(at: sourceURL, to: destURL)) != nil {
                 setOriginAttribute(destURL: destURL, originPath: sourceURL.path)
                 try? FileManager.default.removeItem(at: sourceURL)
+                setFloorPosition(for: destURL.lastPathComponent, normX: carpetPositionNorm.x, normY: carpetPositionNorm.y)
                 refreshCarpet()
             }
         }
@@ -432,6 +457,8 @@ public final class StorageManager: ObservableObject {
         let destURL = safeDestinationURL(in: destinationFolder, originalName: itemURL.lastPathComponent)
         do {
             try FileManager.default.moveItem(at: itemURL, to: destURL)
+            floorItemPositions.removeValue(forKey: itemURL.lastPathComponent)
+            saveFloorPositions()
             refreshCarpet()
         } catch {
             print("DesktopOrganizer: gagal mengembalikan \(itemURL.lastPathComponent): \(error)")
@@ -442,6 +469,68 @@ public final class StorageManager: ObservableObject {
         for item in carpetItems {
             restoreCarpetItemToDesktop(itemURL: item)
         }
+    }
+    
+    // MARK: - Floor Layout & Positions Persistence
+    public func loadFloorPositions() {
+        if let data = try? Data(contentsOf: floorPositionsFileURL),
+           let layout = try? JSONDecoder().decode(FloorLayoutData.self, from: data) {
+            DispatchQueue.main.async {
+                self.carpetPositionNorm = layout.carpetPosition
+                self.floorItemPositions = layout.itemPositions
+            }
+        }
+    }
+    
+    public func saveFloorPositions() {
+        let layout = FloorLayoutData(carpetPosition: carpetPositionNorm, itemPositions: floorItemPositions)
+        if let data = try? JSONEncoder().encode(layout) {
+            try? data.write(to: floorPositionsFileURL)
+        }
+    }
+    
+    public func setFloorPosition(for filename: String, normX: Double, normY: Double) {
+        floorItemPositions[filename] = StoredPosition(x: normX, y: normY)
+        saveFloorPositions()
+    }
+    
+    public func setCarpetPosition(normX: Double, normY: Double) {
+        carpetPositionNorm = StoredPosition(x: normX, y: normY)
+        saveFloorPositions()
+    }
+    
+    public func positionForFloorItem(filename: String, index: Int, total: Int) -> CGPoint {
+        if let stored = floorItemPositions[filename] {
+            return CGPoint(x: stored.x, y: stored.y)
+        }
+        let spread: CGFloat = total > 1 ? (CGFloat(index) / CGFloat(max(1, total - 1)) - 0.5) : 0
+        let defX = CGFloat(carpetPositionNorm.x) + (spread * 0.14)
+        let defY = CGFloat(carpetPositionNorm.y)
+        return CGPoint(x: defX, y: defY)
+    }
+    
+    public func addFloorItem(from sourceURL: URL, at normPos: CGPoint) {
+        let destURL = safeDestinationURL(in: carpetDirectory, originalName: sourceURL.lastPathComponent)
+        do {
+            try FileManager.default.moveItem(at: sourceURL, to: destURL)
+            setOriginAttribute(destURL: destURL, originPath: sourceURL.path)
+            setFloorPosition(for: destURL.lastPathComponent, normX: Double(normPos.x), normY: Double(normPos.y))
+            refreshCarpet()
+        } catch {
+            if (try? FileManager.default.copyItem(at: sourceURL, to: destURL)) != nil {
+                setOriginAttribute(destURL: destURL, originPath: sourceURL.path)
+                try? FileManager.default.removeItem(at: sourceURL)
+                setFloorPosition(for: destURL.lastPathComponent, normX: Double(normPos.x), normY: Double(normPos.y))
+                refreshCarpet()
+            }
+        }
+    }
+    
+    public func removeFloorItem(itemURL: URL) {
+        floorItemPositions.removeValue(forKey: itemURL.lastPathComponent)
+        saveFloorPositions()
+        _ = moveToTrash(url: itemURL)
+        refreshCarpet()
     }
     
     // MARK: - Desktop Icon Mover (AppleScript Repositioning)

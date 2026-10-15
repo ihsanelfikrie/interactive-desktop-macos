@@ -3,8 +3,6 @@ import AppKit
 
 // MARK: - Tropical Potted Houseplant (Bird of Paradise / Strelitzia with Hardware CoreAnimation Sway)
 public struct PottedPlantView: View {
-    @ObservedObject var appState = AppState.shared
-    
     public init() {}
     
     public var body: some View {
@@ -83,96 +81,73 @@ public struct PottedPlantView: View {
                     .frame(width: 26, height: 8)
                     .position(x: potX, y: soilCenterY + 1)
                 
-                // 5. The 5 Tropical Stems & Upright Wavy Paddle Leaves (Hardware GPU CoreAnimation Sway)
+                // 5. The 5 Tropical Stems & Upright Wavy Paddle Leaves (Anchored firmly to stems)
                 
                 // Leaf 1: Lower-Left Mid Leaf (Arches out left, blade points upright-left)
                 PlantBranchView(
-                    stemEnd: CGPoint(x: w * 0.24, y: h * 0.38),
-                    soilOrigin: CGPoint(x: potX - 5, y: clusterTopY),
-                    controlPoint: CGPoint(x: w * 0.26, y: h * 0.54),
-                    leafWidth: w * 0.44,
-                    leafHeight: h * 0.38,
-                    baseAngle: -28.0,
-                    swayDelta: 2.8,
-                    duration: 4.6,
-                    appState: appState,
+                    stemEnd: CGPoint(x: w * 0.28, y: h * 0.54),
+                    soilOrigin: CGPoint(x: potX - 6, y: clusterTopY),
+                    controlPoint: CGPoint(x: w * 0.30, y: h * 0.62),
+                    leafWidth: w * 0.38,
+                    leafHeight: h * 0.35,
+                    baseAngle: -26.0,
                     leafColorSheen: Color(red: 0.26, green: 0.54, blue: 0.24),
                     leafColorShadow: Color(red: 0.11, green: 0.32, blue: 0.13)
                 )
                 
                 // Leaf 5: Lower-Right Mid Leaf (Arches out right, blade points upright-right)
                 PlantBranchView(
-                    stemEnd: CGPoint(x: w * 0.76, y: h * 0.40),
-                    soilOrigin: CGPoint(x: potX + 5, y: clusterTopY),
-                    controlPoint: CGPoint(x: w * 0.74, y: h * 0.56),
-                    leafWidth: w * 0.43,
-                    leafHeight: h * 0.38,
-                    baseAngle: 30.0,
-                    swayDelta: 2.7,
-                    duration: 4.2,
-                    appState: appState,
+                    stemEnd: CGPoint(x: w * 0.72, y: h * 0.55),
+                    soilOrigin: CGPoint(x: potX + 6, y: clusterTopY),
+                    controlPoint: CGPoint(x: w * 0.70, y: h * 0.63),
+                    leafWidth: w * 0.38,
+                    leafHeight: h * 0.35,
+                    baseAngle: 28.0,
                     leafColorSheen: Color(red: 0.25, green: 0.52, blue: 0.23),
                     leafColorShadow: Color(red: 0.10, green: 0.30, blue: 0.12)
                 )
                 
                 // Leaf 2: Upper-Left Tall Leaf (Rises high, blade points upright-left)
                 PlantBranchView(
-                    stemEnd: CGPoint(x: w * 0.34, y: h * 0.22),
-                    soilOrigin: CGPoint(x: potX - 2, y: clusterTopY),
-                    controlPoint: CGPoint(x: w * 0.36, y: h * 0.44),
-                    leafWidth: w * 0.46,
-                    leafHeight: h * 0.45,
-                    baseAngle: -14.0,
-                    swayDelta: 2.2,
-                    duration: 5.5,
-                    appState: appState,
+                    stemEnd: CGPoint(x: w * 0.38, y: h * 0.46),
+                    soilOrigin: CGPoint(x: potX - 3, y: clusterTopY),
+                    controlPoint: CGPoint(x: w * 0.40, y: h * 0.57),
+                    leafWidth: w * 0.42,
+                    leafHeight: h * 0.41,
+                    baseAngle: -15.0,
                     leafColorSheen: Color(red: 0.29, green: 0.58, blue: 0.26),
                     leafColorShadow: Color(red: 0.13, green: 0.36, blue: 0.15)
                 )
                 
                 // Leaf 4: Upper-Right Tall Leaf (Rises high, blade points upright-right)
                 PlantBranchView(
-                    stemEnd: CGPoint(x: w * 0.66, y: h * 0.23),
-                    soilOrigin: CGPoint(x: potX + 2, y: clusterTopY),
-                    controlPoint: CGPoint(x: w * 0.64, y: h * 0.45),
-                    leafWidth: w * 0.45,
-                    leafHeight: h * 0.44,
-                    baseAngle: 16.0,
-                    swayDelta: 2.1,
-                    duration: 5.1,
-                    appState: appState,
+                    stemEnd: CGPoint(x: w * 0.62, y: h * 0.47),
+                    soilOrigin: CGPoint(x: potX + 3, y: clusterTopY),
+                    controlPoint: CGPoint(x: w * 0.60, y: h * 0.57),
+                    leafWidth: w * 0.42,
+                    leafHeight: h * 0.41,
+                    baseAngle: 17.0,
                     leafColorSheen: Color(red: 0.27, green: 0.56, blue: 0.25),
                     leafColorShadow: Color(red: 0.12, green: 0.34, blue: 0.14)
                 )
                 
                 // Leaf 3: Center Top Crown Leaf (Majestic, highest upright leaf)
                 PlantBranchView(
-                    stemEnd: CGPoint(x: w * 0.50, y: h * 0.16),
+                    stemEnd: CGPoint(x: w * 0.50, y: h * 0.42),
                     soilOrigin: CGPoint(x: potX, y: clusterTopY),
-                    controlPoint: CGPoint(x: w * 0.50, y: h * 0.40),
-                    leafWidth: w * 0.45,
-                    leafHeight: h * 0.47,
+                    controlPoint: CGPoint(x: w * 0.50, y: h * 0.53),
+                    leafWidth: w * 0.44,
+                    leafHeight: h * 0.44,
                     baseAngle: 2.0,
-                    swayDelta: 1.6,
-                    duration: 6.3,
-                    appState: appState,
                     leafColorSheen: Color(red: 0.30, green: 0.62, blue: 0.28),
                     leafColorShadow: Color(red: 0.14, green: 0.39, blue: 0.17)
                 )
             }
         }
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                appState.plantSwayPhase = true
-            }
-        }
-        .onDisappear {
-            appState.plantSwayPhase = false
-        }
     }
 }
 
-// MARK: - Plant Branch (Curved Long Stalk + Upright Wavy Leaf with Hardware CoreAnimation Sway)
+// MARK: - Plant Branch (Curved Long Stalk + Upright Wavy Leaf)
 struct PlantBranchView: View {
     let stemEnd: CGPoint
     let soilOrigin: CGPoint
@@ -180,9 +155,6 @@ struct PlantBranchView: View {
     let leafWidth: CGFloat
     let leafHeight: CGFloat
     let baseAngle: Double
-    let swayDelta: Double
-    let duration: Double
-    @ObservedObject var appState: AppState
     let leafColorSheen: Color
     let leafColorShadow: Color
     
@@ -207,22 +179,22 @@ struct PlantBranchView: View {
             )
             .shadow(color: Color.black.opacity(0.18), radius: 2, y: 1)
             
-            // Broad Tropical Leaf Paddle with undulating edges (Hardware GPU CoreAnimation rotation)
+            // Seamless Stem-to-Leaf Petiole Joint
+            Circle()
+                .fill(Color(red: 0.14, green: 0.34, blue: 0.15))
+                .frame(width: 4.5, height: 4.5)
+                .position(stemEnd)
+            
+            // Broad Tropical Leaf Paddle (Bottom of blade anchored directly at stemEnd)
             TropicalLeafPaddle(
                 width: leafWidth,
                 height: leafHeight,
                 colorSheen: leafColorSheen,
                 colorShadow: leafColorShadow
             )
-            .rotationEffect(
-                .degrees(appState.plantSwayPhase ? (baseAngle + swayDelta) : (baseAngle - swayDelta)),
-                anchor: .bottom
-            )
-            .animation(
-                .easeInOut(duration: duration).repeatForever(autoreverses: true),
-                value: appState.plantSwayPhase
-            )
-            .position(stemEnd)
+            .rotationEffect(.degrees(baseAngle), anchor: .bottom)
+            // Center is placed at stemEnd.y - (leafHeight / 2) so bottom of blade aligns exactly with stemEnd
+            .position(x: stemEnd.x, y: stemEnd.y - (leafHeight / 2))
         }
     }
 }
@@ -338,32 +310,38 @@ struct WavyTropicalLeafShape: Shape {
     }
 }
 
-// MARK: - Minimalist Conical Matte Ceramic Pot (Matching Reference)
+// MARK: - Minimalist Conical Matte Ceramic Pot (Matching Reference & 3D Perspective)
 struct ModernCeramicPot: View {
     let potW: CGFloat
     let potH: CGFloat
     
     var body: some View {
         ZStack(alignment: .top) {
-            // Tapered Matte Ceramic Body
+            let topW = potW
+            let btmW = potW * 0.72
+            let xTopL: CGFloat = 0
+            let xTopR = topW
+            let xBtmL = (topW - btmW) / 2
+            let xBtmR = xBtmL + btmW
+            let btmCurveH = potH * 0.12
+            let btmY = potH - (btmCurveH * 0.5)
+            
+            // Tapered Matte Ceramic Body with 3D Rounded Convex Base
             Path { path in
-                let topW = potW
-                let btmW = potW * 0.72
-                let xTopL: CGFloat = 0
-                let xTopR = topW
-                let xBtmL = (topW - btmW) / 2
-                let xBtmR = xBtmL + btmW
-                
-                path.move(to: CGPoint(x: xTopL, y: potH * 0.10))
-                path.addLine(to: CGPoint(x: xBtmL, y: potH))
-                path.addLine(to: CGPoint(x: xBtmR, y: potH))
-                path.addLine(to: CGPoint(x: xTopR, y: potH * 0.10))
+                path.move(to: CGPoint(x: xTopL, y: potH * 0.11))
+                path.addLine(to: CGPoint(x: xBtmL, y: btmY))
+                // Smooth 3D convex arc at bottom rim
+                path.addQuadCurve(
+                    to: CGPoint(x: xBtmR, y: btmY),
+                    control: CGPoint(x: potW * 0.5, y: btmY + btmCurveH)
+                )
+                path.addLine(to: CGPoint(x: xTopR, y: potH * 0.11))
                 path.closeSubpath()
             }
             .fill(
                 LinearGradient(
                     colors: [
-                        Color(red: 0.93, green: 0.92, blue: 0.89), // Sunlit matte cream-grey ceramic
+                        Color(red: 0.94, green: 0.93, blue: 0.90), // Sunlit matte cream-grey ceramic
                         Color(red: 0.86, green: 0.84, blue: 0.81),
                         Color(red: 0.73, green: 0.71, blue: 0.67)  // Soft ambient shaded depth
                     ],
@@ -372,6 +350,21 @@ struct ModernCeramicPot: View {
                 )
             )
             .shadow(color: Color.black.opacity(0.24), radius: 5, x: -1, y: 3)
+            
+            // 3D Rounded Ceramic Base Rim / Foot
+            Ellipse()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.90, green: 0.88, blue: 0.85),
+                            Color(red: 0.72, green: 0.70, blue: 0.66)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(width: btmW, height: btmCurveH)
+                .position(x: potW * 0.5, y: btmY)
             
             // Rich Dark Potting Soil inside rim
             Ellipse()
