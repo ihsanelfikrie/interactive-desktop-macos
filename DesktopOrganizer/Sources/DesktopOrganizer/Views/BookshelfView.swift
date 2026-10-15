@@ -309,7 +309,6 @@ struct ShelfItemView: View {
         let label = url.deletingPathExtension().lastPathComponent
         let bookW = itemWidth
         let bookH = bookHeight
-        let ext = url.pathExtension.uppercased()
 
         return ZStack(alignment: .bottom) {
             ZStack(alignment: .center) {
@@ -351,29 +350,34 @@ struct ShelfItemView: View {
                     case 2:
                         VintageShieldSpineAccents(width: bookW, height: bookH)
                     case 3:
-                        TechManualSpineAccents(width: bookW, height: bookH, ext: ext)
+                        FineLineSpineAccents(width: bookW, height: bookH)
                     default:
                         PocketStarSpineAccents(width: bookW, height: bookH)
                     }
                 }
                 
-                // Rotated Spine Title Text
+                // Rotated Spine Title Text (Strictly bounded to prevent spilling)
+                let availTextLen = max(bookH - 34, 18)
+                let availTextThick = max(bookW - 5, 12)
+                
                 Text(label)
-                    .font(.system(size: bookW >= 28 ? 9 : 8, weight: .bold))
+                    .font(.system(size: bookW >= 28 ? 8.5 : 7.5, weight: .bold))
                     .foregroundColor(styleIdx == 2 ? Color(red: 0.15, green: 0.12, blue: 0.10) : Color(red: 0.98, green: 0.96, blue: 0.92))
                     .lineLimit(1)
                     .truncationMode(.tail)
-                    .minimumScaleFactor(0.55)
-                    .frame(width: bookH - 26, height: bookW - 4)
+                    .minimumScaleFactor(0.48)
+                    .allowsTightening(true)
+                    .frame(width: availTextLen, height: availTextThick)
                     .rotationEffect(.degrees(-90))
                     .frame(width: bookW, height: bookH)
                     .shadow(color: styleIdx == 2 ? .clear : .black.opacity(0.7), radius: 1, y: 0.5)
                     .allowsHitTesting(false)
             }
             .frame(width: bookW, height: bookH)
+            .clipped()
             .shadow(color: .black.opacity(0.25), radius: 2.5, y: 2.5)
             // Subtle artistic lean for pocket volumes
-            .rotationEffect(.degrees(styleIdx == 4 ? ((seed % 2 == 0) ? -3.5 : 3.5) : 0), anchor: .bottom)
+            .rotationEffect(.degrees(styleIdx == 4 ? ((seed % 2 == 0) ? -3.0 : 3.0) : 0), anchor: .bottom)
         }
         .frame(width: bookW, height: bookH)
     }
@@ -568,45 +572,38 @@ struct VintageShieldSpineAccents: View {
     }
 }
 
-// Style 3: Technical Manual with Color Classification Tag Badge
-struct TechManualSpineAccents: View {
+// Style 3: Fine Line Gilt & Blind-Embossed Library Binding (Clean, Elegant, No synthetic tags)
+struct FineLineSpineAccents: View {
     let width: CGFloat
     let height: CGFloat
-    let ext: String
     
     var body: some View {
         VStack {
-            // Colored classification tag pill at top
-            let tagColor: Color = ext == "APP" ? Color.purple : (ext == "PDF" ? Color.red : (ext == "SWIFT" ? Color.orange : Color(red: 0.20, green: 0.68, blue: 0.75)))
-            
-            ZStack {
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(tagColor)
-                    .frame(width: width - 5, height: 11)
-                
-                Text(ext.isEmpty ? "DOC" : String(ext.prefix(3)))
-                    .font(.system(size: 6.5, weight: .heavy))
-                    .foregroundColor(.white)
+            // Triple fine gold rules at top
+            VStack(spacing: 1.5) {
+                Rectangle().fill(Color(red: 0.92, green: 0.82, blue: 0.52).opacity(0.85)).frame(height: 0.8)
+                Rectangle().fill(Color(red: 0.92, green: 0.82, blue: 0.52).opacity(0.85)).frame(height: 0.8)
+                Rectangle().fill(Color(red: 0.92, green: 0.82, blue: 0.52).opacity(0.85)).frame(height: 0.8)
             }
-            .padding(.top, 6)
+            .padding(.horizontal, 2.5)
+            .padding(.top, 5)
             
             Spacer()
             
-            // Horizontal index grooves at bottom
-            HStack(spacing: 2) {
-                ForEach(0..<3, id: \.self) { _ in
-                    Rectangle()
-                        .fill(Color.white.opacity(0.35))
-                        .frame(width: 3, height: 1.2)
-                }
+            // Triple fine gold rules at bottom
+            VStack(spacing: 1.5) {
+                Rectangle().fill(Color(red: 0.92, green: 0.82, blue: 0.52).opacity(0.85)).frame(height: 0.8)
+                Rectangle().fill(Color(red: 0.92, green: 0.82, blue: 0.52).opacity(0.85)).frame(height: 0.8)
+                Rectangle().fill(Color(red: 0.92, green: 0.82, blue: 0.52).opacity(0.85)).frame(height: 0.8)
             }
-            .padding(.bottom, 6)
+            .padding(.horizontal, 2.5)
+            .padding(.bottom, 5)
         }
         .frame(width: width, height: height)
     }
 }
 
-// Style 4: Pocket Edition with Gold Foil Stars
+// Style 4: Pocket Edition with Delicate Gold Foil Stars
 struct PocketStarSpineAccents: View {
     let width: CGFloat
     let height: CGFloat
@@ -614,16 +611,16 @@ struct PocketStarSpineAccents: View {
     var body: some View {
         VStack {
             Image(systemName: "star.fill")
-                .font(.system(size: 6))
+                .font(.system(size: 4.5))
                 .foregroundColor(Color(red: 0.94, green: 0.84, blue: 0.52))
-                .padding(.top, 7)
+                .padding(.top, 4.5)
             
             Spacer()
             
             Image(systemName: "star.fill")
-                .font(.system(size: 6))
+                .font(.system(size: 4.5))
                 .foregroundColor(Color(red: 0.94, green: 0.84, blue: 0.52))
-                .padding(.bottom, 7)
+                .padding(.bottom, 4.5)
         }
         .frame(width: width, height: height)
     }
@@ -690,37 +687,45 @@ struct ClassicBankerBoxView: View {
                     .padding(.top, 14)
                 
                 // Masking-taped index card
+                let cardW = width * 0.86
+                let cardH = min(36, max(28, height * 0.42))
+                
                 ZStack {
                     RoundedRectangle(cornerRadius: 2)
                         .fill(Color(red: 0.98, green: 0.97, blue: 0.95))
                         .overlay(RoundedRectangle(cornerRadius: 2).stroke(Color(red: 0.76, green: 0.72, blue: 0.66), lineWidth: 0.7))
-                        .frame(width: width * 0.84, height: min(34, height - 28))
+                        .frame(width: cardW, height: cardH)
                         .shadow(color: .black.opacity(0.12), radius: 1, y: 1)
                     
                     VStack(spacing: 1.5) {
                         Text(label)
-                            .font(.system(size: 8.5, weight: .bold))
+                            .font(.system(size: 8, weight: .bold))
                             .foregroundColor(Color(red: 0.16, green: 0.13, blue: 0.10))
                             .lineLimit(2)
                             .multilineTextAlignment(.center)
-                            .minimumScaleFactor(0.65)
+                            .minimumScaleFactor(0.50)
+                            .allowsTightening(true)
+                            .frame(maxWidth: .infinity)
                         Text("\(count) file")
-                            .font(.system(size: 7.5, weight: .medium))
+                            .font(.system(size: 6.8, weight: .medium))
                             .foregroundColor(Color(red: 0.48, green: 0.44, blue: 0.38))
                     }
                     .padding(.horizontal, 3)
+                    .padding(.vertical, 2)
+                    .frame(width: cardW, height: cardH)
+                    .clipped()
                     
                     // Two masking tape strips on top & bottom edge
                     VStack {
                         Rectangle()
                             .fill(Color(red: 0.94, green: 0.92, blue: 0.82).opacity(0.75))
-                            .frame(width: width * 0.45, height: 3.5)
+                            .frame(width: cardW * 0.50, height: 3.5)
                         Spacer()
                         Rectangle()
                             .fill(Color(red: 0.94, green: 0.92, blue: 0.82).opacity(0.75))
-                            .frame(width: width * 0.45, height: 3.5)
+                            .frame(width: cardW * 0.50, height: 3.5)
                     }
-                    .frame(width: width * 0.84, height: min(34, height - 28) + 4)
+                    .frame(width: cardW, height: cardH + 4)
                 }
             }
         }
@@ -735,7 +740,10 @@ struct IndustrialMetalBoxView: View {
     let count: Int
     
     var body: some View {
-        ZStack(alignment: .top) {
+        let cardW = width * 0.88
+        let cardH = min(36, max(28, height * 0.42))
+        
+        return ZStack(alignment: .top) {
             // Dark industrial pressed grayboard body
             RoundedRectangle(cornerRadius: 3)
                 .fill(
@@ -762,7 +770,7 @@ struct IndustrialMetalBoxView: View {
                 .padding(.horizontal, 2)
                 .padding(.top, 2)
             
-            VStack(spacing: 5) {
+            VStack(spacing: 4) {
                 // Metallic brass label frame holder with 4 corner rivets
                 ZStack {
                     RoundedRectangle(cornerRadius: 2.5)
@@ -773,26 +781,30 @@ struct IndustrialMetalBoxView: View {
                                 endPoint: .bottomTrailing
                             )
                         )
-                        .frame(width: width * 0.86, height: min(34, height - 28))
+                        .frame(width: cardW, height: cardH)
                         .shadow(color: .black.opacity(0.25), radius: 1.5, y: 1)
                     
                     // Inner paper card
                     RoundedRectangle(cornerRadius: 1.5)
                         .fill(Color(red: 0.95, green: 0.94, blue: 0.89))
-                        .frame(width: width * 0.86 - 4, height: min(34, height - 28) - 4)
+                        .frame(width: cardW - 5, height: cardH - 5)
                         .overlay(
                             VStack(spacing: 1.5) {
                                 Text(label)
-                                    .font(.system(size: 8.5, weight: .bold))
+                                    .font(.system(size: 8, weight: .bold))
                                     .foregroundColor(Color(red: 0.12, green: 0.12, blue: 0.12))
                                     .lineLimit(2)
                                     .multilineTextAlignment(.center)
-                                    .minimumScaleFactor(0.65)
+                                    .minimumScaleFactor(0.50)
+                                    .allowsTightening(true)
+                                    .frame(maxWidth: .infinity)
                                 Text("\(count) file")
-                                    .font(.system(size: 7, weight: .semibold))
+                                    .font(.system(size: 6.8, weight: .semibold))
                                     .foregroundColor(Color(red: 0.45, green: 0.42, blue: 0.38))
                             }
-                            .padding(.horizontal, 3)
+                            .padding(.horizontal, 2)
+                            .frame(width: cardW - 5, height: cardH - 5)
+                            .clipped()
                         )
                     
                     // 4 metallic rivets in corners
@@ -809,9 +821,9 @@ struct IndustrialMetalBoxView: View {
                             Circle().fill(Color(red: 0.35, green: 0.25, blue: 0.12)).frame(width: 2.2, height: 2.2)
                         }
                     }
-                    .frame(width: width * 0.86 - 1.5, height: min(34, height - 28) - 1.5)
+                    .frame(width: cardW - 1.5, height: cardH - 1.5)
                 }
-                .padding(.top, 16)
+                .padding(.top, 14)
                 
                 // Metal brass grommet finger-pull ring
                 Circle()
@@ -824,7 +836,7 @@ struct IndustrialMetalBoxView: View {
                         lineWidth: 1.4
                     )
                     .background(Circle().fill(Color(red: 0.12, green: 0.13, blue: 0.15)))
-                    .frame(width: 9, height: 9)
+                    .frame(width: 8.5, height: 8.5)
                     .shadow(color: .black.opacity(0.4), radius: 1, y: 1)
             }
         }
@@ -842,8 +854,10 @@ struct TwoToneLidBoxView: View {
     var body: some View {
         let isNavy = seed % 2 == 0
         let lidColor = isNavy ? Color(red: 0.12, green: 0.18, blue: 0.28) : Color(red: 0.12, green: 0.25, blue: 0.16)
+        let cardW = width * 0.86
+        let cardH = min(36, max(28, height * 0.42))
         
-        ZStack(alignment: .top) {
+        return ZStack(alignment: .top) {
             // Light tan cardboard body
             RoundedRectangle(cornerRadius: 3)
                 .fill(
@@ -886,26 +900,29 @@ struct TwoToneLidBoxView: View {
                     RoundedRectangle(cornerRadius: 2)
                         .fill(Color(red: 0.98, green: 0.98, blue: 0.96))
                         .overlay(RoundedRectangle(cornerRadius: 2).stroke(Color.black.opacity(0.12), lineWidth: 0.7))
-                        .frame(width: width * 0.76, height: min(34, height - 26))
+                        .frame(width: cardW, height: cardH)
                         .shadow(color: .black.opacity(0.10), radius: 1, y: 1)
                     
-                    VStack(spacing: 2) {
-                        HStack(spacing: 3) {
-                            Circle().fill(Color(red: 0.25, green: 0.65, blue: 0.35)).frame(width: 4, height: 4)
-                            Text(label)
-                                .font(.system(size: 8.5, weight: .bold))
-                                .foregroundColor(Color(red: 0.14, green: 0.12, blue: 0.10))
-                                .lineLimit(2)
-                                .multilineTextAlignment(.center)
-                                .minimumScaleFactor(0.65)
-                        }
+                    VStack(spacing: 1.5) {
+                        Text(label)
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundColor(Color(red: 0.14, green: 0.12, blue: 0.10))
+                            .lineLimit(2)
+                            .multilineTextAlignment(.center)
+                            .minimumScaleFactor(0.50)
+                            .allowsTightening(true)
+                            .frame(maxWidth: .infinity)
+                        
                         Text("\(count) file")
-                            .font(.system(size: 7, weight: .medium))
+                            .font(.system(size: 6.8, weight: .medium))
                             .foregroundColor(Color(red: 0.45, green: 0.42, blue: 0.38))
                     }
-                    .padding(.horizontal, 4)
+                    .padding(.horizontal, 3)
+                    .padding(.vertical, 2)
+                    .frame(width: cardW, height: cardH)
+                    .clipped()
                 }
-                .padding(.top, 16)
+                .padding(.top, 14)
                 
                 Spacer()
                 
@@ -928,7 +945,10 @@ struct BrassCornerBoxView: View {
     let count: Int
     
     var body: some View {
-        ZStack(alignment: .top) {
+        let cardW = width * 0.86
+        let cardH = min(36, max(28, height * 0.42))
+        
+        return ZStack(alignment: .top) {
             // Warm leatherboard kraft body
             RoundedRectangle(cornerRadius: 3)
                 .fill(
@@ -975,23 +995,28 @@ struct BrassCornerBoxView: View {
                 RoundedRectangle(cornerRadius: 2)
                     .fill(Color(red: 0.98, green: 0.97, blue: 0.94))
                     .overlay(RoundedRectangle(cornerRadius: 2).stroke(Color(red: 0.68, green: 0.55, blue: 0.38), lineWidth: 0.8))
-                    .frame(width: width * 0.80, height: min(34, height - 26))
+                    .frame(width: cardW, height: cardH)
                     .overlay(
                         VStack(spacing: 1.5) {
                             Text(label)
-                                .font(.system(size: 8.5, weight: .bold))
+                                .font(.system(size: 8, weight: .bold))
                                 .foregroundColor(Color(red: 0.16, green: 0.12, blue: 0.08))
                                 .lineLimit(2)
                                 .multilineTextAlignment(.center)
-                                .minimumScaleFactor(0.65)
+                                .minimumScaleFactor(0.50)
+                                .allowsTightening(true)
+                                .frame(maxWidth: .infinity)
                             Text("\(count) file")
-                                .font(.system(size: 7.5, weight: .medium))
+                                .font(.system(size: 6.8, weight: .medium))
                                 .foregroundColor(Color(red: 0.48, green: 0.42, blue: 0.36))
                         }
                         .padding(.horizontal, 3)
+                        .padding(.vertical, 2)
+                        .frame(width: cardW, height: cardH)
+                        .clipped()
                     )
                     .shadow(color: .black.opacity(0.18), radius: 1.5, y: 1)
-                    .padding(.top, 16)
+                    .padding(.top, 14)
             }
         }
     }
