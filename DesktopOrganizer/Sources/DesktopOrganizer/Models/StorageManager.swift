@@ -326,25 +326,44 @@ public final class StorageManager: ObservableObject {
         }
     }
     
+    public func isSymbolicLink(at url: URL) -> Bool {
+        let vals = try? url.resourceValues(forKeys: [.isSymbolicLinkKey])
+        return vals?.isSymbolicLink ?? false
+    }
+    
     public func addBookshelfItem(from sourceURL: URL) {
         let accessing = sourceURL.startAccessingSecurityScopedResource()
         defer { if accessing { sourceURL.stopAccessingSecurityScopedResource() } }
         
         let destURL = safeDestinationURL(in: bookshelfDirectory, originalName: sourceURL.lastPathComponent)
+        // Buat symbolic link (0 MB) agar berkas asli tetap di lokasi asal tanpa menduplikasi ruang disk
         do {
-            try FileManager.default.moveItem(at: sourceURL, to: destURL)
+            try FileManager.default.createSymbolicLink(at: destURL, withDestinationURL: sourceURL)
             setOriginAttribute(destURL: destURL, originPath: sourceURL.path)
             refreshBookshelf()
         } catch {
-            if (try? FileManager.default.copyItem(at: sourceURL, to: destURL)) != nil {
+            do {
+                try FileManager.default.moveItem(at: sourceURL, to: destURL)
                 setOriginAttribute(destURL: destURL, originPath: sourceURL.path)
-                try? FileManager.default.removeItem(at: sourceURL)
                 refreshBookshelf()
+            } catch {
+                if (try? FileManager.default.copyItem(at: sourceURL, to: destURL)) != nil {
+                    setOriginAttribute(destURL: destURL, originPath: sourceURL.path)
+                    try? FileManager.default.removeItem(at: sourceURL)
+                    refreshBookshelf()
+                }
             }
         }
     }
     
     public func restoreBookshelfItemToDesktop(itemURL: URL) {
+        if isSymbolicLink(at: itemURL) {
+            // Item adalah symlink; menghapus dari rak tidak merusak berkas asli pengguna
+            try? FileManager.default.removeItem(at: itemURL)
+            refreshBookshelf()
+            return
+        }
+        
         let destinationFolder: URL
         if let originPath = getOriginPath(for: itemURL) {
             let parent = URL(fileURLWithPath: originPath).deletingLastPathComponent()
@@ -398,7 +417,12 @@ public final class StorageManager: ObservableObject {
     }
     
     public func removeBookshelfItem(itemURL: URL) {
-        _ = moveToTrash(url: itemURL)
+        if isSymbolicLink(at: itemURL) {
+            try? FileManager.default.removeItem(at: itemURL)
+            refreshBookshelf()
+        } else {
+            _ = moveToTrash(url: itemURL)
+        }
     }
     
     public func restoreEverything() {
@@ -981,7 +1005,8 @@ public final class StorageManager: ObservableObject {
     
     // MARK: - Finder utilities
     public func openInFinder(url: URL) {
-        NSWorkspace.shared.activateFileViewerSelecting([url])
+        let resolved = url.resolvingSymlinksInPath()
+        NSWorkspace.shared.activateFileViewerSelecting([resolved])
     }
     
     public func openBaseFolder() {
