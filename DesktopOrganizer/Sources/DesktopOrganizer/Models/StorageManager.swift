@@ -495,17 +495,41 @@ public final class StorageManager: ObservableObject {
     }
     
     public func setCarpetPosition(normX: Double, normY: Double) {
+        let deltaX = normX - carpetPositionNorm.x
+        let deltaY = normY - carpetPositionNorm.y
         carpetPositionNorm = StoredPosition(x: normX, y: normY)
+        
+        // Mitigasi: Sinkronisasi posisi file yang berada di karpet agar tidak tertinggal di tepi
+        for (filename, pos) in floorItemPositions {
+            floorItemPositions[filename] = StoredPosition(x: pos.x + deltaX, y: pos.y + deltaY)
+        }
+        saveFloorPositions()
+    }
+    
+    public func tidyCarpetItemPositions() {
+        let total = carpetItems.count
+        for (idx, item) in carpetItems.enumerated() {
+            let spread: CGFloat = total > 1 ? (CGFloat(idx) / CGFloat(max(1, total - 1)) - 0.5) : 0
+            let defX = Double(carpetPositionNorm.x + (spread * 0.12))
+            let defY = Double(carpetPositionNorm.y)
+            floorItemPositions[item.lastPathComponent] = StoredPosition(x: defX, y: defY)
+        }
         saveFloorPositions()
     }
     
     public func positionForFloorItem(filename: String, index: Int, total: Int) -> CGPoint {
+        let carpetX = CGFloat(carpetPositionNorm.x)
+        let carpetY = CGFloat(carpetPositionNorm.y)
+        
         if let stored = floorItemPositions[filename] {
-            return CGPoint(x: stored.x, y: stored.y)
+            // Mitigasi & Antisipasi: Pastikan item di karpet selalu berada di dalam batas aman karpet
+            let clampedY = min(carpetY + 0.012, max(carpetY - 0.012, CGFloat(stored.y)))
+            let clampedX = min(carpetX + 0.14, max(carpetX - 0.14, CGFloat(stored.x)))
+            return CGPoint(x: clampedX, y: clampedY)
         }
         let spread: CGFloat = total > 1 ? (CGFloat(index) / CGFloat(max(1, total - 1)) - 0.5) : 0
-        let defX = CGFloat(carpetPositionNorm.x) + (spread * 0.14)
-        let defY = CGFloat(carpetPositionNorm.y)
+        let defX = carpetX + (spread * 0.12)
+        let defY = carpetY
         return CGPoint(x: defX, y: defY)
     }
     

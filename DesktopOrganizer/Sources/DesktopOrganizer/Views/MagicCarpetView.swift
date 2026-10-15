@@ -42,9 +42,10 @@ public struct MagicCarpetView: View {
         let liveCarpetCenterX = baseCarpetX + floorState.carpetDragOffset.width
         let liveCarpetCenterY = baseCarpetY + floorState.carpetDragOffset.height
         
-        // Rug effective bounding box on screen (carpet is 634 pt wide, 120 pt tall with perspective)
-        let rugW: CGFloat = 634
-        let rugH: CGFloat = 120
+        // Rug effective visual bounding box on floor:
+        // Visual carpet is 610 pt wide, 156 pt tall with 50° floor tilt (approx ~100 pt height)
+        let rugW: CGFloat = 610
+        let rugH: CGFloat = 100
         let carpetRect = CGRect(
             x: liveCarpetCenterX - (rugW * 0.5),
             y: liveCarpetCenterY - (rugH * 0.5),
@@ -67,6 +68,13 @@ public struct MagicCarpetView: View {
                 .frame(width: w, height: floorHeight)
                 .position(x: w * 0.5, y: floorMinY + (floorHeight * 0.5))
                 .onDrop(of: [.fileURL], delegate: FloorDropDelegate(screenSize: screenSize, storage: storage))
+                .onTapGesture {
+                    if floorState.isCarpetLifted {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                            floorState.isCarpetLifted = false
+                        }
+                    }
+                }
                 .overlay(
                     Group {
                         if floorState.isFloorTargeted {
@@ -78,17 +86,18 @@ public struct MagicCarpetView: View {
             // LAYER 2: Files & Folders placed on the grass lawn
             ForEach(Array(storage.carpetItems.enumerated()), id: \.element) { idx, item in
                 let basePos = storage.positionForFloorItem(filename: item.lastPathComponent, index: idx, total: storage.carpetItems.count)
+                let basePixelX = basePos.x * w
+                let basePixelY = basePos.y * h
+                let isCovered = carpetRect.contains(CGPoint(x: basePixelX, y: basePixelY))
                 let isThisDragging = floorState.draggingFloorFileName == item.lastPathComponent
-                let curX = (basePos.x * w) + (isThisDragging ? floorState.floorFileDragTranslation.width : 0)
-                let curY = (basePos.y * h) + (isThisDragging ? floorState.floorFileDragTranslation.height : 0)
-                let isCovered = carpetRect.contains(CGPoint(x: curX, y: curY))
+                let carpetLiveOffset = (isCovered && !isThisDragging) ? floorState.carpetDragOffset : .zero
                 let isVisible = !isCovered || floorState.isCarpetLifted
                 
                 if isVisible {
                     FloorItemView(itemURL: item, isCovered: isCovered, screenSize: screenSize)
-                        .position(x: basePos.x * w, y: basePos.y * h)
-                        .offset(isThisDragging ? floorState.floorFileDragTranslation : .zero)
-                        .zIndex(isThisDragging ? 35 : (isCovered ? 5 : 7))
+                        .position(x: basePixelX, y: basePixelY)
+                        .offset(isThisDragging ? floorState.floorFileDragTranslation : carpetLiveOffset)
+                        .zIndex(isThisDragging ? 35 : (floorState.isCarpetLifted ? 25 : (isCovered ? 5 : 22)))
                         .transition(.scale.combined(with: .opacity))
                 }
             }
@@ -237,6 +246,12 @@ struct MovableCarpetMatView: View {
             Button("Kembalikan Karpet ke Posisi Tengah") {
                 withAnimation(.spring(response: 0.40, dampingFraction: 0.75)) {
                     storage.setCarpetPosition(normX: 0.498, normY: 0.82)
+                }
+            }
+            
+            Button("Rapikan File di Bawah Karpet") {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                    storage.tidyCarpetItemPositions()
                 }
             }
             
@@ -479,20 +494,6 @@ struct CarpetMatBodyView: View {
                     .padding(.vertical, 4)
                     .background(Capsule().fill(Color.black.opacity(0.80)))
                     .overlay(Capsule().stroke(Color(red: 0.88, green: 0.74, blue: 0.40), lineWidth: 1))
-                    .transition(.scale)
-                } else if isLifted {
-                    HStack(spacing: 5) {
-                        Image(systemName: "eye.fill")
-                            .font(.system(size: 9))
-                        Text(itemCount > 0 ? "\(itemCount) file terlihat (Klik untuk tutup)" : "Karpet Terbuka")
-                            .font(.system(size: 9, weight: .bold))
-                    }
-                    .foregroundColor(Color(red: 0.98, green: 0.88, blue: 0.50))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(Capsule().fill(Color.black.opacity(0.80)))
-                    .overlay(Capsule().stroke(Color(red: 0.98, green: 0.88, blue: 0.50).opacity(0.5), lineWidth: 0.8))
-                    .transition(.opacity)
                 }
             }
         }
