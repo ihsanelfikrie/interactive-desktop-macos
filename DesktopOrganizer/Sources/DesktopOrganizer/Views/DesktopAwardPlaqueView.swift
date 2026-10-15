@@ -69,9 +69,7 @@ public struct DesktopAwardPlaqueView: View {
             openSVG()
         }
         .onTapGesture {
-            withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
-                appState.toggleQuickView(quickViewType)
-            }
+            appState.toggleQuickView(quickViewType)
         }
         .onHover { hovering in
             if hovering {

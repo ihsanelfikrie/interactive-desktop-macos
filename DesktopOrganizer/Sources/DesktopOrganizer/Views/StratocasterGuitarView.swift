@@ -33,9 +33,7 @@ public struct StratocasterGuitarView: View {
         .contentShape(Rectangle())
         .onTapGesture(count: 2) { openMusicOrGarageBand() }
         .onTapGesture {
-            withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
-                appState.toggleQuickView(.guitar)
-            }
+            appState.toggleQuickView(.guitar)
         }
     }
     

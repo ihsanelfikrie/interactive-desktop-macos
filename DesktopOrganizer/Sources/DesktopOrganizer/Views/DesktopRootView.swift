@@ -173,7 +173,7 @@ public struct DesktopRootView: View {
                             .contentShape(Rectangle())
                             .ignoresSafeArea()
                             .onTapGesture {
-                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                withAnimation(AppState.appleDismissSpring) {
                                     appState.activeShelfPopoverURL = nil
                                 }
                             }
@@ -182,15 +182,19 @@ public struct DesktopRootView: View {
                             url: targetURL,
                             shelfIndex: shelfIdx,
                             onClose: {
-                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                withAnimation(AppState.appleDismissSpring) {
                                     appState.activeShelfPopoverURL = nil
                                 }
                             }
                         )
                         .position(x: popoverX, y: popoverY)
                         .transition(.asymmetric(
-                            insertion: .scale(scale: 0.92, anchor: .leading).combined(with: .opacity),
-                            removal: .scale(scale: 0.92, anchor: .leading).combined(with: .opacity)
+                            insertion: .scale(scale: 0.86, anchor: .leading)
+                                .combined(with: .offset(x: -14))
+                                .combined(with: .opacity),
+                            removal: .scale(scale: 0.92, anchor: .leading)
+                                .combined(with: .offset(x: -6))
+                                .combined(with: .opacity)
                         ))
                     }
                     .zIndex(45)
@@ -206,7 +210,7 @@ public struct DesktopRootView: View {
                             .contentShape(Rectangle())
                             .ignoresSafeArea()
                             .onTapGesture {
-                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                withAnimation(AppState.appleDismissSpring) {
                                     appState.showBookshelfDrawer = false
                                 }
                             }
@@ -214,8 +218,12 @@ public struct DesktopRootView: View {
                         BookshelfDrawerView(isPresented: $appState.showBookshelfDrawer)
                             .position(x: popoverX, y: popoverY)
                             .transition(.asymmetric(
-                                insertion: .scale(scale: 0.92, anchor: .leading).combined(with: .opacity),
-                                removal: .scale(scale: 0.92, anchor: .leading).combined(with: .opacity)
+                                insertion: .scale(scale: 0.88, anchor: .leading)
+                                    .combined(with: .offset(x: -16))
+                                    .combined(with: .opacity),
+                                removal: .scale(scale: 0.92, anchor: .leading)
+                                    .combined(with: .offset(x: -8))
+                                    .combined(with: .opacity)
                             ))
                     }
                     .zIndex(45)
@@ -231,7 +239,7 @@ public struct DesktopRootView: View {
                             .contentShape(Rectangle())
                             .ignoresSafeArea()
                             .onTapGesture {
-                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                withAnimation(AppState.appleDismissSpring) {
                                     appState.showSpotifyPopup = false
                                 }
                             }
@@ -239,8 +247,12 @@ public struct DesktopRootView: View {
                         SpotifyMiniPlayerView(isPresented: $appState.showSpotifyPopup)
                             .position(x: popoverX, y: popoverY)
                             .transition(.asymmetric(
-                                insertion: .scale(scale: 0.92, anchor: .bottom).combined(with: .opacity),
-                                removal: .scale(scale: 0.92, anchor: .bottom).combined(with: .opacity)
+                                insertion: .scale(scale: 0.86, anchor: .bottom)
+                                    .combined(with: .offset(y: 12))
+                                    .combined(with: .opacity),
+                                removal: .scale(scale: 0.92, anchor: .bottom)
+                                    .combined(with: .offset(y: 6))
+                                    .combined(with: .opacity)
                             ))
                     }
                     .zIndex(45)
@@ -268,112 +280,118 @@ public struct DesktopRootView: View {
                             .contentShape(Rectangle())
                             .ignoresSafeArea()
                             .onTapGesture {
-                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                withAnimation(AppState.appleDismissSpring) {
                                     appState.activeQuickView = nil
                                 }
                             }
                         
-                        switch active {
-                        case .clock:
-                            ClockQuickView(onClose: {
-                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
-                                    appState.activeQuickView = nil
-                                }
-                            })
-                            .position(x: min(max(w * 0.1678, 140), w - 140), y: min(max((h * 0.118) + (wallClockSize / 2) + 85, 140), h - 140))
-                            
-                        case .calendar:
-                            CalendarQuickView(onClose: {
-                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
-                                    appState.activeQuickView = nil
-                                }
-                            })
-                            .position(x: max((w * 0.7022) - 150, 140), y: min(max(h * 0.3318, 140), h - 140))
-                            
-                        case .monitor:
-                            MonitorQuickView(onClose: {
-                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
-                                    appState.activeQuickView = nil
-                                }
-                            })
-                            .position(x: deskX, y: max(tabletopSurfaceY - 110, 150))
-                            
-                        case .mail, .whatsapp:
-                            WhatsAppQuickView(onClose: {
-                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
-                                    appState.activeQuickView = nil
-                                }
-                            })
-                            .position(x: min(max(w * 0.468, 130), w - 130), y: tabletopSurfaceY - 95)
-                            
-                        case .trash:
-                            TrashQuickView(onClose: {
-                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
-                                    appState.activeQuickView = nil
-                                }
-                            })
-                            .position(x: min(max(w * 0.708, 130), w - 130), y: (h * 0.735) - 115)
-                            
-                        case .photo(let slot):
-                            PhotoFrameQuickView(slotIndex: slot, onClose: {
-                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
-                                    appState.activeQuickView = nil
-                                }
-                            })
-                            .position(
-                                x: min(max(w * 0.83125 - 140, 140), w - 140),
-                                y: h * 0.320
-                            )
-                            
-                        case .carpetItem(let itemURL):
-                            CarpetItemQuickView(url: itemURL, onClose: {
-                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
-                                    appState.activeQuickView = nil
-                                }
-                            })
-                            .position(x: w * 0.498, y: min(h * 0.730, h - 140))
-                            
-                        case .guitar:
-                            GuitarQuickView(onClose: {
-                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
-                                    appState.activeQuickView = nil
-                                }
-                            })
-                            .position(x: min(max(w * 0.875 - 135, 140), w - 140), y: min(max(h * 0.640, 150), h - 140))
-                            
-                        case .tegoerPlaque:
-                            AwardPlaqueQuickView(
-                                title: "Plakat Tegoer Sapa",
-                                subtitle: "Plakat Penghargaan Resmi Tegoer Sapa",
-                                imageName: "plaque_tegoer_sapa",
-                                svgFileName: "tegoer sapa logoo.svg",
-                                onClose: {
-                                    withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                        Group {
+                            switch active {
+                            case .clock:
+                                ClockQuickView(onClose: {
+                                    withAnimation(AppState.appleDismissSpring) {
                                         appState.activeQuickView = nil
                                     }
-                                }
-                            )
-                            .position(x: min(max(w * 0.410, 140), w - 140), y: tabletopSurfaceY - 120)
-                            
-                        case .sansPlaque:
-                            AwardPlaqueQuickView(
-                                title: "Plakat Sans Studio",
-                                subtitle: "Plakat Penghargaan Resmi Sans Studio",
-                                imageName: "plaque_sans",
-                                svgFileName: "sans logo.svg",
-                                onClose: {
-                                    withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                })
+                                .position(x: min(max(clockX, 140), w - 140), y: min(max(clockY + (wallClockSize / 2) + 85, 140), h - 140))
+                                
+                            case .calendar:
+                                CalendarQuickView(onClose: {
+                                    withAnimation(AppState.appleDismissSpring) {
                                         appState.activeQuickView = nil
                                     }
-                                }
-                            )
-                            .position(x: min(max(w * 0.588, 140), w - 140), y: tabletopSurfaceY - 120)
+                                })
+                                .position(x: max((w * 0.7022) - 150, 140), y: min(max(h * 0.3318, 140), h - 140))
+                                
+                            case .monitor:
+                                MonitorQuickView(onClose: {
+                                    withAnimation(AppState.appleDismissSpring) {
+                                        appState.activeQuickView = nil
+                                    }
+                                })
+                                .position(x: deskX, y: max(tabletopSurfaceY - 110, 150))
+                                
+                            case .mail, .whatsapp:
+                                WhatsAppQuickView(onClose: {
+                                    withAnimation(AppState.appleDismissSpring) {
+                                        appState.activeQuickView = nil
+                                    }
+                                })
+                                .position(x: min(max(w * 0.468, 130), w - 130), y: tabletopSurfaceY - 95)
+                                
+                            case .trash:
+                                TrashQuickView(onClose: {
+                                    withAnimation(AppState.appleDismissSpring) {
+                                        appState.activeQuickView = nil
+                                    }
+                                })
+                                .position(x: min(max(w * 0.708, 130), w - 130), y: (h * 0.735) - 115)
+                                
+                            case .photo(let slot):
+                                PhotoFrameQuickView(slotIndex: slot, onClose: {
+                                    withAnimation(AppState.appleDismissSpring) {
+                                        appState.activeQuickView = nil
+                                    }
+                                })
+                                .position(
+                                    x: min(max(w * 0.83125 - 140, 140), w - 140),
+                                    y: h * 0.320
+                                )
+                                
+                            case .carpetItem(let itemURL):
+                                CarpetItemQuickView(url: itemURL, onClose: {
+                                    withAnimation(AppState.appleDismissSpring) {
+                                        appState.activeQuickView = nil
+                                    }
+                                })
+                                .position(x: w * 0.498, y: min(h * 0.730, h - 140))
+                                
+                            case .guitar:
+                                GuitarQuickView(onClose: {
+                                    withAnimation(AppState.appleDismissSpring) {
+                                        appState.activeQuickView = nil
+                                    }
+                                })
+                                .position(x: min(max(w * 0.875 - 135, 140), w - 140), y: min(max(h * 0.640, 150), h - 140))
+                                
+                            case .tegoerPlaque:
+                                AwardPlaqueQuickView(
+                                    title: "Plakat Tegoer Sapa",
+                                    subtitle: "Plakat Penghargaan Resmi Tegoer Sapa",
+                                    imageName: "plaque_tegoer_sapa",
+                                    svgFileName: "tegoer sapa logoo.svg",
+                                    onClose: {
+                                        withAnimation(AppState.appleDismissSpring) {
+                                            appState.activeQuickView = nil
+                                        }
+                                    }
+                                )
+                                .position(x: min(max(w * 0.410, 140), w - 140), y: tabletopSurfaceY - 120)
+                                
+                            case .sansPlaque:
+                                AwardPlaqueQuickView(
+                                    title: "Plakat Sans Studio",
+                                    subtitle: "Plakat Penghargaan Resmi Sans Studio",
+                                    imageName: "plaque_sans",
+                                    svgFileName: "sans logo.svg",
+                                    onClose: {
+                                        withAnimation(AppState.appleDismissSpring) {
+                                            appState.activeQuickView = nil
+                                        }
+                                    }
+                                )
+                                .position(x: min(max(w * 0.588, 140), w - 140), y: tabletopSurfaceY - 120)
+                            }
                         }
+                        .transition(.asymmetric(
+                            insertion: .scale(scale: 0.86)
+                                .combined(with: .offset(y: 10))
+                                .combined(with: .opacity),
+                            removal: .scale(scale: 0.90)
+                                .combined(with: .offset(y: 4))
+                                .combined(with: .opacity)
+                        ))
                     }
-                    .transition(.asymmetric(
-                        insertion: .scale(scale: 0.92).combined(with: .opacity),
-                        removal: .scale(scale: 0.92).combined(with: .opacity)
-                    ))
                     .zIndex(50)
                 }
             }
@@ -433,16 +451,24 @@ struct ModalBackdrop<Content: View>: View {
     
     var body: some View {
         ZStack {
-            Color.black.opacity(0.45)
+            Color.black.opacity(0.40)
                 .ignoresSafeArea()
+                .transition(.opacity)
                 .onTapGesture {
-                    withAnimation(.spring()) {
+                    withAnimation(AppState.appleDismissSpring) {
                         isPresented = false
                     }
                 }
             
             content()
-                .transition(.scale(scale: 0.92).combined(with: .opacity))
+                .transition(.asymmetric(
+                    insertion: .scale(scale: 0.88)
+                        .combined(with: .offset(y: 12))
+                        .combined(with: .opacity),
+                    removal: .scale(scale: 0.92)
+                        .combined(with: .offset(y: 6))
+                        .combined(with: .opacity)
+                ))
         }
     }
 }

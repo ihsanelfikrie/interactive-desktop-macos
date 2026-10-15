@@ -90,15 +90,21 @@ public final class AppState: ObservableObject {
         set { FloorInteractionState.shared.isCarpetTargeted = newValue }
     }
     
+    // MARK: - Apple Signature Fluid Spring Physics
+    public static let appleSpring = Animation.spring(response: 0.38, dampingFraction: 0.76)
+    public static let appleDismissSpring = Animation.spring(response: 0.26, dampingFraction: 0.88)
+    
     public func toggleQuickView(_ view: ActiveDesktopQuickView) {
-        withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
-            if activeQuickView == view {
+        if activeQuickView == view {
+            withAnimation(AppState.appleDismissSpring) {
                 activeQuickView = nil
-            } else {
-                activeShelfPopoverURL = nil
-                showSpotifyPopup = false
-                showBookshelfDrawer = false
-                showThemePicker = false
+            }
+        } else {
+            activeShelfPopoverURL = nil
+            showSpotifyPopup = false
+            showBookshelfDrawer = false
+            showThemePicker = false
+            withAnimation(AppState.appleSpring) {
                 activeQuickView = view
             }
         }

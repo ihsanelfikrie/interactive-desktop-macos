@@ -1,6 +1,17 @@
 import SwiftUI
 import AppKit
 
+// MARK: - Apple Signature Micro-Scale Interactive Button Style
+public struct AppleScaleButtonStyle: ButtonStyle {
+    public init() {}
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.94 : 1.0)
+            .opacity(configuration.isPressed ? 0.82 : 1.0)
+            .animation(.spring(response: 0.22, dampingFraction: 0.70), value: configuration.isPressed)
+    }
+}
+
 // MARK: - Desktop Quick View Popover Shell (Apple Liquid Glass Card)
 struct DesktopQuickViewCard<Content: View>: View {
     let title: String
@@ -30,7 +41,7 @@ struct DesktopQuickViewCard<Content: View>: View {
                         .font(.system(size: 15))
                         .foregroundColor(Color(NSColor.tertiaryLabelColor))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(AppleScaleButtonStyle())
                 .help("Tutup (Escape)")
             }
             .padding(.horizontal, 14)

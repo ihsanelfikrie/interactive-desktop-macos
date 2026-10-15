@@ -41,7 +41,7 @@ public struct BookshelfView: View {
                     )
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        withAnimation(.spring()) {
+                        withAnimation(AppState.appleSpring) {
                             appState.showBookshelfDrawer = true
                         }
                     }
@@ -267,10 +267,15 @@ struct ShelfItemView: View {
             NSWorkspace.shared.open(url)
         }
         .onTapGesture {
-            withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
-                if appState.activeShelfPopoverURL == url {
+            if appState.activeShelfPopoverURL == url {
+                withAnimation(AppState.appleDismissSpring) {
                     appState.activeShelfPopoverURL = nil
-                } else {
+                }
+            } else {
+                withAnimation(AppState.appleSpring) {
+                    appState.activeQuickView = nil
+                    appState.showSpotifyPopup = false
+                    appState.showBookshelfDrawer = false
                     appState.activeShelfPopoverURL = url
                     appState.activeShelfIndex = shelfIndex
                 }

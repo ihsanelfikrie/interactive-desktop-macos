@@ -1112,8 +1112,16 @@ public struct VintageRadioView: View {
             spotify.openSpotify()
         }
         .onTapGesture {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.78)) {
-                appState.showSpotifyPopup.toggle()
+            if appState.showSpotifyPopup {
+                withAnimation(AppState.appleDismissSpring) {
+                    appState.showSpotifyPopup = false
+                }
+            } else {
+                withAnimation(AppState.appleSpring) {
+                    appState.activeQuickView = nil
+                    appState.activeShelfPopoverURL = nil
+                    appState.showSpotifyPopup = true
+                }
             }
         }
         .help("Speaker Spotify: Klik untuk membuka pemutar mini, klik 2x untuk membuka aplikasi Spotify")

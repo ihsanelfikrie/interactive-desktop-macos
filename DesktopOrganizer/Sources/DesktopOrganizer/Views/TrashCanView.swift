@@ -356,9 +356,7 @@ public struct TrashCanView: View {
             }
         }
         .onTapGesture {
-            withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
-                appState.toggleQuickView(.trash)
-            }
+            appState.toggleQuickView(.trash)
         }
         .help("Tempat Sampah Modern: Klik 1x untuk opsi & kosongkan sampah, klik 2x untuk buka di Finder. Tarik file ke sini untuk membuangnya.")
         .onDrop(of: [.fileURL], isTargeted: Binding(
