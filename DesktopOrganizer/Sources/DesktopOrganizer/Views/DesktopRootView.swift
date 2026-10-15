@@ -132,11 +132,6 @@ public struct DesktopRootView: View {
                     .frame(width: monitorW, height: monitorH)
                     .position(x: deskX, y: tabletopSurfaceY - (monitorH / 2) - (10.5 * monitorScale))
                 
-                // Apple Magic Keyboard & Mouse Set (Grounded on Tabletop in Front of iMac)
-                WorkstationPeripheralsView(scale: monitorScale)
-                    .position(x: deskX + (4 * monitorScale), y: tabletopSurfaceY - (1.0 * monitorScale))
-                    .allowsHitTesting(false)
-                
                 // Vintage Emerald & Brass Boudoir Lamp (Left Pedestal Top - Firmly Grounded)
                 DeskLampView(isOn: appState.lampOn) {
                     withAnimation(.easeInOut(duration: 0.35)) {
