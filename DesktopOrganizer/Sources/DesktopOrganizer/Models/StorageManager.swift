@@ -79,14 +79,11 @@ public final class StorageManager: ObservableObject {
         self.transformsFileURL = baseDirectory.appendingPathComponent("photo_transforms.json")
         self.floorPositionsFileURL = baseDirectory.appendingPathComponent("floor_positions.json")
         
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            guard let self = self else { return }
-            self.setupDirectories()
-            self.migrateLegacyIfPresent()
-            self.loadAllData()
-            self.checkDesktopIconStatus()
-            self.watchDirectory()
-        }
+        self.setupDirectories()
+        self.migrateLegacyIfPresent()
+        self.loadAllData()
+        self.checkDesktopIconStatus()
+        self.watchDirectory()
     }
     
     private func setupDirectories() {
@@ -882,36 +879,41 @@ public final class StorageManager: ObservableObject {
     // MARK: - Sticky Notes
     public func loadStickyNotes() {
         guard let data = try? Data(contentsOf: notesFileURL),
-              let notes = try? JSONDecoder().decode([StickyNote].self, from: data) else {
+              let notes = try? JSONDecoder().decode([StickyNote].self, from: data),
+              !notes.isEmpty else {
             // Default sample notes if first run
             let defaultNotes = [
                 StickyNote(
                     title: "Rencana Hari Ini 📝",
-                    tasks: [
-                        TaskItem(text: "Rapikan file desktop", isCompleted: true),
-                        TaskItem(text: "Bikin to-do list", isCompleted: true),
-                        TaskItem(text: "Putar lagu di radio Spotify", isCompleted: false)
-                    ],
-                    color: .lime,
+                    freeformText: "• Rapikan file desktop\n• Bikin to-do list & target minggu ini\n• Putar lagu favorit di radio Spotify",
+                    mode: .freeform,
+                    color: .yellow,
+                    pinStyle: .washiTape,
                     x: 20,
                     y: 20
                 ),
                 StickyNote(
                     title: "SANS Design ✳",
-                    tasks: [
-                        TaskItem(text: "Electric Blue & Lime Accent", isCompleted: true),
-                        TaskItem(text: "Taruh foto favorit di dinding", isCompleted: false)
-                    ],
+                    freeformText: "Electric Blue & Lime Accent.\nTaruh foto favorit di dinding boiserie.",
+                    mode: .freeform,
                     color: .pink,
+                    pinStyle: .pushpin,
                     x: 180,
                     y: 40
                 )
             ]
             self.stickyNotes = defaultNotes
-            saveStickyNotes()
+            self.saveStickyNotes()
             return
         }
-        self.stickyNotes = notes
+        let migrated = notes.map {
+            var n = $0
+            if n.freeformText.isEmpty && !n.tasks.isEmpty {
+                n.freeformText = n.tasks.map { $0.text }.joined(separator: "\n")
+            }
+            return n
+        }
+        self.stickyNotes = migrated
     }
     
     public func saveStickyNotes() {
@@ -921,22 +923,29 @@ public final class StorageManager: ObservableObject {
     }
     
     public func addStickyNote() {
-        let colors: [NoteColor] = NoteColor.allCases
-        let randomColor = colors.randomElement() ?? .lime
+        let colors: [NoteColor] = [.yellow, .lime, .pink, .mint, .lavender, .peach, .blue]
+        let randomColor = colors.randomElement() ?? .yellow
+        let randomStyle: PinStyle = Bool.random() ? .washiTape : .pushpin
         let newNote = StickyNote(
             title: "Catatan Baru",
-            tasks: [TaskItem(text: "Ketik tugas di sini...")],
+            freeformText: "Tulis isi catatan di sini...",
+            mode: .freeform,
             color: randomColor,
+            pinStyle: randomStyle,
             x: CGFloat.random(in: 40...200),
             y: CGFloat.random(in: 40...160)
         )
-        stickyNotes.append(newNote)
-        saveStickyNotes()
+        DispatchQueue.main.async {
+            self.stickyNotes.append(newNote)
+            self.saveStickyNotes()
+        }
     }
     
     public func removeStickyNote(id: UUID) {
-        stickyNotes.removeAll(where: { $0.id == id })
-        saveStickyNotes()
+        DispatchQueue.main.async {
+            self.stickyNotes.removeAll(where: { $0.id == id })
+            self.saveStickyNotes()
+        }
     }
     
     // MARK: - Trash

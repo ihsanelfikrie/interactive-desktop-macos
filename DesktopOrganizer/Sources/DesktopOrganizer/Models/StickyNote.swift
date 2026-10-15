@@ -107,8 +107,8 @@ public enum PinStyle: String, CaseIterable, Codable {
     
     public var displayName: String {
         switch self {
-        case .pushpin:   return "Paku"
-        case .washiTape: return "Selotip"
+        case .washiTape: return "Plester"
+        case .pushpin:   return "Pin"
         case .star:      return "Bintang"
         case .heart:     return "Hati"
         case .clip:      return "Klip"
@@ -172,9 +172,9 @@ public struct StickyNote: Identifiable, Codable, Equatable {
         title: String = "Catatan",
         tasks: [TaskItem] = [],
         freeformText: String = "",
-        mode: NoteMode = .checklist,
-        color: NoteColor = .lime,
-        pinStyle: PinStyle = .pushpin,
+        mode: NoteMode = .freeform,
+        color: NoteColor = .yellow,
+        pinStyle: PinStyle = .washiTape,
         pattern: PaperPattern = .plain,
         x: CGFloat = 40,
         y: CGFloat = 40,
@@ -203,9 +203,9 @@ public struct StickyNote: Identifiable, Codable, Equatable {
         self.title = try c.decodeIfPresent(String.self, forKey: .title) ?? "Catatan"
         self.tasks = try c.decodeIfPresent([TaskItem].self, forKey: .tasks) ?? []
         self.freeformText = try c.decodeIfPresent(String.self, forKey: .freeformText) ?? ""
-        self.mode = try c.decodeIfPresent(NoteMode.self, forKey: .mode) ?? .checklist
-        self.color = try c.decodeIfPresent(NoteColor.self, forKey: .color) ?? .lime
-        self.pinStyle = try c.decodeIfPresent(PinStyle.self, forKey: .pinStyle) ?? .pushpin
+        self.mode = try c.decodeIfPresent(NoteMode.self, forKey: .mode) ?? .freeform
+        self.color = try c.decodeIfPresent(NoteColor.self, forKey: .color) ?? .yellow
+        self.pinStyle = try c.decodeIfPresent(PinStyle.self, forKey: .pinStyle) ?? .washiTape
         self.pattern = try c.decodeIfPresent(PaperPattern.self, forKey: .pattern) ?? .plain
         self.x = try c.decodeIfPresent(CGFloat.self, forKey: .x) ?? 40
         self.y = try c.decodeIfPresent(CGFloat.self, forKey: .y) ?? 40

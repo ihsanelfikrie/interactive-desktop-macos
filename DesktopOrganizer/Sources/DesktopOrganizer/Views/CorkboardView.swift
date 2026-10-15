@@ -82,84 +82,251 @@ public struct CorkboardView: View {
     }
 }
 
-// MARK: - Pin & Fastener Vector Graphics
-struct PinIconView: View {
+// MARK: - Serrated Washi Tape Shape & Fastener Vector Graphics
+struct WashiTapeShape: Shape {
+    var teethCount: Int = 5
+    
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let stepY = rect.height / CGFloat(teethCount)
+        
+        // Start top-left
+        path.move(to: CGPoint(x: 2, y: 0))
+        // Top edge
+        path.addLine(to: CGPoint(x: rect.width - 2, y: 0))
+        
+        // Right serrated / torn tape edge
+        for i in 0..<teethCount {
+            let yMid = CGFloat(i) * stepY + stepY * 0.5
+            let yEnd = CGFloat(i + 1) * stepY
+            path.addLine(to: CGPoint(x: rect.width, y: yMid))
+            path.addLine(to: CGPoint(x: rect.width - 2, y: yEnd))
+        }
+        
+        // Bottom edge
+        path.addLine(to: CGPoint(x: 2, y: rect.height))
+        
+        // Left serrated / torn tape edge
+        for i in stride(from: teethCount, to: 0, by: -1) {
+            let yMid = CGFloat(i) * stepY - stepY * 0.5
+            let yEnd = CGFloat(i - 1) * stepY
+            path.addLine(to: CGPoint(x: 0, y: yMid))
+            path.addLine(to: CGPoint(x: 2, y: yEnd))
+        }
+        
+        path.closeSubpath()
+        return path
+    }
+}
+
+// Realistic Adhesive Tape / Plester
+struct WashiTapeView: View {
+    var noteColor: NoteColor
+    
+    var body: some View {
+        ZStack {
+            // Soft cast shadow on corkboard & paper
+            WashiTapeShape()
+                .fill(Color.black.opacity(0.18))
+                .offset(y: 1.2)
+                .blur(radius: 0.8)
+            
+            // Translucent warm tape strip
+            WashiTapeShape()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(white: 0.96).opacity(0.85),
+                            Color(white: 0.88).opacity(0.70),
+                            Color(white: 0.94).opacity(0.80)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+            
+            // Subtle fiber / adhesive sheen line in middle
+            Rectangle()
+                .fill(Color.white.opacity(0.45))
+                .frame(height: 1)
+                .padding(.horizontal, 4)
+            
+            // Subtle border outline for torn edges
+            WashiTapeShape()
+                .stroke(Color.white.opacity(0.65), lineWidth: 0.6)
+        }
+        .frame(width: 50, height: 14)
+        .rotationEffect(.degrees(-1.5))
+    }
+}
+
+// 3D Spherical Pushpin
+struct PushpinView: View {
+    var noteColor: NoteColor
+    
+    var body: some View {
+        ZStack {
+            // Pin puncture hole in cork & paper
+            Ellipse()
+                .fill(Color.black.opacity(0.45))
+                .frame(width: 4, height: 2.5)
+                .offset(y: 6)
+                .blur(radius: 0.4)
+            
+            // Cast shadow of pin head
+            Circle()
+                .fill(Color.black.opacity(0.35))
+                .frame(width: 13, height: 13)
+                .offset(x: 0.8, y: 2.2)
+                .blur(radius: 1.0)
+            
+            // Metallic needle base collar
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [Color(white: 0.88), Color(white: 0.45)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 6, height: 6)
+                .offset(y: 2)
+            
+            // 3D Spherical Pin Head
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            pinColor.opacity(1.0),
+                            pinColor.opacity(0.85),
+                            pinColorDark
+                        ],
+                        center: .init(x: 0.35, y: 0.35),
+                        startRadius: 1,
+                        endRadius: 8
+                    )
+                )
+                .frame(width: 13, height: 13)
+                .overlay(
+                    // Specular Highlight Glare
+                    Circle()
+                        .fill(Color.white.opacity(0.85))
+                        .frame(width: 4, height: 3)
+                        .offset(x: -2.5, y: -2.5)
+                )
+                .overlay(
+                    Circle()
+                        .stroke(Color.white.opacity(0.45), lineWidth: 0.6)
+                )
+        }
+        .frame(width: 18, height: 18)
+    }
+    
+    private var pinColor: Color {
+        switch noteColor {
+        case .lime: return Color(red: 235/255, green: 45/255, blue: 60/255)
+        case .yellow: return Color(red: 235/255, green: 45/255, blue: 60/255)
+        case .pink: return Color(red: 45/255, green: 130/255, blue: 245/255)
+        case .blue: return Color(red: 255/255, green: 215/255, blue: 40/255)
+        case .dark: return Color(red: 210/255, green: 240/255, blue: 70/255)
+        default: return Color(red: 235/255, green: 45/255, blue: 60/255)
+        }
+    }
+    
+    private var pinColorDark: Color {
+        switch noteColor {
+        case .lime, .yellow: return Color(red: 140/255, green: 15/255, blue: 25/255)
+        case .pink: return Color(red: 20/255, green: 65/255, blue: 150/255)
+        case .blue: return Color(red: 170/255, green: 120/255, blue: 10/255)
+        case .dark: return Color(red: 120/255, green: 150/255, blue: 20/255)
+        default: return Color(red: 140/255, green: 15/255, blue: 25/255)
+        }
+    }
+}
+
+struct StarPinView: View {
+    var body: some View {
+        ZStack {
+            Image(systemName: "star.fill")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(Color.black.opacity(0.3))
+                .offset(y: 1.5)
+            Image(systemName: "star.fill")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(Color(red: 255/255, green: 210/255, blue: 30/255))
+                .overlay(
+                    Image(systemName: "star")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(Color.white.opacity(0.6))
+                )
+        }
+        .frame(width: 16, height: 16)
+    }
+}
+
+struct HeartPinView: View {
+    var body: some View {
+        ZStack {
+            Image(systemName: "heart.fill")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(Color.black.opacity(0.3))
+                .offset(y: 1.5)
+            Image(systemName: "heart.fill")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(SANSColors.pink)
+                .overlay(
+                    Image(systemName: "heart")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(Color.white.opacity(0.5))
+                )
+        }
+        .frame(width: 16, height: 16)
+    }
+}
+
+struct ClipFastenerView: View {
+    var noteColor: NoteColor
+    var body: some View {
+        ZStack {
+            Image(systemName: "paperclip")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(Color.black.opacity(0.28))
+                .offset(y: 1.2)
+            Image(systemName: "paperclip")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(Color(white: 0.88))
+                .overlay(
+                    Image(systemName: "paperclip")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(Color.white.opacity(0.4))
+                )
+        }
+        .frame(width: 16, height: 18)
+    }
+}
+
+// Master Top Fastener Component
+struct TopFastenerView: View {
     let style: PinStyle
     let noteColor: NoteColor
     
     var body: some View {
         switch style {
-        case .pushpin:
-            // 3D Pushpin with metallic highlight and rim
-            Circle()
-                .fill(pinColor)
-                .frame(width: 8, height: 8)
-                .overlay(
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.white.opacity(0.75), Color.clear],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                )
-                .overlay(Circle().stroke(Color.white.opacity(0.85), lineWidth: 0.8))
-                .shadow(color: .black.opacity(0.35), radius: 1, x: 0.5, y: 0.8)
-            
         case .washiTape:
-            // Decorative semi-transparent masking tape strip
-            RoundedRectangle(cornerRadius: 1.5)
-                .fill(Color.white.opacity(0.75))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 1.5)
-                        .stroke(Color.white.opacity(0.95), lineWidth: 0.5)
-                )
-                .frame(width: 34, height: 9)
-                .rotationEffect(.degrees(-1.5))
-                .shadow(color: .black.opacity(0.15), radius: 1, y: 0.5)
-            
+            WashiTapeView(noteColor: noteColor)
+        case .pushpin:
+            PushpinView(noteColor: noteColor)
         case .star:
-            // Cute gold star pin
-            Image(systemName: "star.fill")
-                .font(.system(size: 8, weight: .bold))
-                .foregroundColor(Color(red: 255/255.0, green: 215/255.0, blue: 0/255.0))
-                .shadow(color: .black.opacity(0.3), radius: 1, y: 0.5)
-            
+            StarPinView()
         case .heart:
-            // Cute pink heart pin
-            Image(systemName: "heart.fill")
-                .font(.system(size: 8, weight: .bold))
-                .foregroundColor(SANSColors.pink)
-                .shadow(color: .black.opacity(0.3), radius: 1, y: 0.5)
-            
+            HeartPinView()
         case .clip:
-            // Metallic paperclip
-            Image(systemName: "paperclip")
-                .font(.system(size: 9, weight: .semibold))
-                .foregroundColor(noteColor.textColor.opacity(0.75))
-                .rotationEffect(.degrees(-25))
-                .shadow(color: .black.opacity(0.2), radius: 0.5, y: 0.5)
-        }
-    }
-    
-    private var pinColor: Color {
-        switch noteColor {
-        case .pink:
-            return SANSColors.lime
-        case .lime:
-            return SANSColors.pink
-        case .blue:
-            return Color(red: 255/255.0, green: 220/255.0, blue: 60/255.0)
-        case .dark:
-            return SANSColors.lime
-        default:
-            return SANSColors.pink
+            ClipFastenerView(noteColor: noteColor)
         }
     }
 }
 
-// MARK: - Sticky Note Card View (Aesthetic, Multi-Color, Patterned)
+// MARK: - Sticky Note Card View (Title Directly Followed by Content)
 public struct StickyNoteCardView: View {
     @Binding var note: StickyNote
     var onDelete: () -> Void
@@ -179,25 +346,11 @@ public struct StickyNoteCardView: View {
     
     public var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header Bar
+            // Header Bar: Editable Title & Controls
             HStack(spacing: 4) {
-                // Pin / Fastener (Tap to toggle customizer)
-                Button(action: toggleCustomizer) {
-                    if note.pinStyle != .washiTape {
-                        PinIconView(style: note.pinStyle, noteColor: note.color)
-                    } else {
-                        // Subtle dot indicator in header when washi tape is on top
-                        Circle()
-                            .fill(note.color.textColor.opacity(0.3))
-                            .frame(width: 5, height: 5)
-                    }
-                }
-                .buttonStyle(.plain)
-                .help("Klik untuk kustomisasi warna, pin & format")
-                
                 // Editable Title
                 TextField("Judul Memo", text: $note.title)
-                    .font(.system(size: 9.5, weight: .bold))
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundColor(note.color.textColor)
                     .textFieldStyle(.plain)
                     .onChange(of: note.title) { _ in onSave() }
@@ -211,7 +364,7 @@ public struct StickyNoteCardView: View {
                         .foregroundColor(note.color.textColor.opacity(isCustomizerOpen ? 0.95 : 0.45))
                 }
                 .buttonStyle(.plain)
-                .help("Kustomisasi warna, pin, pola & mode")
+                .help("Kustomisasi warna, plester/pin & pola kertas")
                 
                 // Delete Button
                 Button(action: onDelete) {
@@ -222,13 +375,13 @@ public struct StickyNoteCardView: View {
                 .buttonStyle(.plain)
                 .help("Hapus Memo")
             }
-            .padding(.horizontal, 6)
-            .padding(.top, 5)
-            .padding(.bottom, 4)
+            .padding(.horizontal, 7)
+            .padding(.top, 9)
+            .padding(.bottom, 3)
             
             Divider()
-                .background(note.color.textColor.opacity(0.12))
-                .padding(.horizontal, 4)
+                .background(note.color.textColor.opacity(0.14))
+                .padding(.horizontal, 5)
             
             // Expanded Customization Panel
             if isCustomizerOpen {
@@ -236,16 +389,22 @@ public struct StickyNoteCardView: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 
                 Divider()
-                    .background(note.color.textColor.opacity(0.12))
-                    .padding(.horizontal, 4)
+                    .background(note.color.textColor.opacity(0.14))
+                    .padding(.horizontal, 5)
             }
             
-            // Note Body: Checklist Mode vs Freeform Text Mode
-            if note.mode == .checklist {
-                checklistBody
-            } else {
-                freeformBody
+            // Note Body: Judul langsung isinya (Multi-line freeform text)
+            VStack(alignment: .leading, spacing: 2) {
+                TextField("Tulis isi memo di sini...", text: $note.freeformText, axis: .vertical)
+                    .font(.system(size: 8.5))
+                    .foregroundColor(note.color.textColor.opacity(0.92))
+                    .textFieldStyle(.plain)
+                    .lineLimit(3...14)
+                    .onChange(of: note.freeformText) { _ in onSave() }
             }
+            .padding(.horizontal, 7)
+            .padding(.top, 4)
+            .padding(.bottom, 7)
         }
         .frame(width: 148)
         .background(
@@ -254,7 +413,7 @@ public struct StickyNoteCardView: View {
                 RoundedRectangle(cornerRadius: 4)
                     .fill(note.color.background)
                 
-                // Paper Pattern Texture Overlay (GeometryReader avoids stretching)
+                // Paper Pattern Texture Overlay (Ruled Lines or Dot Grid)
                 paperPatternOverlay
                 
                 // Subtle Paper Border
@@ -265,12 +424,13 @@ public struct StickyNoteCardView: View {
                 dogEarCorner
             }
         )
-        // Washi tape anchored across the top edge if selected
+        // Fastener (Plester atau Pin) physically holding the memo on the corkboard
         .overlay(alignment: .top) {
-            if note.pinStyle == .washiTape {
-                PinIconView(style: .washiTape, noteColor: note.color)
-                    .offset(y: -4.5)
-            }
+            TopFastenerView(style: note.pinStyle, noteColor: note.color)
+                .offset(y: -7)
+                .onTapGesture {
+                    toggleCustomizer()
+                }
         }
     }
     
@@ -313,9 +473,9 @@ public struct StickyNoteCardView: View {
             .padding(.horizontal, 6)
             .padding(.top, 4)
             
-            // Row 2: Pin / Fastener Style Picker
+            // Row 2: Pin / Fastener Style Picker (Plester vs Pin)
             HStack(spacing: 4) {
-                Text("Pin:")
+                Text("Tempelan:")
                     .font(.system(size: 7, weight: .bold))
                     .foregroundColor(note.color.textColor.opacity(0.6))
                 
@@ -339,30 +499,8 @@ public struct StickyNoteCardView: View {
             }
             .padding(.horizontal, 6)
             
-            // Row 3: Pattern & Mode & Tilt Presets & Done
+            // Row 3: Pattern & Tilt Presets & Done
             HStack(spacing: 3) {
-                // Mode Toggle (To-Do vs Teks)
-                Button(action: {
-                    note.mode = (note.mode == .checklist) ? .freeform : .checklist
-                    onSave()
-                }) {
-                    HStack(spacing: 2) {
-                        Image(systemName: note.mode == .checklist ? "checklist" : "text.alignleft")
-                            .font(.system(size: 6.5))
-                        Text(note.mode == .checklist ? "To-Do" : "Teks")
-                            .font(.system(size: 6.5, weight: .bold))
-                    }
-                    .foregroundColor(note.color.textColor)
-                    .padding(.horizontal, 3.5)
-                    .padding(.vertical, 1.5)
-                    .background(
-                        Capsule()
-                            .fill(note.color.textColor.opacity(0.12))
-                    )
-                }
-                .buttonStyle(.plain)
-                .help("Ubah antara Checklist dan Catatan Teks")
-                
                 // Pattern Toggle (Polos -> Garis -> Titik)
                 Button(action: {
                     switch note.pattern {
@@ -419,84 +557,6 @@ public struct StickyNoteCardView: View {
             .padding(.bottom, 4)
         }
         .background(note.color.textColor.opacity(0.05))
-    }
-    
-    // MARK: - Checklist Body
-    private var checklistBody: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            ForEach(0..<note.tasks.count, id: \.self) { idx in
-                HStack(spacing: 4) {
-                    Button(action: {
-                        note.tasks[idx].isCompleted.toggle()
-                        onSave()
-                    }) {
-                        Image(systemName: note.tasks[idx].isCompleted ? "checkmark.square.fill" : "square")
-                            .font(.system(size: 8.5))
-                            .foregroundColor(
-                                note.tasks[idx].isCompleted ?
-                                    (note.color == .lime ? Color(red: 0.1, green: 0.55, blue: 0.2) : SANSColors.lime) :
-                                    note.color.textColor.opacity(0.6)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .help(note.tasks[idx].isCompleted ? "Tandai Belum Selesai" : "Tandai Selesai")
-                    
-                    TextField("Tugas...", text: $note.tasks[idx].text)
-                        .font(.system(size: 8.5))
-                        .foregroundColor(note.tasks[idx].isCompleted ? note.color.textColor.opacity(0.38) : note.color.textColor)
-                        .strikethrough(note.tasks[idx].isCompleted)
-                        .textFieldStyle(.plain)
-                        .onChange(of: note.tasks[idx].text) { _ in onSave() }
-                    
-                    if note.tasks.count > 1 {
-                        Button(action: {
-                            note.tasks.remove(at: idx)
-                            onSave()
-                        }) {
-                            Image(systemName: "minus.circle")
-                                .font(.system(size: 7.5))
-                                .foregroundColor(note.color.textColor.opacity(0.3))
-                        }
-                        .buttonStyle(.plain)
-                        .help("Hapus Baris")
-                    }
-                }
-            }
-            
-            // Add Task Row Button
-            Button(action: {
-                note.tasks.append(TaskItem(text: "Tugas baru", isCompleted: false))
-                onSave()
-            }) {
-                HStack(spacing: 3) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 6.5))
-                    Text("Tambah baris")
-                        .font(.system(size: 6.5, weight: .semibold))
-                }
-                .foregroundColor(note.color.textColor.opacity(0.55))
-                .padding(.top, 1)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 6)
-        .padding(.top, 3)
-        .padding(.bottom, 6)
-    }
-    
-    // MARK: - Freeform Text Body
-    private var freeformBody: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            TextField("Ketik catatan bebas di sini...", text: $note.freeformText, axis: .vertical)
-                .font(.system(size: 8.5))
-                .foregroundColor(note.color.textColor)
-                .textFieldStyle(.plain)
-                .lineLimit(3...8)
-                .onChange(of: note.freeformText) { _ in onSave() }
-        }
-        .padding(.horizontal, 6)
-        .padding(.top, 3)
-        .padding(.bottom, 6)
     }
     
     // MARK: - Paper Texture Overlay (Ruled Lines & Dot Grid via GeometryReader)
