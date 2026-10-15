@@ -84,125 +84,103 @@ private func drawAcousticGuitar(ctx: GraphicsContext, w: CGFloat, h: CGFloat) {
     }
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // 1. STAND STRUCTURE (BEHIND GUITAR)
+    // 1. STAND STRUCTURE (BEHIND GUITAR - CLEAN A-FRAME CRADLE)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    
-    // Central vertical mast
-    strokeTube(from: p(0.50, 0.36), to: p(0.50, 0.91), lw: tubeW * 1.05)
-    
-    // Height adjustment collar
-    let collarRect = CGRect(x: w * 0.50 - tubeW * 0.75, y: h * 0.52 - 4, width: tubeW * 1.5, height: 8)
-    ctx.fill(RoundedRectangle(cornerRadius: 2).path(in: collarRect), with: .color(standMid))
-    
-    // Neck cradle yoke (holds upper neck from behind)
-    var yoke = Path()
-    yoke.addArc(center: p(0.50, 0.39), radius: neckW * 0.145,
-                startAngle: .degrees(15), endAngle: .degrees(165), clockwise: false)
-    ctx.stroke(yoke, with: .color(standDark), style: StrokeStyle(lineWidth: tubeW * 1.1, lineCap: .round))
-    // Soft rubber foam end caps on yoke
-    ctx.fill(Circle().path(in: CGRect(x: neckCx - neckW * 0.145 - 4, y: h * 0.39 - 4, width: 8, height: 8)), with: .color(standDark))
-    ctx.fill(Circle().path(in: CGRect(x: neckCx + neckW * 0.145 - 4, y: h * 0.39 - 4, width: 8, height: 8)), with: .color(standDark))
+    // Central rear spine behind guitar body (clean & free of neck horns)
+    strokeTube(from: p(0.50, 0.65), to: p(0.50, 0.90), lw: tubeW * 1.1)
     
     // Bottom cradle support arms (behind acoustic body)
-    strokeTube(from: p(0.24, 0.88), to: p(0.50, 0.91), lw: tubeW * 1.15)
-    strokeTube(from: p(0.76, 0.88), to: p(0.50, 0.91), lw: tubeW * 1.15)
+    strokeTube(from: p(0.32, 0.88), to: p(0.50, 0.90), lw: tubeW * 1.15)
+    strokeTube(from: p(0.68, 0.88), to: p(0.50, 0.90), lw: tubeW * 1.15)
     
     // Tripod Legs extending down to floor (clear of dock)
-    // Center/rear leg
     strokeTube(from: p(0.50, 0.90), to: p(0.50, 0.965), lw: tubeW * 1.05)
-    // Left front leg
-    strokeTube(from: p(0.50, 0.90), to: p(0.08, 0.975), lw: tubeW * 1.1)
-    // Right front leg
-    strokeTube(from: p(0.50, 0.90), to: p(0.92, 0.975), lw: tubeW * 1.1)
+    strokeTube(from: p(0.50, 0.90), to: p(0.12, 0.975), lw: tubeW * 1.1)
+    strokeTube(from: p(0.50, 0.90), to: p(0.88, 0.975), lw: tubeW * 1.1)
     
     // Rubber feet on floor
-    let footR = neckW * 0.038
-    ctx.fill(Capsule().path(in: CGRect(x: w * 0.08 - footR, y: h * 0.975 - footR * 0.6, width: footR * 2, height: footR * 1.2)), with: .color(.black))
-    ctx.fill(Capsule().path(in: CGRect(x: w * 0.92 - footR, y: h * 0.975 - footR * 0.6, width: footR * 2, height: footR * 1.2)), with: .color(.black))
+    let footR = w * 0.032
+    ctx.fill(Capsule().path(in: CGRect(x: w * 0.12 - footR, y: h * 0.975 - footR * 0.6, width: footR * 2, height: footR * 1.2)), with: .color(.black))
+    ctx.fill(Capsule().path(in: CGRect(x: w * 0.88 - footR, y: h * 0.975 - footR * 0.6, width: footR * 2, height: footR * 1.2)), with: .color(.black))
     ctx.fill(Capsule().path(in: CGRect(x: w * 0.50 - footR * 0.8, y: h * 0.965 - footR * 0.5, width: footR * 1.6, height: footR)), with: .color(.black))
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 2. DREADNOUGHT ACOUSTIC BODY (True Martin D-28 Blueprint)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // 2. DREADNOUGHT ACOUSTIC BODY (Proportional Dreadnought Curves)
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    var bodyPath = Path()
-    // Start at neck joint right side
-    bodyPath.move(to: p(0.559, 0.490))
-    // 1. Upper bout shoulder
-    bodyPath.addCurve(to: p(0.725, 0.575), control1: p(0.640, 0.490), control2: p(0.725, 0.525))
-    // 2. Upper bout down into waist taper
-    bodyPath.addCurve(to: p(0.655, 0.650), control1: p(0.725, 0.615), control2: p(0.655, 0.625))
-    // 3. Waist out into lower bout resonant hip swell
-    bodyPath.addCurve(to: p(0.845, 0.760), control1: p(0.655, 0.695), control2: p(0.845, 0.710))
-    // 4. Lower bout hip down to bottom centerline
-    bodyPath.addCurve(to: p(0.500, 0.885), control1: p(0.845, 0.835), control2: p(0.690, 0.885))
+    // Authentic proportions: Lower bout 0.712*w, Upper bout 0.545*w, Waist 0.491*w (90% of upper bout!)
+    let bodyHalf: [(CGFloat, CGFloat)] = [
+        // Neck joint (14th fret)
+        (0.560, 0.470),
+        // Full rounded Dreadnought shoulders curving out from neck
+        (0.620, 0.474),
+        (0.680, 0.485),
+        (0.730, 0.505),
+        (0.765, 0.530),
+        (0.780, 0.555),
+        // Upper bout flank
+        (0.775, 0.585),
+        // Waist curve (gentle, sturdy)
+        (0.755, 0.615),
+        (0.740, 0.640),
+        (0.750, 0.665),
+        // Lower bout expansion
+        (0.780, 0.700),
+        (0.825, 0.735),
+        (0.860, 0.775),
+        (0.865, 0.800),
+        // Bottom sweep
+        (0.840, 0.830),
+        (0.795, 0.855),
+        (0.720, 0.870),
+        (0.620, 0.875),
+        (0.500, 0.875)
+    ]
     
-    // Left side (mirrored along centerline x = 0.500)
-    // 4. Mirror bottom sweep to left lower bout hip
-    bodyPath.addCurve(to: p(0.155, 0.760), control1: p(0.310, 0.885), control2: p(0.155, 0.835))
-    // 3. Mirror lower bout hip into waist
-    bodyPath.addCurve(to: p(0.345, 0.650), control1: p(0.155, 0.710), control2: p(0.345, 0.695))
-    // 2. Mirror waist up to upper bout shoulder
-    bodyPath.addCurve(to: p(0.275, 0.575), control1: p(0.345, 0.625), control2: p(0.275, 0.615))
-    // 1. Mirror upper bout shoulder to neck joint left side
-    bodyPath.addCurve(to: p(0.441, 0.490), control1: p(0.275, 0.525), control2: p(0.360, 0.490))
-    bodyPath.closeSubpath()
+    var bodyPath = Path()
+    if let first = bodyHalf.first {
+        bodyPath.move(to: p(first.0, first.1))
+        for pt in bodyHalf.dropFirst() {
+            bodyPath.addLine(to: p(pt.0, pt.1))
+        }
+        for pt in bodyHalf.reversed().dropFirst() {
+            let mirrorX = 0.500 - (pt.0 - 0.500)
+            bodyPath.addLine(to: p(mirrorX, pt.1))
+        }
+        bodyPath.closeSubpath()
+    }
     
     // Solid Sitka Spruce soundboard with warm natural honey/amber acoustic glow
-    let spruceTop = Color(red: 0.96, green: 0.86, blue: 0.68)
-    let spruceMid = Color(red: 0.90, green: 0.75, blue: 0.52)
-    let spruceEdge = Color(red: 0.78, green: 0.58, blue: 0.36)
-    let spruceDark = Color(red: 0.62, green: 0.42, blue: 0.24)
+    let spruceTop = Color(red: 0.97, green: 0.89, blue: 0.75)
+    let spruceMid = Color(red: 0.92, green: 0.80, blue: 0.60)
+    let spruceEdge = Color(red: 0.80, green: 0.62, blue: 0.40)
+    let spruceDark = Color(red: 0.65, green: 0.45, blue: 0.26)
     
     ctx.fill(bodyPath, with: .radialGradient(
         Gradient(colors: [spruceTop, spruceMid, spruceEdge, spruceDark]),
-        center: p(0.50, 0.68),
+        center: p(0.50, 0.72),
         startRadius: w * 0.05,
-        endRadius: w * 0.46
+        endRadius: w * 0.45
     ))
     
     // Natural wood grain sheen (fine vertical line overlay)
     var grainPath = Path()
-    for g in 0...30 {
-        let gx = w * (0.16 + CGFloat(g) * 0.023)
-        grainPath.move(to: CGPoint(x: gx, y: h * 0.50))
+    for g in 0...26 {
+        let gx = w * (0.20 + CGFloat(g) * 0.023)
+        grainPath.move(to: CGPoint(x: gx, y: h * 0.47))
         grainPath.addLine(to: CGPoint(x: gx, y: h * 0.88))
     }
-    ctx.stroke(grainPath, with: .color(Color(red: 0.55, green: 0.38, blue: 0.20).opacity(0.08)), style: StrokeStyle(lineWidth: 0.6))
-    
-    // Soft acoustic soundboard lacquer reflection (diagonal gloss sheen)
-    var glossPath = Path()
-    glossPath.move(to: p(0.25, 0.53))
-    glossPath.addQuadCurve(to: p(0.34, 0.83), control: p(0.22, 0.68))
-    ctx.stroke(glossPath, with: .color(Color.white.opacity(0.18)), style: StrokeStyle(lineWidth: 3.5, lineCap: .round))
+    ctx.stroke(grainPath, with: .color(Color(red: 0.55, green: 0.38, blue: 0.20).opacity(0.06)), style: StrokeStyle(lineWidth: 0.6))
     
     // Multi-ply Body Binding: Outer ivory cream rim + inner dark purfling pinstripe
     ctx.stroke(bodyPath, with: .color(Color(red: 0.96, green: 0.94, blue: 0.88)), style: StrokeStyle(lineWidth: 2.2))
-    ctx.stroke(bodyPath, with: .color(Color(red: 0.22, green: 0.16, blue: 0.12)), style: StrokeStyle(lineWidth: 0.8))
+    ctx.stroke(bodyPath, with: .color(Color(red: 0.25, green: 0.18, blue: 0.12)), style: StrokeStyle(lineWidth: 0.8))
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // 3. SOUNDHOLE & CONCENTRIC ROSETTE
+    // 3. SOUNDHOLE & VINTAGE HERRINGBONE ROSETTE (Martin Style 28)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     let shCx = w * 0.50
-    let shCy = h * 0.615
-    let shR  = w * 0.115
-    
-    // Rosette outer ring (Abalone / Pearl multi-colored purfling)
-    let rosOuterR = shR * 1.48
-    ctx.fill(Circle().path(in: CGRect(x: shCx - rosOuterR, y: shCy - rosOuterR, width: rosOuterR * 2, height: rosOuterR * 2)),
-             with: .color(Color(red: 0.94, green: 0.92, blue: 0.86)))
-    ctx.stroke(Circle().path(in: CGRect(x: shCx - rosOuterR, y: shCy - rosOuterR, width: rosOuterR * 2, height: rosOuterR * 2)),
-               with: .color(Color(red: 0.30, green: 0.20, blue: 0.15)), style: StrokeStyle(lineWidth: 0.8))
-    
-    // Rosette middle abalone ring
-    let rosMidR = shR * 1.35
-    ctx.stroke(Circle().path(in: CGRect(x: shCx - rosMidR, y: shCy - rosMidR, width: rosMidR * 2, height: rosMidR * 2)),
-               with: .color(Color(red: 0.72, green: 0.82, blue: 0.80)), style: StrokeStyle(lineWidth: 2.4))
-    
-    // Rosette inner rings
-    let rosInnerR = shR * 1.18
-    ctx.stroke(Circle().path(in: CGRect(x: shCx - rosInnerR, y: shCy - rosInnerR, width: rosInnerR * 2, height: rosInnerR * 2)),
-               with: .color(Color(red: 0.28, green: 0.18, blue: 0.12)), style: StrokeStyle(lineWidth: 1.2))
+    let shCy = h * 0.605
+    let shR  = w * 0.076
     
     // Soundhole interior (deep dark resonant chamber)
     let shRect = CGRect(x: shCx - shR, y: shCy - shR, width: shR * 2, height: shR * 2)
@@ -215,74 +193,86 @@ private func drawAcousticGuitar(ctx: GraphicsContext, w: CGFloat, h: CGFloat) {
         startRadius: 0,
         endRadius: shR
     ))
-    ctx.stroke(Circle().path(in: shRect), with: .color(Color(red: 0.18, green: 0.12, blue: 0.08)), style: StrokeStyle(lineWidth: 1.2))
+    ctx.stroke(Circle().path(in: shRect), with: .color(Color(red: 0.22, green: 0.16, blue: 0.12)), style: StrokeStyle(lineWidth: 1.2))
     
     // Visible inner back brace / interior wood label glimpsed inside soundhole
-    let labelW = shR * 1.3
-    let labelH = shR * 0.55
+    let labelW = shR * 1.2
+    let labelH = shR * 0.50
     let labelRect = CGRect(x: shCx - labelW / 2, y: shCy - labelH / 2, width: labelW, height: labelH)
     ctx.fill(RoundedRectangle(cornerRadius: 1).path(in: labelRect),
-             with: .color(Color(red: 0.35, green: 0.26, blue: 0.18).opacity(0.55)))
+             with: .color(Color(red: 0.35, green: 0.26, blue: 0.18).opacity(0.35)))
+    
+    // Rosette concentric purfling rings (Martin Style 28)
+    // Inner single black ring
+    ctx.stroke(Circle().path(in: CGRect(x: shCx - shR * 1.12, y: shCy - shR * 1.12, width: shR * 2.24, height: shR * 2.24)),
+               with: .color(Color(red: 0.25, green: 0.18, blue: 0.14)), style: StrokeStyle(lineWidth: 0.9))
+    
+    // Main center band (warm ivory / herringbone texture)
+    let rosMidR = shR * 1.25
+    ctx.stroke(Circle().path(in: CGRect(x: shCx - rosMidR, y: shCy - rosMidR, width: rosMidR * 2, height: rosMidR * 2)),
+               with: .color(Color(red: 0.92, green: 0.89, blue: 0.82)), style: StrokeStyle(lineWidth: 2.5))
+    ctx.stroke(Circle().path(in: CGRect(x: shCx - rosMidR, y: shCy - rosMidR, width: rosMidR * 2, height: rosMidR * 2)),
+               with: .color(Color(red: 0.30, green: 0.22, blue: 0.16).opacity(0.4)), style: StrokeStyle(lineWidth: 1.0, dash: [2, 2]))
+    
+    // Outer multi-ply ring
+    let rosOuterR = shR * 1.38
+    ctx.stroke(Circle().path(in: CGRect(x: shCx - rosOuterR, y: shCy - rosOuterR, width: rosOuterR * 2, height: rosOuterR * 2)),
+               with: .color(Color(red: 0.25, green: 0.18, blue: 0.14)), style: StrokeStyle(lineWidth: 1.0))
+    ctx.stroke(Circle().path(in: CGRect(x: shCx - rosOuterR * 1.04, y: shCy - rosOuterR * 1.04, width: rosOuterR * 2.08, height: rosOuterR * 2.08)),
+               with: .color(Color(red: 0.88, green: 0.84, blue: 0.76)), style: StrokeStyle(lineWidth: 0.6))
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // 4. ACOUSTIC TORTOISESHELL TEARDROP PICKGUARD (Concentric with Rosette)
+    // 4. ACOUSTIC TORTOISESHELL TEARDROP PICKGUARD (Snug to Fretboard & Rosette)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     var pgPath = Path()
-    let innerGap = rosOuterR * 1.04
-    // Inner concentric arc hugging rosette
+    let pgTopL = CGPoint(x: neckCx + w * 0.066, y: h * 0.540)
+    pgPath.move(to: pgTopL)
+    // Follow rosette ring contour
     pgPath.addArc(
         center: CGPoint(x: shCx, y: shCy),
-        radius: innerGap,
-        startAngle: .degrees(-35),
-        endAngle: .degrees(65),
+        radius: rosOuterR * 1.03,
+        startAngle: .degrees(-45),
+        endAngle: .degrees(75),
         clockwise: false
     )
-    let pEndArc = CGPoint(
-        x: shCx + innerGap * cos(65.0 * .pi / 180.0),
-        y: shCy + innerGap * sin(65.0 * .pi / 180.0)
-    )
-    // Lower belly curve sweeping down towards waist
+    // Lower sweep towards waist
     pgPath.addCurve(
-        to: CGPoint(x: shCx + w * 0.22, y: shCy + rosOuterR * 0.95),
-        control1: CGPoint(x: pEndArc.x + w * 0.04, y: pEndArc.y + h * 0.02),
-        control2: CGPoint(x: shCx + w * 0.16, y: shCy + rosOuterR * 1.05)
+        to: CGPoint(x: shCx + w * 0.160, y: shCy + rosOuterR * 1.15),
+        control1: CGPoint(x: shCx + rosOuterR * 0.85, y: shCy + rosOuterR * 1.12),
+        control2: CGPoint(x: shCx + w * 0.130, y: shCy + rosOuterR * 1.18)
     )
-    // Teardrop rounded lobe
+    // Teardrop pointed lobe
     pgPath.addQuadCurve(
-        to: CGPoint(x: shCx + w * 0.24, y: shCy + rosOuterR * 0.45),
-        control: CGPoint(x: shCx + w * 0.265, y: shCy + rosOuterR * 0.72)
+        to: CGPoint(x: shCx + w * 0.180, y: shCy + rosOuterR * 0.45),
+        control: CGPoint(x: shCx + w * 0.195, y: shCy + rosOuterR * 0.85)
     )
-    // Upper sweep back to starting arc point
-    let pStartArc = CGPoint(
-        x: shCx + innerGap * cos(-35.0 * .pi / 180.0),
-        y: shCy + innerGap * sin(-35.0 * .pi / 180.0)
-    )
+    // Upper contour sweeping back up to fretboard edge
     pgPath.addCurve(
-        to: pStartArc,
-        control1: CGPoint(x: shCx + w * 0.22, y: shCy - rosOuterR * 0.10),
-        control2: CGPoint(x: shCx + w * 0.18, y: pStartArc.y)
+        to: pgTopL,
+        control1: CGPoint(x: shCx + w * 0.165, y: shCy - rosOuterR * 0.20),
+        control2: CGPoint(x: shCx + w * 0.110, y: h * 0.535)
     )
     pgPath.closeSubpath()
     
-    // Deep red-amber tortoiseshell pattern
+    // Rich amber-ruby tortoiseshell
     ctx.fill(pgPath, with: .linearGradient(
         Gradient(colors: [
-            Color(red: 0.55, green: 0.18, blue: 0.08),
-            Color(red: 0.35, green: 0.10, blue: 0.04),
-            Color(red: 0.20, green: 0.05, blue: 0.02)
+            Color(red: 0.50, green: 0.16, blue: 0.08),
+            Color(red: 0.30, green: 0.09, blue: 0.04),
+            Color(red: 0.16, green: 0.05, blue: 0.02)
         ]),
-        startPoint: p(0.54, 0.59),
-        endPoint: p(0.70, 0.75)
+        startPoint: CGPoint(x: shCx + w * 0.07, y: h * 0.54),
+        endPoint: CGPoint(x: shCx + w * 0.18, y: h * 0.68)
     ))
-    ctx.stroke(pgPath, with: .color(Color(red: 0.75, green: 0.30, blue: 0.12).opacity(0.4)), style: StrokeStyle(lineWidth: 0.8))
+    ctx.stroke(pgPath, with: .color(Color(red: 0.70, green: 0.28, blue: 0.12).opacity(0.35)), style: StrokeStyle(lineWidth: 0.6))
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // 5. ROSEWOOD BELLY BRIDGE, BONE SADDLE & BRIDGE PINS
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    let brW = w * 0.295
-    let brH = h * 0.038
+    let brW = w * 0.250
+    let brH = h * 0.032
     let brX = neckCx - brW / 2
-    let brY = h * 0.748
+    let brY = h * 0.745
     
     // Traditional acoustic belly bridge silhouette
     var brPath = Path()
@@ -309,48 +299,47 @@ private func drawAcousticGuitar(ctx: GraphicsContext, w: CGFloat, h: CGFloat) {
     // Dark East Indian Rosewood bridge timber
     ctx.fill(brPath, with: .linearGradient(
         Gradient(colors: [
-            Color(red: 0.32, green: 0.20, blue: 0.15),
-            Color(red: 0.22, green: 0.14, blue: 0.10),
-            Color(red: 0.15, green: 0.09, blue: 0.06)
+            Color(red: 0.30, green: 0.19, blue: 0.14),
+            Color(red: 0.20, green: 0.13, blue: 0.09),
+            Color(red: 0.14, green: 0.08, blue: 0.05)
         ]),
         startPoint: CGPoint(x: brX, y: brY),
         endPoint: CGPoint(x: brX + brW, y: brY + brH)
     ))
-    ctx.stroke(brPath, with: .color(Color(red: 0.42, green: 0.28, blue: 0.20)), style: StrokeStyle(lineWidth: 0.8))
+    ctx.stroke(brPath, with: .color(Color(red: 0.40, green: 0.26, blue: 0.18)), style: StrokeStyle(lineWidth: 0.8))
     
     // Slanted compensated white bone saddle
     var saddlePath = Path()
     let sadX1 = brX + brW * 0.24
     let sadX2 = brX + brW * 0.76
-    let sadY1 = brY + brH * 0.32
+    let sadY1 = brY + brH * 0.31
     let sadY2 = brY + brH * 0.36
     saddlePath.move(to: CGPoint(x: sadX1, y: sadY1))
     saddlePath.addLine(to: CGPoint(x: sadX2, y: sadY2))
     ctx.stroke(saddlePath, with: .color(Color(red: 0.96, green: 0.95, blue: 0.90)),
-               style: StrokeStyle(lineWidth: max(2.0, neckW * 0.012), lineCap: .round))
+               style: StrokeStyle(lineWidth: 2.2, lineCap: .round))
     
     // 6 Acoustic Bridge Pins (Cream with black center dot)
     let pinY = brY + brH * 0.65
     for j in 0..<6 {
         let pinX = (brX + brW * 0.25) + CGFloat(j) * (brW * 0.10)
-        let pinR = max(1.5, neckW * 0.008)
+        let pinR: CGFloat = 2.0
         let pinRect = CGRect(x: pinX - pinR, y: pinY - pinR, width: pinR * 2, height: pinR * 2)
         // White pin collar
         ctx.fill(Circle().path(in: pinRect), with: .color(Color(red: 0.96, green: 0.95, blue: 0.92)))
         ctx.stroke(Circle().path(in: pinRect), with: .color(Color(red: 0.35, green: 0.25, blue: 0.20)), style: StrokeStyle(lineWidth: 0.5))
         // Black pin center dot
-        let dotR = pinR * 0.45
-        ctx.fill(Circle().path(in: CGRect(x: pinX - dotR, y: pinY - dotR, width: dotR * 2, height: dotR * 2)),
+        ctx.fill(Circle().path(in: CGRect(x: pinX - 0.9, y: pinY - 0.9, width: 1.8, height: 1.8)),
                  with: .color(Color.black))
     }
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // 6. MAHOGANY NECK & ROSEWOOD FRETBOARD (Exact Original Scale & Slenderness)
+    // 6. MAHOGANY NECK & ROSEWOOD FRETBOARD
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    let nutY = h * 0.240
-    let neckBotY = h * 0.565
-    let nutW = neckW * 0.114
-    let neckBotW = neckW * 0.158
+    let nutY = h * 0.245
+    let neckBotY = h * 0.542
+    let nutW = w * 0.100
+    let neckBotW = w * 0.138
     
     var fbPath = Path()
     fbPath.move(to: CGPoint(x: neckCx - nutW / 2, y: nutY))

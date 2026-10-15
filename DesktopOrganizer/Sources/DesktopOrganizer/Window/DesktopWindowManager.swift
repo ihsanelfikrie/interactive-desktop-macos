@@ -18,7 +18,7 @@ public final class DesktopWindowManager: ObservableObject {
     }
     
     public func setupWindow() {
-        guard let screen = NSScreen.main else { return }
+        guard let screen = NSScreen.main ?? NSScreen.screens.first else { return }
         
         let screenRect = screen.frame
         let window = InteractiveDesktopWindow(
