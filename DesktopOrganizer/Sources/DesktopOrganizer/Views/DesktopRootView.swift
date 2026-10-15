@@ -103,13 +103,6 @@ public struct DesktopRootView: View {
                     .frame(width: w * 0.2691, height: h * 0.2935)
                     .position(x: w * 0.4983, y: h * 0.2357)
                 
-                /*
-                // Temporarily hidden: Wall Calendar (saved for later repositioning)
-                WallCalendarView()
-                    .frame(width: w * 0.056, height: h * 0.104)
-                    .position(x: w * 0.7025, y: h * 0.3320)
-                */
-                
                 // Tropical Potted Houseplant (Beside Desk Left Side - Native Vector with Looping Leaf Sway)
                 let plantW = w * 0.105
                 let plantH = plantW * (310.0 / 140.0)
