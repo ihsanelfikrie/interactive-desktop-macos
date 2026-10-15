@@ -493,19 +493,6 @@ struct CarpetMatBodyView: View {
                     .background(Capsule().fill(Color.black.opacity(0.80)))
                     .overlay(Capsule().stroke(Color(red: 0.98, green: 0.88, blue: 0.50).opacity(0.5), lineWidth: 0.8))
                     .transition(.opacity)
-                } else if itemCount > 0 {
-                    HStack(spacing: 4) {
-                        Image(systemName: "eye.slash.fill")
-                            .font(.system(size: 9))
-                        Text("\(itemCount) file tersembunyi (Klik untuk intip)")
-                            .font(.system(size: 9, weight: .bold))
-                    }
-                    .foregroundColor(.white.opacity(0.95))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 2.5)
-                    .background(Capsule().fill(Color.black.opacity(0.65)))
-                    .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 0.8))
-                    .transition(.opacity)
                 }
             }
         }
