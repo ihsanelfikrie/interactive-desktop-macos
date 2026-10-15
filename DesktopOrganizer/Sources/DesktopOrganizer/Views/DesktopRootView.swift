@@ -154,6 +154,7 @@ public struct DesktopRootView: View {
                 // Cartoon Wastebasket (Beside Desk on Floor)
                 TrashCanView()
                     .position(x: w * 0.710, y: h * 0.738)
+                    .zIndex(18)
                 
                 // Native Indonesian Swallow Flip-Flops (Sendal Jepit on Left Grass Floor - Click to Open Google Chrome)
                 SandalJepitView()
@@ -415,48 +416,7 @@ public struct DesktopRootView: View {
 
 
 
-// MARK: - Woven Wastebasket Hot Zone (Directly over the illustrated trash basket)
-struct BasketTrashHotZoneView: View {
-    @ObservedObject var storage = StorageManager.shared
-    @ObservedObject var appState = AppState.shared
-    
-    var body: some View {
-        Button(action: {
-            if let trashURL = FileManager.default.urls(for: .trashDirectory, in: .userDomainMask).first {
-                NSWorkspace.shared.open(trashURL)
-            }
-        }) {
-            ZStack {
-                Rectangle()
-                    .fill(appState.isTrashTargeted ? Color.red.opacity(0.25) : Color.clear)
-                    .contentShape(Rectangle())
-                
-                if appState.isTrashTargeted {
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(Color.red, lineWidth: 2)
-                        .overlay(
-                            Image(systemName: "trash.fill")
-                                .font(.system(size: 20))
-                                .foregroundColor(.red)
-                        )
-                }
-            }
-        }
-        .buttonStyle(.plain)
-        .help("Tempat Sampah: Seret file ke sini untuk membuangnya, atau klik untuk buka Trash")
-        .onDrop(of: [.fileURL], isTargeted: Binding(
-            get: { appState.isTrashTargeted },
-            set: { appState.isTrashTargeted = $0 }
-        )) { providers in
-            for provider in providers {
-                StorageManager.extractFileURL(from: provider) { url in
-                    _ = storage.moveToTrash(url: url)
-                }
-            }
-            return true
-        }
-    }
-}
+
 
 // MARK: - Reusable In-App Modal Backdrop
 struct ModalBackdrop<Content: View>: View {

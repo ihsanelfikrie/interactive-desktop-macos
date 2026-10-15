@@ -359,7 +359,7 @@ public struct TrashCanView: View {
             appState.toggleQuickView(.trash)
         }
         .help("Tempat Sampah Modern: Klik 1x untuk opsi & kosongkan sampah, klik 2x untuk buka di Finder. Tarik file ke sini untuk membuangnya.")
-        .onDrop(of: [.fileURL], isTargeted: Binding(
+        .onDrop(of: [.fileURL, .folder, .directory, .item], isTargeted: Binding(
             get: { appState.isTrashTargeted },
             set: { appState.isTrashTargeted = $0 }
         )) { providers in

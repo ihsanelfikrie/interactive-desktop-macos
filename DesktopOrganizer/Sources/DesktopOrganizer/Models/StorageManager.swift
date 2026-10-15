@@ -943,14 +943,27 @@ public final class StorageManager: ObservableObject {
     
     // MARK: - Trash
     public func moveToTrash(url: URL) -> Bool {
+        var success = false
         do {
             try FileManager.default.trashItem(at: url, resultingItemURL: nil)
+            success = true
+        } catch {
+            // Fallback: Ask Finder directly to move file to trash
+            let scriptSource = "tell application \"Finder\" to delete POSIX file \"\(url.path)\""
+            if let script = NSAppleScript(source: scriptSource) {
+                var scriptErr: NSDictionary?
+                script.executeAndReturnError(&scriptErr)
+                success = (scriptErr == nil)
+            }
+        }
+        
+        if success {
             NSSound(named: "Trash")?.play()
             refreshBookshelf()
             refreshCarpet()
             return true
-        } catch {
-            print("Gagal membuang ke sampah: \(error)")
+        } else {
+            print("Custom Desktop Mac: gagal membuang ke sampah: \(url.path)")
             return false
         }
     }

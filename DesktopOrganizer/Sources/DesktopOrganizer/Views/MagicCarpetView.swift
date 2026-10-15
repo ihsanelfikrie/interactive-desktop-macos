@@ -580,7 +580,8 @@ struct FloorItemView: View {
                     let trashPt = CGPoint(x: w * 0.710, y: h * 0.738)
                     
                     AppState.shared.isBookshelfTargeted = bookshelfRect.contains(curPt)
-                    AppState.shared.isTrashTargeted = hypot(curPt.x - trashPt.x, curPt.y - trashPt.y) < 65
+                    AppState.shared.isTrashTargeted = hypot(curPt.x - trashPt.x, curPt.y - trashPt.y) < 85 ||
+                                                      hypot(value.location.x - trashPt.x, value.location.y - trashPt.y) < 85
                 }
                 .onEnded { value in
                     AppState.shared.isBookshelfTargeted = false
@@ -623,7 +624,9 @@ struct FloorItemView: View {
                         
                         // 3. Check Trash Drop
                         let trashPoint = CGPoint(x: w * 0.710, y: h * 0.738)
-                        if hypot(releasePoint.x - trashPoint.x, releasePoint.y - trashPoint.y) < 65 {
+                        let isDroppedOnTrash = hypot(releasePoint.x - trashPoint.x, releasePoint.y - trashPoint.y) < 85 ||
+                                               hypot(value.location.x - trashPoint.x, value.location.y - trashPoint.y) < 85
+                        if isDroppedOnTrash {
                             withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                                 for name in groupFiles {
                                     storage.removeFloorItem(itemURL: storage.carpetDirectory.appendingPathComponent(name))
@@ -735,23 +738,53 @@ struct FloorDropDelegate: DropDelegate {
     }
     func dropExited(info: DropInfo) {
         floorState.isFloorTargeted = false
+        AppState.shared.isTrashTargeted = false
     }
-    func validateDrop(info: DropInfo) -> Bool {
-        return info.hasItemsConforming(to: [.fileURL, .folder, .directory, .item])
-    }
-    func performDrop(info: DropInfo) -> Bool {
-        floorState.isFloorTargeted = false
+    func dropUpdated(info: DropInfo) -> DropProposal? {
         let loc = info.location
         let w = screenSize.width
         let h = screenSize.height
         let floorMinY = h * 0.58
         let screenX = loc.x
         let screenY = loc.y >= floorMinY ? loc.y : (floorMinY + loc.y)
-        let normX = min(0.92, max(0.08, screenX / w))
-        let normY = min(0.88, max(floorMinY / h, screenY / h))
+        let trashPoint = CGPoint(x: w * 0.710, y: h * 0.738)
+        
+        let isOverTrash = hypot(screenX - trashPoint.x, screenY - trashPoint.y) < 85
+        if AppState.shared.isTrashTargeted != isOverTrash {
+            AppState.shared.isTrashTargeted = isOverTrash
+        }
+        return DropProposal(operation: .copy)
+    }
+    func validateDrop(info: DropInfo) -> Bool {
+        return info.hasItemsConforming(to: [.fileURL, .folder, .directory, .item])
+    }
+    func performDrop(info: DropInfo) -> Bool {
+        floorState.isFloorTargeted = false
+        AppState.shared.isTrashTargeted = false
+        let loc = info.location
+        let w = screenSize.width
+        let h = screenSize.height
+        let floorMinY = h * 0.58
+        let screenX = loc.x
+        let screenY = loc.y >= floorMinY ? loc.y : (floorMinY + loc.y)
         
         let providers = info.itemProviders(for: [.fileURL, .folder, .directory, .item])
         guard !providers.isEmpty else { return false }
+        
+        // 1. Direct Drop into Trash Can
+        let trashPoint = CGPoint(x: w * 0.710, y: h * 0.738)
+        if hypot(screenX - trashPoint.x, screenY - trashPoint.y) < 85 {
+            for provider in providers {
+                StorageManager.extractFileURL(from: provider) { url in
+                    _ = storage.moveToTrash(url: url)
+                }
+            }
+            return true
+        }
+        
+        // 2. Normal Floor Drop
+        let normX = min(0.92, max(0.08, screenX / w))
+        let normY = min(0.88, max(floorMinY / h, screenY / h))
         for provider in providers {
             StorageManager.extractFileURL(from: provider) { url in
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
