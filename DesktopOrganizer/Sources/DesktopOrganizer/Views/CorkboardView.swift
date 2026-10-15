@@ -23,6 +23,10 @@ public struct CorkboardView: View {
                         }
                     }
                 
+                // DEWA 19 Band Sticker (Top-Right of Memo Board)
+                Dewa19StickerView()
+                    .position(x: boardW - 48, y: 34)
+                
                 // Sticky Notes Container
                 ForEach($storage.stickyNotes) { $note in
                     DraggableStickyNote(

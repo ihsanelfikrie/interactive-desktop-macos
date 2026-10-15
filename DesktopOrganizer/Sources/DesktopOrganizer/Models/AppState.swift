@@ -121,6 +121,7 @@ public final class AppState: ObservableObject {
     @Published public var hoveredShelfURL: URL? = nil
     @Published public var hoveredFlyoutURL: URL? = nil
     @Published public var isHoveringSandal: Bool = false
+    @Published public var isHoveringDewa19Sticker: Bool = false
     
     // Sticky Notes state
     @Published public var addingTaskForNoteId: UUID? = nil
