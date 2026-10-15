@@ -260,7 +260,7 @@ extension PresidentialPortraitView {
             )
         )
         
-        // 3. Figures (Suit, Shirt, Tie, Head, Hair/Peci, and Flat Facial Features)
+        // 3. Figures (Suit, Shirt, Tie, Head, Hair/Peci, and Clean Faceless Flat Art)
         switch type {
         case .president:
             drawPresident(ctx: ctx, w: w, h: h)
@@ -269,21 +269,21 @@ extension PresidentialPortraitView {
         }
     }
     
-    // MARK: - President H. Prabowo Subianto (With Black Peci)
+    // MARK: - President H. Prabowo Subianto (Faceless Minimalist Flat Art with Black Peci)
     private func drawPresident(ctx: GraphicsContext, w: CGFloat, h: CGFloat) {
         let headCenterX = w * 0.52
         let headCenterY = h * 0.44
-        let headW = w * 0.48
-        let headH = h * 0.42
+        let headW = w * 0.46
+        let headH = h * 0.40
         
-        // Formal Black Suit Jacket (Broad Shoulders)
+        // 1. Formal Black Suit Jacket (Broad, Dignified Presidential Shoulders)
         var suitPath = Path()
-        suitPath.move(to: CGPoint(x: w * 0.04, y: h))
-        suitPath.addLine(to: CGPoint(x: headCenterX - (headW * 0.62), y: h * 0.63))
-        suitPath.addLine(to: CGPoint(x: headCenterX - (headW * 0.24), y: h * 0.60))
+        suitPath.move(to: CGPoint(x: w * 0.02, y: h))
+        suitPath.addLine(to: CGPoint(x: headCenterX - (headW * 0.65), y: h * 0.62))
+        suitPath.addLine(to: CGPoint(x: headCenterX - (headW * 0.24), y: h * 0.59))
         suitPath.addLine(to: CGPoint(x: headCenterX, y: h * 0.68))
-        suitPath.addLine(to: CGPoint(x: headCenterX + (headW * 0.24), y: h * 0.60))
-        suitPath.addLine(to: CGPoint(x: headCenterX + (headW * 0.64), y: h * 0.64))
+        suitPath.addLine(to: CGPoint(x: headCenterX + (headW * 0.24), y: h * 0.59))
+        suitPath.addLine(to: CGPoint(x: headCenterX + (headW * 0.67), y: h * 0.63))
         suitPath.addLine(to: CGPoint(x: w * 0.98, y: h))
         suitPath.closeSubpath()
         
@@ -291,84 +291,130 @@ extension PresidentialPortraitView {
             suitPath,
             with: .linearGradient(
                 Gradient(colors: [
-                    Color(red: 0.17, green: 0.17, blue: 0.19),
-                    Color(red: 0.09, green: 0.09, blue: 0.11)
+                    Color(red: 0.16, green: 0.16, blue: 0.18),
+                    Color(red: 0.08, green: 0.08, blue: 0.10)
                 ]),
-                startPoint: CGPoint(x: headCenterX, y: h * 0.60),
+                startPoint: CGPoint(x: headCenterX, y: h * 0.59),
                 endPoint: CGPoint(x: headCenterX, y: h)
             )
         )
         
-        // Crisp White Dress Shirt V-Neck Collar
-        var shirtPath = Path()
-        shirtPath.move(to: CGPoint(x: headCenterX - 11, y: h * 0.58))
-        shirtPath.addLine(to: CGPoint(x: headCenterX + 11, y: h * 0.58))
-        shirtPath.addLine(to: CGPoint(x: headCenterX + 6, y: h * 0.82))
-        shirtPath.addLine(to: CGPoint(x: headCenterX - 6, y: h * 0.82))
-        shirtPath.closeSubpath()
-        ctx.fill(shirtPath, with: .color(Color(red: 0.98, green: 0.98, blue: 0.98)))
+        // Suit Lapels (Left & Right peak lapels with subtle shadow)
+        var leftLapel = Path()
+        leftLapel.move(to: CGPoint(x: headCenterX - (headW * 0.24), y: h * 0.59))
+        leftLapel.addLine(to: CGPoint(x: headCenterX - (headW * 0.45), y: h * 0.68))
+        leftLapel.addLine(to: CGPoint(x: headCenterX - 4, y: h * 0.88))
+        leftLapel.addLine(to: CGPoint(x: headCenterX - 2, y: h * 0.72))
+        leftLapel.closeSubpath()
+        ctx.fill(leftLapel, with: .color(Color(red: 0.12, green: 0.12, blue: 0.14)))
         
-        // Left & Right Shirt Collars
+        var rightLapel = Path()
+        rightLapel.move(to: CGPoint(x: headCenterX + (headW * 0.24), y: h * 0.59))
+        rightLapel.addLine(to: CGPoint(x: headCenterX + (headW * 0.45), y: h * 0.68))
+        rightLapel.addLine(to: CGPoint(x: headCenterX + 4, y: h * 0.88))
+        rightLapel.addLine(to: CGPoint(x: headCenterX + 2, y: h * 0.72))
+        rightLapel.closeSubpath()
+        ctx.fill(rightLapel, with: .color(Color(red: 0.12, green: 0.12, blue: 0.14)))
+        
+        // 2. Crisp White Dress Shirt (V-neck opening)
+        var shirtPath = Path()
+        shirtPath.move(to: CGPoint(x: headCenterX - 11, y: h * 0.56))
+        shirtPath.addLine(to: CGPoint(x: headCenterX + 11, y: h * 0.56))
+        shirtPath.addLine(to: CGPoint(x: headCenterX + 6, y: h * 0.80))
+        shirtPath.addLine(to: CGPoint(x: headCenterX - 6, y: h * 0.80))
+        shirtPath.closeSubpath()
+        ctx.fill(shirtPath, with: .color(Color(red: 0.98, green: 0.98, blue: 0.99)))
+        
+        // Pointed Shirt Collars
         var leftCollar = Path()
-        leftCollar.move(to: CGPoint(x: headCenterX - 11, y: h * 0.58))
-        leftCollar.addLine(to: CGPoint(x: headCenterX - 3, y: h * 0.68))
-        leftCollar.addLine(to: CGPoint(x: headCenterX - 7, y: h * 0.68))
+        leftCollar.move(to: CGPoint(x: headCenterX - 11, y: h * 0.56))
+        leftCollar.addLine(to: CGPoint(x: headCenterX - 2.5, y: h * 0.67))
+        leftCollar.addLine(to: CGPoint(x: headCenterX - 7.5, y: h * 0.67))
         leftCollar.closeSubpath()
         ctx.fill(leftCollar, with: .color(Color.white))
         
         var rightCollar = Path()
-        rightCollar.move(to: CGPoint(x: headCenterX + 11, y: h * 0.58))
-        rightCollar.addLine(to: CGPoint(x: headCenterX + 3, y: h * 0.68))
-        rightCollar.addLine(to: CGPoint(x: headCenterX + 7, y: h * 0.68))
+        rightCollar.move(to: CGPoint(x: headCenterX + 11, y: h * 0.56))
+        rightCollar.addLine(to: CGPoint(x: headCenterX + 2.5, y: h * 0.67))
+        rightCollar.addLine(to: CGPoint(x: headCenterX + 7.5, y: h * 0.67))
         rightCollar.closeSubpath()
         ctx.fill(rightCollar, with: .color(Color.white))
         
-        // Red Necktie
-        var tiePath = Path()
-        tiePath.move(to: CGPoint(x: headCenterX - 3, y: h * 0.64))
-        tiePath.addLine(to: CGPoint(x: headCenterX + 3, y: h * 0.64))
-        tiePath.addLine(to: CGPoint(x: headCenterX + 5, y: h))
-        tiePath.addLine(to: CGPoint(x: headCenterX - 5, y: h))
-        tiePath.closeSubpath()
+        // 3. Presidential Red Necktie (Dasi Merah Kenegaraan)
+        // Knot
+        var tieKnot = Path()
+        tieKnot.move(to: CGPoint(x: headCenterX - 3.2, y: h * 0.63))
+        tieKnot.addLine(to: CGPoint(x: headCenterX + 3.2, y: h * 0.63))
+        tieKnot.addLine(to: CGPoint(x: headCenterX + 2.4, y: h * 0.69))
+        tieKnot.addLine(to: CGPoint(x: headCenterX - 2.4, y: h * 0.69))
+        tieKnot.closeSubpath()
         ctx.fill(
-            tiePath,
+            tieKnot,
+            with: .linearGradient(
+                Gradient(colors: [Color(red: 0.90, green: 0.16, blue: 0.18), Color(red: 0.72, green: 0.10, blue: 0.12)]),
+                startPoint: CGPoint(x: headCenterX, y: h * 0.63),
+                endPoint: CGPoint(x: headCenterX, y: h * 0.69)
+            )
+        )
+        // Tie Body
+        var tieBody = Path()
+        tieBody.move(to: CGPoint(x: headCenterX - 2.4, y: h * 0.69))
+        tieBody.addLine(to: CGPoint(x: headCenterX + 2.4, y: h * 0.69))
+        tieBody.addLine(to: CGPoint(x: headCenterX + 5.2, y: h))
+        tieBody.addLine(to: CGPoint(x: headCenterX - 5.2, y: h))
+        tieBody.closeSubpath()
+        ctx.fill(
+            tieBody,
             with: .linearGradient(
                 Gradient(colors: [
-                    Color(red: 0.82, green: 0.12, blue: 0.15),
+                    Color(red: 0.84, green: 0.12, blue: 0.15),
                     Color(red: 0.62, green: 0.08, blue: 0.10)
                 ]),
-                startPoint: CGPoint(x: headCenterX, y: h * 0.64),
+                startPoint: CGPoint(x: headCenterX, y: h * 0.69),
                 endPoint: CGPoint(x: headCenterX, y: h)
             )
         )
         
-        // Left Lapel Medal Ribbon (Red-White Ribbon with Star)
+        // 4. Presidential Lapel Pin / Lencana Garuda (On Left Lapel)
         let pinX = headCenterX + 14
-        let pinY = h * 0.72
-        var pinPath = Path()
-        pinPath.addRect(CGRect(x: pinX, y: pinY, width: 3.2, height: 6.5))
-        ctx.fill(pinPath, with: .color(Color.red))
-        var pinWhitePath = Path()
-        pinWhitePath.addRect(CGRect(x: pinX + 1.6, y: pinY, width: 1.6, height: 6.5))
-        ctx.fill(pinWhitePath, with: .color(Color.white))
-        ctx.fill(Path(ellipseIn: CGRect(x: pinX + 0.8, y: pinY + 6.8, width: 1.6, height: 1.6)), with: .color(Color(red: 0.92, green: 0.80, blue: 0.35)))
+        let pinY = h * 0.71
+        var ribbonRed = Path()
+        ribbonRed.addRect(CGRect(x: pinX, y: pinY, width: 1.6, height: 6.0))
+        ctx.fill(ribbonRed, with: .color(Color(red: 0.88, green: 0.12, blue: 0.15)))
+        var ribbonWhite = Path()
+        ribbonWhite.addRect(CGRect(x: pinX + 1.6, y: pinY, width: 1.6, height: 6.0))
+        ctx.fill(ribbonWhite, with: .color(Color.white))
+        ctx.fill(
+            Path(ellipseIn: CGRect(x: pinX + 0.6, y: pinY + 6.4, width: 2.0, height: 2.0)),
+            with: .color(Color(red: 0.95, green: 0.82, blue: 0.35))
+        )
         
-        // Neck
-        let neckRect = CGRect(x: headCenterX - 7, y: h * 0.50, width: 14, height: 13)
+        // 5. Neck with Soft Jaw Shadow
+        let neckRect = CGRect(x: headCenterX - 7, y: h * 0.49, width: 14, height: 12)
         ctx.fill(Path(neckRect), with: .color(Color(red: 0.82, green: 0.65, blue: 0.52)))
+        var neckShadow = Path()
+        neckShadow.move(to: CGPoint(x: headCenterX - 7, y: h * 0.49))
+        neckShadow.addLine(to: CGPoint(x: headCenterX + 7, y: h * 0.49))
+        neckShadow.addCurve(
+            to: CGPoint(x: headCenterX, y: h * 0.54),
+            control1: CGPoint(x: headCenterX + 4, y: h * 0.54),
+            control2: CGPoint(x: headCenterX - 4, y: h * 0.54)
+        )
+        neckShadow.closeSubpath()
+        ctx.fill(neckShadow, with: .color(Color(red: 0.72, green: 0.54, blue: 0.42).opacity(0.65)))
         
-        // Head / Face
+        // 6. Faceless Head Silhouette (Clean, Smooth, Flat Aesthetic)
         var facePath = Path()
         facePath.move(to: CGPoint(x: headCenterX - (headW * 0.44), y: headCenterY - (headH * 0.22)))
         facePath.addLine(to: CGPoint(x: headCenterX + (headW * 0.44), y: headCenterY - (headH * 0.22)))
         facePath.addCurve(
-            to: CGPoint(x: headCenterX, y: headCenterY + (headH * 0.44)),
+            to: CGPoint(x: headCenterX, y: headCenterY + (headH * 0.46)),
             control1: CGPoint(x: headCenterX + (headW * 0.46), y: headCenterY + (headH * 0.22)),
-            control2: CGPoint(x: headCenterX + (headW * 0.24), y: headCenterY + (headH * 0.44))
+            control2: CGPoint(x: headCenterX + (headW * 0.22), y: headCenterY + (headH * 0.46))
         )
         facePath.addCurve(
             to: CGPoint(x: headCenterX - (headW * 0.44), y: headCenterY - (headH * 0.22)),
-            control1: CGPoint(x: headCenterX - (headW * 0.24), y: headCenterY + (headH * 0.44)),
+            control1: CGPoint(x: headCenterX - (headW * 0.22), y: headCenterY + (headH * 0.46)),
             control2: CGPoint(x: headCenterX - (headW * 0.46), y: headCenterY + (headH * 0.22))
         )
         facePath.closeSubpath()
@@ -377,71 +423,23 @@ extension PresidentialPortraitView {
             facePath,
             with: .linearGradient(
                 Gradient(colors: [
-                    Color(red: 0.90, green: 0.74, blue: 0.62),
-                    Color(red: 0.84, green: 0.67, blue: 0.55)
+                    Color(red: 0.92, green: 0.76, blue: 0.64),
+                    Color(red: 0.86, green: 0.69, blue: 0.56)
                 ]),
                 startPoint: CGPoint(x: headCenterX - 10, y: headCenterY - 10),
                 endPoint: CGPoint(x: headCenterX + 10, y: headCenterY + 15)
             )
         )
         
-        // Ears
-        let leftEarRect = CGRect(x: headCenterX - (headW * 0.46), y: headCenterY - 4, width: 3.2, height: 8)
-        let rightEarRect = CGRect(x: headCenterX + (headW * 0.46) - 3.2, y: headCenterY - 4, width: 3.2, height: 8)
-        ctx.fill(Path(ellipseIn: leftEarRect), with: .color(Color(red: 0.84, green: 0.67, blue: 0.55)))
-        ctx.fill(Path(ellipseIn: rightEarRect), with: .color(Color(red: 0.84, green: 0.67, blue: 0.55)))
+        // Clean Minimalist Ears
+        let leftEarRect = CGRect(x: headCenterX - (headW * 0.46), y: headCenterY - 4, width: 3.2, height: 8.5)
+        let rightEarRect = CGRect(x: headCenterX + (headW * 0.46) - 3.2, y: headCenterY - 4, width: 3.2, height: 8.5)
+        ctx.fill(Path(ellipseIn: leftEarRect), with: .color(Color(red: 0.85, green: 0.68, blue: 0.56)))
+        ctx.fill(Path(ellipseIn: rightEarRect), with: .color(Color(red: 0.85, green: 0.68, blue: 0.56)))
         
-        // Flat Stylized Facial Features (Samar-samar, subtle and natural)
-        let contour = Color(red: 0.48, green: 0.34, blue: 0.25).opacity(0.55)
-        let irisColor = Color(red: 0.25, green: 0.18, blue: 0.14).opacity(0.65)
+        // (NOTE: NO EYES, NO NOSE, NO MOUTH — Clean Faceless Flat Art as requested!)
         
-        // Eyebrows (Natural arch)
-        var browPath = Path()
-        browPath.move(to: CGPoint(x: headCenterX - 9.5, y: headCenterY - 5))
-        browPath.addQuadCurve(to: CGPoint(x: headCenterX - 3, y: headCenterY - 6), control: CGPoint(x: headCenterX - 6.5, y: headCenterY - 7.5))
-        browPath.move(to: CGPoint(x: headCenterX + 3, y: headCenterY - 6))
-        browPath.addQuadCurve(to: CGPoint(x: headCenterX + 9.5, y: headCenterY - 5), control: CGPoint(x: headCenterX + 6.5, y: headCenterY - 7.5))
-        ctx.stroke(browPath, with: .color(contour), lineWidth: 1.1)
-        
-        // Eyes (Subtle almond shape, not cartoon lines)
-        var leftEyeUpper = Path()
-        leftEyeUpper.move(to: CGPoint(x: headCenterX - 8.5, y: headCenterY - 1))
-        leftEyeUpper.addQuadCurve(to: CGPoint(x: headCenterX - 3.5, y: headCenterY - 1), control: CGPoint(x: headCenterX - 6, y: headCenterY - 2.8))
-        ctx.stroke(leftEyeUpper, with: .color(contour), lineWidth: 0.9)
-        ctx.fill(Path(ellipseIn: CGRect(x: headCenterX - 6.6, y: headCenterY - 1.8, width: 1.6, height: 1.5)), with: .color(irisColor))
-        
-        var rightEyeUpper = Path()
-        rightEyeUpper.move(to: CGPoint(x: headCenterX + 3.5, y: headCenterY - 1))
-        rightEyeUpper.addQuadCurve(to: CGPoint(x: headCenterX + 8.5, y: headCenterY - 1), control: CGPoint(x: headCenterX + 6, y: headCenterY - 2.8))
-        ctx.stroke(rightEyeUpper, with: .color(contour), lineWidth: 0.9)
-        ctx.fill(Path(ellipseIn: CGRect(x: headCenterX + 5.0, y: headCenterY - 1.8, width: 1.6, height: 1.5)), with: .color(irisColor))
-        
-        // Nose Bridge & Nostril Contour
-        var nosePath = Path()
-        nosePath.move(to: CGPoint(x: headCenterX - 0.5, y: headCenterY - 2))
-        nosePath.addLine(to: CGPoint(x: headCenterX - 1.0, y: headCenterY + 4.5))
-        nosePath.addQuadCurve(to: CGPoint(x: headCenterX + 2.0, y: headCenterY + 5.0), control: CGPoint(x: headCenterX + 0.5, y: headCenterY + 5.8))
-        ctx.stroke(nosePath, with: .color(contour), lineWidth: 0.75)
-        
-        // Subtle Nasolabial Fold / Smile Creases (Characteristic)
-        var creasePath = Path()
-        creasePath.move(to: CGPoint(x: headCenterX - 5, y: headCenterY + 4))
-        creasePath.addQuadCurve(to: CGPoint(x: headCenterX - 6.5, y: headCenterY + 9), control: CGPoint(x: headCenterX - 7, y: headCenterY + 6.5))
-        creasePath.move(to: CGPoint(x: headCenterX + 5, y: headCenterY + 4))
-        creasePath.addQuadCurve(to: CGPoint(x: headCenterX + 6.5, y: headCenterY + 9), control: CGPoint(x: headCenterX + 7, y: headCenterY + 6.5))
-        ctx.stroke(creasePath, with: .color(contour.opacity(0.35)), lineWidth: 0.6)
-        
-        // Mouth (Calm dignified smile)
-        var mouthPath = Path()
-        mouthPath.move(to: CGPoint(x: headCenterX - 5, y: headCenterY + 8.5))
-        mouthPath.addQuadCurve(to: CGPoint(x: headCenterX + 5, y: headCenterY + 8.5), control: CGPoint(x: headCenterX, y: headCenterY + 9.8))
-        ctx.stroke(mouthPath, with: .color(contour), lineWidth: 0.85)
-        var underLip = Path()
-        underLip.move(to: CGPoint(x: headCenterX - 2.5, y: headCenterY + 11.5))
-        underLip.addLine(to: CGPoint(x: headCenterX + 2.5, y: headCenterY + 11.5))
-        ctx.stroke(underLip, with: .color(contour.opacity(0.4)), lineWidth: 0.6)
-        
-        // Black Velvet Peci / Songkok (Sits on top of forehead, tapered crown)
+        // 7. Black Velvet Peci / Songkok (Presiden RI)
         let peciBottomY = headCenterY - (headH * 0.22)
         let peciTopY = h * 0.14
         var peciPath = Path()
@@ -464,13 +462,15 @@ extension PresidentialPortraitView {
             peciPath,
             with: .linearGradient(
                 Gradient(colors: [
-                    Color(red: 0.16, green: 0.16, blue: 0.18),
-                    Color(red: 0.07, green: 0.07, blue: 0.08)
+                    Color(red: 0.15, green: 0.15, blue: 0.17),
+                    Color(red: 0.06, green: 0.06, blue: 0.07)
                 ]),
                 startPoint: CGPoint(x: headCenterX - 5, y: peciTopY),
                 endPoint: CGPoint(x: headCenterX + 5, y: peciBottomY)
             )
         )
+        
+        // Velvet Crown Sheen
         var peciSheen = Path()
         peciSheen.move(to: CGPoint(x: headCenterX - (headW * 0.30), y: peciTopY + 1.5))
         peciSheen.addCurve(
@@ -478,109 +478,155 @@ extension PresidentialPortraitView {
             control1: CGPoint(x: headCenterX - (headW * 0.12), y: peciTopY - 0.5),
             control2: CGPoint(x: headCenterX + (headW * 0.12), y: peciTopY - 0.5)
         )
-        ctx.stroke(peciSheen, with: .color(Color.white.opacity(0.12)), lineWidth: 1.0)
+        ctx.stroke(peciSheen, with: .color(Color.white.opacity(0.14)), lineWidth: 1.0)
     }
     
-    // MARK: - Vice President Gibran Rakabuming Raka (With Neatly Parted Hair - NO SONGKOK)
+    // MARK: - Vice President Gibran Rakabuming Raka (Faceless Minimalist Flat Art with Side-Parted Hair - NO SONGKOK)
     private func drawVicePresident(ctx: GraphicsContext, w: CGFloat, h: CGFloat) {
         let headCenterX = w * 0.50
         let headCenterY = h * 0.46
         let headW = w * 0.42
         let headH = h * 0.42
         
-        // Formal Black Suit Jacket (Tailored Cut)
+        // 1. Formal Black Suit Jacket (Tailored Cut)
         var suitPath = Path()
-        suitPath.move(to: CGPoint(x: w * 0.05, y: h))
-        suitPath.addLine(to: CGPoint(x: headCenterX - (headW * 0.60), y: h * 0.64))
-        suitPath.addLine(to: CGPoint(x: headCenterX - (headW * 0.22), y: h * 0.61))
+        suitPath.move(to: CGPoint(x: w * 0.04, y: h))
+        suitPath.addLine(to: CGPoint(x: headCenterX - (headW * 0.62), y: h * 0.63))
+        suitPath.addLine(to: CGPoint(x: headCenterX - (headW * 0.22), y: h * 0.60))
         suitPath.addLine(to: CGPoint(x: headCenterX, y: h * 0.70))
-        suitPath.addLine(to: CGPoint(x: headCenterX + (headW * 0.22), y: h * 0.61))
-        suitPath.addLine(to: CGPoint(x: headCenterX + (headW * 0.62), y: h * 0.64))
-        suitPath.addLine(to: CGPoint(x: w * 0.95, y: h))
+        suitPath.addLine(to: CGPoint(x: headCenterX + (headW * 0.22), y: h * 0.60))
+        suitPath.addLine(to: CGPoint(x: headCenterX + (headW * 0.64), y: h * 0.63))
+        suitPath.addLine(to: CGPoint(x: w * 0.96, y: h))
         suitPath.closeSubpath()
         
         ctx.fill(
             suitPath,
             with: .linearGradient(
                 Gradient(colors: [
-                    Color(red: 0.16, green: 0.17, blue: 0.19),
-                    Color(red: 0.08, green: 0.08, blue: 0.10)
+                    Color(red: 0.15, green: 0.16, blue: 0.18),
+                    Color(red: 0.07, green: 0.07, blue: 0.09)
                 ]),
-                startPoint: CGPoint(x: headCenterX, y: h * 0.61),
+                startPoint: CGPoint(x: headCenterX, y: h * 0.60),
                 endPoint: CGPoint(x: headCenterX, y: h)
             )
         )
         
-        // Crisp White Dress Shirt V-Neck Collar
+        // Suit Lapels
+        var leftLapel = Path()
+        leftLapel.move(to: CGPoint(x: headCenterX - (headW * 0.22), y: h * 0.60))
+        leftLapel.addLine(to: CGPoint(x: headCenterX - (headW * 0.42), y: h * 0.68))
+        leftLapel.addLine(to: CGPoint(x: headCenterX - 3.5, y: h * 0.88))
+        leftLapel.addLine(to: CGPoint(x: headCenterX - 1.5, y: h * 0.72))
+        leftLapel.closeSubpath()
+        ctx.fill(leftLapel, with: .color(Color(red: 0.11, green: 0.12, blue: 0.14)))
+        
+        var rightLapel = Path()
+        rightLapel.move(to: CGPoint(x: headCenterX + (headW * 0.22), y: h * 0.60))
+        rightLapel.addLine(to: CGPoint(x: headCenterX + (headW * 0.42), y: h * 0.68))
+        rightLapel.addLine(to: CGPoint(x: headCenterX + 3.5, y: h * 0.88))
+        rightLapel.addLine(to: CGPoint(x: headCenterX + 1.5, y: h * 0.72))
+        rightLapel.closeSubpath()
+        ctx.fill(rightLapel, with: .color(Color(red: 0.11, green: 0.12, blue: 0.14)))
+        
+        // 2. Crisp White Dress Shirt
         var shirtPath = Path()
-        shirtPath.move(to: CGPoint(x: headCenterX - 10, y: h * 0.60))
-        shirtPath.addLine(to: CGPoint(x: headCenterX + 10, y: h * 0.60))
+        shirtPath.move(to: CGPoint(x: headCenterX - 10, y: h * 0.58))
+        shirtPath.addLine(to: CGPoint(x: headCenterX + 10, y: h * 0.58))
         shirtPath.addLine(to: CGPoint(x: headCenterX + 5, y: h * 0.82))
         shirtPath.addLine(to: CGPoint(x: headCenterX - 5, y: h * 0.82))
         shirtPath.closeSubpath()
-        ctx.fill(shirtPath, with: .color(Color(red: 0.98, green: 0.98, blue: 0.98)))
+        ctx.fill(shirtPath, with: .color(Color(red: 0.98, green: 0.98, blue: 0.99)))
         
         // Shirt Collars
         var leftCollar = Path()
-        leftCollar.move(to: CGPoint(x: headCenterX - 10, y: h * 0.60))
-        leftCollar.addLine(to: CGPoint(x: headCenterX - 2.5, y: h * 0.69))
-        leftCollar.addLine(to: CGPoint(x: headCenterX - 6.5, y: h * 0.69))
+        leftCollar.move(to: CGPoint(x: headCenterX - 10, y: h * 0.58))
+        leftCollar.addLine(to: CGPoint(x: headCenterX - 2.5, y: h * 0.68))
+        leftCollar.addLine(to: CGPoint(x: headCenterX - 6.5, y: h * 0.68))
         leftCollar.closeSubpath()
         ctx.fill(leftCollar, with: .color(Color.white))
         
         var rightCollar = Path()
-        rightCollar.move(to: CGPoint(x: headCenterX + 10, y: h * 0.60))
-        rightCollar.addLine(to: CGPoint(x: headCenterX + 2.5, y: h * 0.69))
-        rightCollar.addLine(to: CGPoint(x: headCenterX + 6.5, y: h * 0.69))
+        rightCollar.move(to: CGPoint(x: headCenterX + 10, y: h * 0.58))
+        rightCollar.addLine(to: CGPoint(x: headCenterX + 2.5, y: h * 0.68))
+        rightCollar.addLine(to: CGPoint(x: headCenterX + 6.5, y: h * 0.68))
         rightCollar.closeSubpath()
         ctx.fill(rightCollar, with: .color(Color.white))
         
-        // Red Necktie
-        var tiePath = Path()
-        tiePath.move(to: CGPoint(x: headCenterX - 2.5, y: h * 0.66))
-        tiePath.addLine(to: CGPoint(x: headCenterX + 2.5, y: h * 0.66))
-        tiePath.addLine(to: CGPoint(x: headCenterX + 4.5, y: h))
-        tiePath.addLine(to: CGPoint(x: headCenterX - 4.5, y: h))
-        tiePath.closeSubpath()
+        // 3. Red Necktie
+        // Knot
+        var tieKnot = Path()
+        tieKnot.move(to: CGPoint(x: headCenterX - 2.8, y: h * 0.65))
+        tieKnot.addLine(to: CGPoint(x: headCenterX + 2.8, y: h * 0.65))
+        tieKnot.addLine(to: CGPoint(x: headCenterX + 2.0, y: h * 0.70))
+        tieKnot.addLine(to: CGPoint(x: headCenterX - 2.0, y: h * 0.70))
+        tieKnot.closeSubpath()
         ctx.fill(
-            tiePath,
+            tieKnot,
+            with: .linearGradient(
+                Gradient(colors: [Color(red: 0.90, green: 0.16, blue: 0.18), Color(red: 0.72, green: 0.10, blue: 0.12)]),
+                startPoint: CGPoint(x: headCenterX, y: h * 0.65),
+                endPoint: CGPoint(x: headCenterX, y: h * 0.70)
+            )
+        )
+        // Tie Body
+        var tieBody = Path()
+        tieBody.move(to: CGPoint(x: headCenterX - 2.0, y: h * 0.70))
+        tieBody.addLine(to: CGPoint(x: headCenterX + 2.0, y: h * 0.70))
+        tieBody.addLine(to: CGPoint(x: headCenterX + 4.5, y: h))
+        tieBody.addLine(to: CGPoint(x: headCenterX - 4.5, y: h))
+        tieBody.closeSubpath()
+        ctx.fill(
+            tieBody,
             with: .linearGradient(
                 Gradient(colors: [
                     Color(red: 0.85, green: 0.14, blue: 0.16),
-                    Color(red: 0.65, green: 0.09, blue: 0.11)
+                    Color(red: 0.64, green: 0.09, blue: 0.11)
                 ]),
-                startPoint: CGPoint(x: headCenterX, y: h * 0.66),
+                startPoint: CGPoint(x: headCenterX, y: h * 0.70),
                 endPoint: CGPoint(x: headCenterX, y: h)
             )
         )
         
-        // Left Lapel Medal Ribbon (Red-White Ribbon with Star)
+        // 4. Lapel Pin / Medal Ribbon (On Left Lapel)
         let pinX = headCenterX + 13
-        let pinY = h * 0.72
-        var pinPath = Path()
-        pinPath.addRect(CGRect(x: pinX, y: pinY, width: 3.2, height: 6.5))
-        ctx.fill(pinPath, with: .color(Color.red))
-        var pinWhitePath = Path()
-        pinWhitePath.addRect(CGRect(x: pinX + 1.6, y: pinY, width: 1.6, height: 6.5))
-        ctx.fill(pinWhitePath, with: .color(Color.white))
-        ctx.fill(Path(ellipseIn: CGRect(x: pinX + 0.8, y: pinY + 6.8, width: 1.6, height: 1.6)), with: .color(Color(red: 0.92, green: 0.80, blue: 0.35)))
+        let pinY = h * 0.71
+        var ribbonRed = Path()
+        ribbonRed.addRect(CGRect(x: pinX, y: pinY, width: 1.6, height: 6.0))
+        ctx.fill(ribbonRed, with: .color(Color(red: 0.88, green: 0.12, blue: 0.15)))
+        var ribbonWhite = Path()
+        ribbonWhite.addRect(CGRect(x: pinX + 1.6, y: pinY, width: 1.6, height: 6.0))
+        ctx.fill(ribbonWhite, with: .color(Color.white))
+        ctx.fill(
+            Path(ellipseIn: CGRect(x: pinX + 0.6, y: pinY + 6.4, width: 2.0, height: 2.0)),
+            with: .color(Color(red: 0.95, green: 0.82, blue: 0.35))
+        )
         
-        // Neck
-        let neckRect = CGRect(x: headCenterX - 6, y: h * 0.52, width: 12, height: 13)
+        // 5. Neck with Jaw Shadow
+        let neckRect = CGRect(x: headCenterX - 6, y: h * 0.51, width: 12, height: 12)
         ctx.fill(Path(neckRect), with: .color(Color(red: 0.84, green: 0.67, blue: 0.54)))
+        var neckShadow = Path()
+        neckShadow.move(to: CGPoint(x: headCenterX - 6, y: h * 0.51))
+        neckShadow.addLine(to: CGPoint(x: headCenterX + 6, y: h * 0.51))
+        neckShadow.addCurve(
+            to: CGPoint(x: headCenterX, y: h * 0.56),
+            control1: CGPoint(x: headCenterX + 3.5, y: h * 0.56),
+            control2: CGPoint(x: headCenterX - 3.5, y: h * 0.56)
+        )
+        neckShadow.closeSubpath()
+        ctx.fill(neckShadow, with: .color(Color(red: 0.74, green: 0.56, blue: 0.44).opacity(0.65)))
         
-        // Head / Face (Slimmer, oval jawline)
+        // 6. Faceless Head Silhouette (Slimmer, Youthful Modern Oval Jawline)
         var facePath = Path()
         facePath.move(to: CGPoint(x: headCenterX - (headW * 0.40), y: headCenterY - (headH * 0.28)))
         facePath.addLine(to: CGPoint(x: headCenterX + (headW * 0.40), y: headCenterY - (headH * 0.28)))
         facePath.addCurve(
-            to: CGPoint(x: headCenterX, y: headCenterY + (headH * 0.44)),
+            to: CGPoint(x: headCenterX, y: headCenterY + (headH * 0.46)),
             control1: CGPoint(x: headCenterX + (headW * 0.40), y: headCenterY + (headH * 0.24)),
-            control2: CGPoint(x: headCenterX + (headW * 0.20), y: headCenterY + (headH * 0.44))
+            control2: CGPoint(x: headCenterX + (headW * 0.18), y: headCenterY + (headH * 0.46))
         )
         facePath.addCurve(
             to: CGPoint(x: headCenterX - (headW * 0.40), y: headCenterY - (headH * 0.28)),
-            control1: CGPoint(x: headCenterX - (headW * 0.20), y: headCenterY + (headH * 0.44)),
+            control1: CGPoint(x: headCenterX - (headW * 0.18), y: headCenterY + (headH * 0.46)),
             control2: CGPoint(x: headCenterX - (headW * 0.40), y: headCenterY + (headH * 0.24))
         )
         facePath.closeSubpath()
@@ -589,63 +635,23 @@ extension PresidentialPortraitView {
             facePath,
             with: .linearGradient(
                 Gradient(colors: [
-                    Color(red: 0.91, green: 0.76, blue: 0.64),
-                    Color(red: 0.85, green: 0.68, blue: 0.56)
+                    Color(red: 0.93, green: 0.78, blue: 0.66),
+                    Color(red: 0.87, green: 0.71, blue: 0.58)
                 ]),
                 startPoint: CGPoint(x: headCenterX - 8, y: headCenterY - 10),
                 endPoint: CGPoint(x: headCenterX + 8, y: headCenterY + 15)
             )
         )
         
-        // Ears (Slightly prominent, youthful)
+        // Clean Minimalist Ears
         let leftEarRect = CGRect(x: headCenterX - (headW * 0.43), y: headCenterY - 4, width: 3.2, height: 8.5)
         let rightEarRect = CGRect(x: headCenterX + (headW * 0.43) - 3.2, y: headCenterY - 4, width: 3.2, height: 8.5)
         ctx.fill(Path(ellipseIn: leftEarRect), with: .color(Color(red: 0.86, green: 0.69, blue: 0.57)))
         ctx.fill(Path(ellipseIn: rightEarRect), with: .color(Color(red: 0.86, green: 0.69, blue: 0.57)))
         
-        // Flat Stylized Facial Features (Samar-samar, subtle and neat)
-        let contour = Color(red: 0.48, green: 0.34, blue: 0.25).opacity(0.55)
-        let irisColor = Color(red: 0.25, green: 0.18, blue: 0.14).opacity(0.65)
+        // (NOTE: NO EYES, NO NOSE, NO MOUTH — Clean Faceless Flat Art as requested!)
         
-        // Eyebrows (Neat, groomed)
-        var browPath = Path()
-        browPath.move(to: CGPoint(x: headCenterX - 8.5, y: headCenterY - 5))
-        browPath.addQuadCurve(to: CGPoint(x: headCenterX - 2.5, y: headCenterY - 6), control: CGPoint(x: headCenterX - 5.5, y: headCenterY - 6.8))
-        browPath.move(to: CGPoint(x: headCenterX + 2.5, y: headCenterY - 6))
-        browPath.addQuadCurve(to: CGPoint(x: headCenterX + 8.5, y: headCenterY - 5), control: CGPoint(x: headCenterX + 5.5, y: headCenterY - 6.8))
-        ctx.stroke(browPath, with: .color(contour), lineWidth: 1.0)
-        
-        // Eyes (Attentive almond contours)
-        var leftEyeUpper = Path()
-        leftEyeUpper.move(to: CGPoint(x: headCenterX - 8.0, y: headCenterY - 1))
-        leftEyeUpper.addQuadCurve(to: CGPoint(x: headCenterX - 3.0, y: headCenterY - 1), control: CGPoint(x: headCenterX - 5.5, y: headCenterY - 2.6))
-        ctx.stroke(leftEyeUpper, with: .color(contour), lineWidth: 0.85)
-        ctx.fill(Path(ellipseIn: CGRect(x: headCenterX - 6.0, y: headCenterY - 1.7, width: 1.5, height: 1.4)), with: .color(irisColor))
-        
-        var rightEyeUpper = Path()
-        rightEyeUpper.move(to: CGPoint(x: headCenterX + 3.0, y: headCenterY - 1))
-        rightEyeUpper.addQuadCurve(to: CGPoint(x: headCenterX + 8.0, y: headCenterY - 1), control: CGPoint(x: headCenterX + 5.5, y: headCenterY - 2.6))
-        ctx.stroke(rightEyeUpper, with: .color(contour), lineWidth: 0.85)
-        ctx.fill(Path(ellipseIn: CGRect(x: headCenterX + 4.5, y: headCenterY - 1.7, width: 1.5, height: 1.4)), with: .color(irisColor))
-        
-        // Straight Slender Nose Bridge
-        var nosePath = Path()
-        nosePath.move(to: CGPoint(x: headCenterX, y: headCenterY - 2))
-        nosePath.addLine(to: CGPoint(x: headCenterX - 0.5, y: headCenterY + 4.5))
-        nosePath.addQuadCurve(to: CGPoint(x: headCenterX + 1.8, y: headCenterY + 5.0), control: CGPoint(x: headCenterX + 0.8, y: headCenterY + 5.7))
-        ctx.stroke(nosePath, with: .color(contour), lineWidth: 0.75)
-        
-        // Mouth (Calm composed smile)
-        var smilePath = Path()
-        smilePath.move(to: CGPoint(x: headCenterX - 4.5, y: headCenterY + 9))
-        smilePath.addQuadCurve(to: CGPoint(x: headCenterX + 4.5, y: headCenterY + 9), control: CGPoint(x: headCenterX, y: headCenterY + 10.2))
-        ctx.stroke(smilePath, with: .color(contour), lineWidth: 0.85)
-        var underLip = Path()
-        underLip.move(to: CGPoint(x: headCenterX - 2.2, y: headCenterY + 12))
-        underLip.addLine(to: CGPoint(x: headCenterX + 2.2, y: headCenterY + 12))
-        ctx.stroke(underLip, with: .color(contour.opacity(0.35)), lineWidth: 0.6)
-        
-        // Neatly Combed Side-Parted Hair (NO SONGKOK!)
+        // 7. Neatly Combed Side-Parted Hair (NO SONGKOK!)
         let hairTopY = headCenterY - (headH * 0.52)
         let hairForeheadY = headCenterY - (headH * 0.26)
         var hairPath = Path()
@@ -676,20 +682,21 @@ extension PresidentialPortraitView {
             hairPath,
             with: .linearGradient(
                 Gradient(colors: [
-                    Color(red: 0.18, green: 0.18, blue: 0.20),
-                    Color(red: 0.08, green: 0.08, blue: 0.09)
+                    Color(red: 0.16, green: 0.16, blue: 0.18),
+                    Color(red: 0.06, green: 0.06, blue: 0.08)
                 ]),
                 startPoint: CGPoint(x: headCenterX - 6, y: hairTopY),
                 endPoint: CGPoint(x: headCenterX + 6, y: headCenterY)
             )
         )
         
+        // Hair Sheen Arc
         var hairSheen = Path()
         hairSheen.move(to: CGPoint(x: headCenterX - (headW * 0.15), y: hairTopY + 1.5))
         hairSheen.addQuadCurve(
             to: CGPoint(x: headCenterX + (headW * 0.20), y: hairTopY + 2.0),
             control: CGPoint(x: headCenterX + 2, y: hairTopY + 0.5)
         )
-        ctx.stroke(hairSheen, with: .color(Color.white.opacity(0.14)), lineWidth: 1.0)
+        ctx.stroke(hairSheen, with: .color(Color.white.opacity(0.15)), lineWidth: 1.0)
     }
 }
