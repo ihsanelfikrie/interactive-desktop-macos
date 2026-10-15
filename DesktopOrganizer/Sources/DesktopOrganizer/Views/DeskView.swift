@@ -166,6 +166,10 @@ public struct WorkstationDeskView: View {
                         )
                         .position(x: 277.5 * scaleX, y: (24 + 95) * scaleY)
                     
+                    // Simple Black Ergonomic Office Chair (Centered in Kneehole Opening)
+                    SimpleBlackOfficeChairView(scaleX: scaleX, scaleY: scaleY)
+                        .position(x: 277.5 * scaleX, y: 168 * scaleY)
+                    
                     // DESK TWIN PEDESTALS (Front Layer)
                     HStack(spacing: 0) {
                         // Left Pedestal (4 Drawers)
@@ -428,151 +432,271 @@ struct DeskTabletopSurface: View {
     }
 }
 
-// MARK: - Modern Cantilever Chair (Chrome Tubing + Navy Sapphire Cushion)
-struct CantileverChairView: View {
+// MARK: - Minimalist Black Ergonomic Office Chair (Kursi Kerja Hitam Simple)
+public struct SimpleBlackOfficeChairView: View {
     let scaleX: CGFloat
     let scaleY: CGFloat
     
-    var body: some View {
-        ZStack {
-            // Chrome Sled Base (Continuous Bent Tube on floor)
-            Path { path in
-                path.move(to: CGPoint(x: 10 * scaleX, y: 110 * scaleY))
-                path.addLine(to: CGPoint(x: 10 * scaleX, y: 118 * scaleY))
-                path.addLine(to: CGPoint(x: 140 * scaleX, y: 118 * scaleY))
-                path.addLine(to: CGPoint(x: 140 * scaleX, y: 110 * scaleY))
-            }
-            .stroke(
-                LinearGradient(
-                    colors: [Color(white: 0.88), Color(white: 0.60), Color(white: 0.82)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                ),
-                style: StrokeStyle(lineWidth: 6 * scaleX, lineCap: .round, lineJoin: .round)
-            )
-            .shadow(color: .black.opacity(0.35), radius: 3, y: 2)
+    public init(scaleX: CGFloat = 1.0, scaleY: CGFloat = 1.0) {
+        self.scaleX = scaleX
+        self.scaleY = scaleY
+    }
+    
+    public var body: some View {
+        ZStack(alignment: .bottom) {
+            // 1. Soft Ground Contact Shadow under Caster Wheels
+            Ellipse()
+                .fill(Color.black.opacity(0.38))
+                .frame(width: 155 * scaleX, height: 16 * scaleY)
+                .blur(radius: 4)
+                .offset(y: 4 * scaleY)
             
-            // Chrome Vertical Stems (Rising up from front base)
-            Path { path in
-                path.move(to: CGPoint(x: 18 * scaleX, y: 116 * scaleY))
-                path.addLine(to: CGPoint(x: 18 * scaleX, y: 55 * scaleY))
-                path.addLine(to: CGPoint(x: 18 * scaleX, y: 20 * scaleY))
+            // 2. Five-Star Wheeled Base (Kaki Bintang 5 Beroda)
+            ZStack(alignment: .bottom) {
+                // Left & Right Star Legs
+                Path { path in
+                    let cx = 85.0 * scaleX
+                    let cy = 20.0 * scaleY
+                    
+                    // Center leg (pointing slightly front)
+                    path.move(to: CGPoint(x: cx, y: cy))
+                    path.addLine(to: CGPoint(x: cx, y: cy + 14 * scaleY))
+                    
+                    // Left front leg
+                    path.move(to: CGPoint(x: cx, y: cy))
+                    path.addLine(to: CGPoint(x: cx - 45 * scaleX, y: cy + 11 * scaleY))
+                    
+                    // Right front leg
+                    path.move(to: CGPoint(x: cx, y: cy))
+                    path.addLine(to: CGPoint(x: cx + 45 * scaleX, y: cy + 11 * scaleY))
+                    
+                    // Left rear leg
+                    path.move(to: CGPoint(x: cx, y: cy))
+                    path.addLine(to: CGPoint(x: cx - 65 * scaleX, y: cy + 2 * scaleY))
+                    
+                    // Right rear leg
+                    path.move(to: CGPoint(x: cx, y: cy))
+                    path.addLine(to: CGPoint(x: cx + 65 * scaleX, y: cy + 2 * scaleY))
+                }
+                .stroke(
+                    LinearGradient(
+                        colors: [Color(white: 0.28), Color(white: 0.12), Color(white: 0.05)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    style: StrokeStyle(lineWidth: 6.5 * scaleX, lineCap: .round, lineJoin: .round)
+                )
                 
-                path.move(to: CGPoint(x: 132 * scaleX, y: 116 * scaleY))
-                path.addLine(to: CGPoint(x: 132 * scaleX, y: 55 * scaleY))
-                path.addLine(to: CGPoint(x: 132 * scaleX, y: 20 * scaleY))
+                // Casters (Roda Kursi)
+                HStack(spacing: 0) {
+                    Circle().fill(Color(white: 0.12)).frame(width: 8 * scaleX, height: 8 * scaleY)
+                    Spacer()
+                    Circle().fill(Color(white: 0.12)).frame(width: 8 * scaleX, height: 8 * scaleY)
+                    Spacer()
+                    Circle().fill(Color(white: 0.12)).frame(width: 8 * scaleX, height: 8 * scaleY)
+                    Spacer()
+                    Circle().fill(Color(white: 0.12)).frame(width: 8 * scaleX, height: 8 * scaleY)
+                    Spacer()
+                    Circle().fill(Color(white: 0.12)).frame(width: 8 * scaleX, height: 8 * scaleY)
+                }
+                .frame(width: 145 * scaleX)
+                .offset(y: 4 * scaleY)
+                
+                // Center Star Hub Cap
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(white: 0.35), Color(white: 0.15)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 18 * scaleX, height: 18 * scaleY)
+                    .overlay(Circle().stroke(Color(white: 0.45), lineWidth: 0.8))
+                    .offset(y: -10 * scaleY)
             }
-            .stroke(
-                LinearGradient(
-                    colors: [Color(white: 0.92), Color(white: 0.65), Color(white: 0.85)],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                ),
-                style: StrokeStyle(lineWidth: 5.5 * scaleX, lineCap: .round)
-            )
+            .frame(width: 170 * scaleX, height: 35 * scaleY)
+            .offset(y: -4 * scaleY)
             
-            // Cushioned Seat Cushion (Ocean Sapphire Navy)
+            // 3. Telescopic Hydraulic Gas-Lift Piston (Tiang Hidrolik)
+            VStack(spacing: 0) {
+                // Top chrome piston rod
+                RoundedRectangle(cornerRadius: 1.5)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(white: 0.85), Color(white: 0.55), Color(white: 0.75)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: 10 * scaleX, height: 18 * scaleY)
+                
+                // Main black cylinder casing
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(white: 0.25), Color(white: 0.10)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: 14 * scaleX, height: 32 * scaleY)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 2)
+                            .stroke(Color(white: 0.30), lineWidth: 0.5)
+                    )
+            }
+            .offset(y: -30 * scaleY)
+            
+            // 4. Armrests (Sandaran Tangan Minimalis Hitam)
+            HStack {
+                MinimalistArmrest(isLeft: true, scaleX: scaleX, scaleY: scaleY)
+                Spacer()
+                MinimalistArmrest(isLeft: false, scaleX: scaleX, scaleY: scaleY)
+            }
+            .frame(width: 168 * scaleX)
+            .offset(y: -78 * scaleY)
+            
+            // 5. Seat Cushion (Bantalan Duduk Hitam Ergonomis)
             ZStack {
-                // Seat shadow
-                RoundedRectangle(cornerRadius: 7)
-                    .fill(Color.black.opacity(0.32))
-                    .frame(width: 128 * scaleX, height: 26 * scaleY)
-                    .offset(y: 4 * scaleY)
-                    .blur(radius: 3)
+                // Drop shadow on kneehole
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.black.opacity(0.35))
+                    .frame(width: 130 * scaleX, height: 26 * scaleY)
+                    .blur(radius: 3.5)
+                    .offset(y: 3 * scaleY)
                 
-                // Plush Foam Cushion
-                RoundedRectangle(cornerRadius: 6)
+                // Cushion body
+                RoundedRectangle(cornerRadius: 7)
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color(red: 0.22, green: 0.44, blue: 0.64),
-                                Color(red: 0.14, green: 0.30, blue: 0.48),
-                                Color(red: 0.08, green: 0.20, blue: 0.36)
+                                Color(red: 0.22, green: 0.22, blue: 0.24),
+                                Color(red: 0.14, green: 0.14, blue: 0.15),
+                                Color(red: 0.08, green: 0.08, blue: 0.09)
                             ],
                             startPoint: .top,
                             endPoint: .bottom
                         )
                     )
-                    .frame(width: 128 * scaleX, height: 26 * scaleY)
+                    .frame(width: 130 * scaleX, height: 26 * scaleY)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(Color.white.opacity(0.20), lineWidth: 0.8)
+                        RoundedRectangle(cornerRadius: 7)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [Color.white.opacity(0.25), Color.black.opacity(0.5)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ),
+                                lineWidth: 0.8
+                            )
                     )
                 
-                // Seat highlight line
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(Color.white.opacity(0.35))
-                    .frame(width: 118 * scaleX, height: 1.5 * scaleY)
+                // Subtle front edge leather highlight
+                Capsule()
+                    .fill(Color.white.opacity(0.18))
+                    .frame(width: 116 * scaleX, height: 2 * scaleY)
                     .offset(y: -9 * scaleY)
             }
-            .offset(y: 52 * scaleY)
+            .offset(y: -74 * scaleY)
             
-            // Ergonomic Backrest Cushion (Navy Upholstery)
+            // 6. Backrest (Sandaran Punggung Hitam Simple)
             ZStack {
                 // Backrest shadow
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.black.opacity(0.25))
-                    .frame(width: 112 * scaleX, height: 85 * scaleY)
-                    .offset(y: 3 * scaleY)
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.black.opacity(0.30))
+                    .frame(width: 114 * scaleX, height: 118 * scaleY)
                     .blur(radius: 3)
+                    .offset(y: 2 * scaleY)
                 
-                // Backrest body
-                RoundedRectangle(cornerRadius: 9)
+                // Outer structural frame
+                RoundedRectangle(cornerRadius: 11)
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color(red: 0.24, green: 0.46, blue: 0.66),
-                                Color(red: 0.16, green: 0.32, blue: 0.50),
-                                Color(red: 0.10, green: 0.22, blue: 0.38)
+                                Color(white: 0.20),
+                                Color(white: 0.11),
+                                Color(white: 0.06)
                             ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+                            startPoint: .top,
+                            endPoint: .bottom
                         )
                     )
-                    .frame(width: 112 * scaleX, height: 85 * scaleY)
+                    .frame(width: 114 * scaleX, height: 118 * scaleY)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 9)
-                            .stroke(Color.white.opacity(0.22), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 11)
+                            .stroke(Color(white: 0.26), lineWidth: 1)
                     )
                 
-                // Horizontal stitching indent / channel tuft
-                Rectangle()
-                    .fill(Color.black.opacity(0.35))
-                    .frame(width: 96 * scaleX, height: 1.2 * scaleY)
-                Rectangle()
-                    .fill(Color.white.opacity(0.20))
-                    .frame(width: 96 * scaleX, height: 1.0 * scaleY)
-                    .offset(y: 1.2 * scaleY)
-            }
-            .offset(y: -10 * scaleY)
-            
-            // Padded Armrest Caps
-            HStack(spacing: 96 * scaleX) {
-                // Left armrest
-                Capsule()
+                // Inner Ergonomic Breathable Mesh / Cushion Panel
+                RoundedRectangle(cornerRadius: 8)
                     .fill(
                         LinearGradient(
-                            colors: [Color(red: 0.18, green: 0.35, blue: 0.52), Color(red: 0.10, green: 0.22, blue: 0.36)],
-                            startPoint: .top, endPoint: .bottom
+                            colors: [
+                                Color(red: 0.18, green: 0.18, blue: 0.20),
+                                Color(red: 0.12, green: 0.12, blue: 0.13),
+                                Color(red: 0.07, green: 0.07, blue: 0.08)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
                         )
                     )
-                    .frame(width: 12 * scaleX, height: 32 * scaleY)
-                    .overlay(Capsule().stroke(Color.white.opacity(0.25), lineWidth: 0.8))
-                
-                // Right armrest
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color(red: 0.18, green: 0.35, blue: 0.52), Color(red: 0.10, green: 0.22, blue: 0.36)],
-                            startPoint: .top, endPoint: .bottom
-                        )
+                    .frame(width: 98 * scaleX, height: 102 * scaleY)
+                    .overlay(
+                        // Subtle lumbar support band
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(Color.black.opacity(0.40))
+                            .frame(width: 82 * scaleX, height: 14 * scaleY)
+                            .offset(y: 18 * scaleY)
                     )
-                    .frame(width: 12 * scaleX, height: 32 * scaleY)
-                    .overlay(Capsule().stroke(Color.white.opacity(0.25), lineWidth: 0.8))
+                    .overlay(
+                        // Top contour rim highlight
+                        Capsule()
+                            .fill(Color.white.opacity(0.16))
+                            .frame(width: 80 * scaleX, height: 2 * scaleY)
+                            .offset(y: -46 * scaleY)
+                    )
             }
-            .offset(y: 20 * scaleY)
+            .offset(y: -95 * scaleY)
         }
-        .frame(width: 150 * scaleX, height: 170 * scaleY)
+        .frame(width: 175 * scaleX, height: 235 * scaleY)
+    }
+}
+
+// MARK: - Minimalist Black Task Chair Armrest
+struct MinimalistArmrest: View {
+    let isLeft: Bool
+    let scaleX: CGFloat
+    let scaleY: CGFloat
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Soft PU Arm Pad
+            RoundedRectangle(cornerRadius: 3)
+                .fill(
+                    LinearGradient(
+                        colors: [Color(white: 0.25), Color(white: 0.12)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(width: 22 * scaleX, height: 5.5 * scaleY)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 3)
+                        .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
+                )
+            
+            // Vertical Upright Post
+            RoundedRectangle(cornerRadius: 1.5)
+                .fill(
+                    LinearGradient(
+                        colors: [Color(white: 0.20), Color(white: 0.10)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(width: 6 * scaleX, height: 24 * scaleY)
+        }
     }
 }
 
