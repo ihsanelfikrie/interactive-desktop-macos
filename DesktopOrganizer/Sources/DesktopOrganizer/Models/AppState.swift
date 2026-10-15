@@ -73,6 +73,12 @@ public final class AppState: ObservableObject {
         }
     }
     
+    @Published public var isMonitorScreenOn: Bool {
+        didSet {
+            UserDefaults.standard.set(isMonitorScreenOn, forKey: "isMonitorScreenOn")
+        }
+    }
+    
     @Published public var ladderX: CGFloat {
         didSet {
             UserDefaults.standard.set(Double(ladderX), forKey: "ladderX")
@@ -80,6 +86,7 @@ public final class AppState: ObservableObject {
     }
     
     @Published public var isLowPower: Bool = false
+    @Published public var isAppActive: Bool = true
     @Published public var showSpotifyPopup: Bool = false
     @Published public var showThemePicker: Bool = false
     @Published public var showHelpModal: Bool = false
@@ -196,6 +203,13 @@ public final class AppState: ObservableObject {
             self.lampOn = UserDefaults.standard.bool(forKey: "lampOn")
         } else {
             self.lampOn = true
+        }
+        
+        // Load monitor screen state
+        if UserDefaults.standard.object(forKey: "isMonitorScreenOn") != nil {
+            self.isMonitorScreenOn = UserDefaults.standard.bool(forKey: "isMonitorScreenOn")
+        } else {
+            self.isMonitorScreenOn = true
         }
         
         // Load ladderX

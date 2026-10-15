@@ -1,1 +1,0 @@
-// DesktopOrganizer Assets & Resource directory

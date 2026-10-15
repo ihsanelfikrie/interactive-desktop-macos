@@ -19,6 +19,12 @@ public struct DesktopRootView: View {
                 // 1. Pixel Art Room Background (100% full screen)
                 ThemeBackgroundView(theme: appState.currentTheme, isNightMode: !appState.lampOn)
                     .frame(width: w, height: h)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if !FloorInteractionState.shared.selectedFileNames.isEmpty {
+                            FloorInteractionState.shared.clearSelection()
+                        }
+                    }
                 
                 // 2. Interactive Hot Zones (Mapped 1:1 onto the illustrated furniture)
                 
@@ -82,10 +88,13 @@ public struct DesktopRootView: View {
                 
                 // Workstation iMac Monitor (Center of Desk - Click to open Finder)
                 let monitorW = w * 0.104
-                let monitorH = monitorW * (155.0 / 175.0)
+                let monitorH = monitorW * (170.0 / 175.0)
+                let monitorScale = monitorW / 175.0
                 WorkstationMonitorView()
+                    .frame(width: 175, height: 170)
+                    .scaleEffect(monitorScale)
                     .frame(width: monitorW, height: monitorH)
-                    .position(x: deskX, y: tabletopSurfaceY - (monitorH / 2) + 2)
+                    .position(x: deskX, y: tabletopSurfaceY - (monitorH / 2) + (13.5 * monitorScale))
                 
                 // Vintage Emerald & Brass Boudoir Lamp (Left Pedestal Top - Raised & Enlarged)
                 DeskLampView(isOn: appState.lampOn) {
@@ -510,7 +519,7 @@ struct HelpGuideModalView: View {
             HStack {
                 Image(systemName: "sparkles")
                     .foregroundColor(.yellow)
-                Text("Panduan Fitur Desktop Organizer")
+                Text("Panduan Fitur Custom Desktop Mac")
                     .font(.title2.bold())
                 Spacer()
                 Button(action: { isPresented = false }) {

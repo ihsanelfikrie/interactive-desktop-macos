@@ -730,6 +730,23 @@ public struct PhotoFrameQuickView: View {
                         .buttonStyle(.plain)
                         
                         Button(action: {
+                            storage.ejectPhotoToFloor(slotIndex: slotIndex)
+                            onClose()
+                        }) {
+                            HStack(spacing: 3) {
+                                Image(systemName: "arrow.down.right.and.arrow.up.left")
+                                Text("Ke Lantai")
+                            }
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(SANSColors.lime)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 5)
+                            .background(RoundedRectangle(cornerRadius: 6).fill(Color.black.opacity(0.12)))
+                        }
+                        .buttonStyle(.plain)
+                        .help("Keluarkan foto ke lantai rumput")
+                        
+                        Button(action: {
                             storage.removePhoto(slotIndex: slotIndex)
                             onClose()
                         }) {

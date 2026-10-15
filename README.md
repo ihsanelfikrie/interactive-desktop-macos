@@ -37,8 +37,8 @@ Aplikasi sudah dikompilasi ke format native `.app`:
 ## 📂 Lokasi Penyimpanan File
 
 Semua data dan file tersimpan rapi di direktori lokal kamu:
-`~/DesktopOrganizer/`
-- `Photos/` — Foto-foto yang dipajang di bingkai dinding
-- `Bookshelf/` — File dan folder yang disimpan di rak buku
-- `MagicCarpet/` — File yang disembunyikan di bawah karpet
+`~/Documents/DesktopRoom/`
+- `Album/` — Foto-foto yang dipajang di bingkai dinding
+- `Rak/` — File dan folder yang disimpan di rak buku
+- `Karpet/` — File yang disimpan di atas lantai/karpet ajaib
 - `notes.json` — Catatan sticky notes dan to-do list kamu

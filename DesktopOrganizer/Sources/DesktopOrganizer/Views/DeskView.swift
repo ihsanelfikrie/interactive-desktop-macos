@@ -504,79 +504,83 @@ struct CantileverChairView: View {
 
 // MARK: - Workstation iMac Monitor (Interactive Vector Display)
 public struct WorkstationMonitorView: View {
+    @ObservedObject var appState = AppState.shared
+    
     public init() {}
     
+    private var isScreenOn: Bool {
+        appState.isMonitorScreenOn
+    }
+    
     public var body: some View {
-        ZStack(alignment: .bottom) {
-                // Aluminum L-Stand Foot on desk
+        VStack(spacing: 0) {
+            // 1. Display Enclosure Body (Screen + Metallic Chin)
+            VStack(spacing: 0) {
+                // Retina Screen Area
                 ZStack {
-                    // Foot shadow on tabletop
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(Color.black.opacity(0.25))
-                        .frame(width: 64, height: 8)
-                        .blur(radius: 2)
-                        .offset(y: 3)
+                    // Outer Ultra-thin bezel
+                    RoundedRectangle(cornerRadius: 9)
+                        .fill(Color(white: 0.12))
+                        .frame(width: 175, height: 114)
+                        .shadow(color: .black.opacity(0.28), radius: 6, y: 3)
                     
-                    // Stand Base Plate
-                    RoundedRectangle(cornerRadius: 2.5)
-                        .fill(
-                            LinearGradient(
-                                colors: [Color(white: 0.90), Color(white: 0.75)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                        .frame(width: 62, height: 7)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 2.5)
-                                .stroke(Color.white.opacity(0.85), lineWidth: 0.5)
-                        )
-                    
-                    // Vertical Stand Stem
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(
-                            LinearGradient(
-                                colors: [Color(white: 0.82), Color(white: 0.70)],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(width: 32, height: 38)
-                        .offset(y: -16)
-                }
-                .offset(y: 12)
-                
-                // Display Enclosure Body
-                VStack(spacing: 0) {
-                    // Retina Screen Area
+                    // Active Screen Workspace Surface (User Custom Wallpaper or Sleeping Black Glass)
                     ZStack {
-                        // Outer Ultra-thin bezel
-                        RoundedRectangle(cornerRadius: 9)
-                            .fill(Color(white: 0.12))
-                            .frame(width: 175, height: 114)
-                            .shadow(color: .black.opacity(0.28), radius: 6, y: 3)
-                        
-                        // Active Screen Workspace Surface (Wallpaper Glow)
-                        RoundedRectangle(cornerRadius: 7)
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        Color(red: 0.10, green: 0.18, blue: 0.32),
-                                        Color(red: 0.16, green: 0.28, blue: 0.46),
-                                        Color(red: 0.28, green: 0.38, blue: 0.56)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
+                        // Deep Onyx Black LCD Panel (Active when off or beneath wallpaper)
+                        Color(red: 0.035, green: 0.040, blue: 0.045)
                             .frame(width: 167, height: 104)
+                            .cornerRadius(7)
+                        
+                        if isScreenOn {
+                            ZStack {
+                                if let nsImg = AssetLoader.image(named: "walpaper") {
+                                    Image(nsImage: nsImg)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: 167, height: 104)
+                                        .clipped()
+                                        .brightness(-0.06) // Sedikit redup agar terlihat menyatu natural di ruangan
+                                        .contrast(1.03)
+                                        .saturation(0.97)
+                                        .cornerRadius(7)
+                                } else {
+                                    RoundedRectangle(cornerRadius: 7)
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [
+                                                    Color(red: 0.10, green: 0.18, blue: 0.32),
+                                                    Color(red: 0.16, green: 0.28, blue: 0.46),
+                                                    Color(red: 0.28, green: 0.38, blue: 0.56)
+                                                ],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                        .frame(width: 167, height: 104)
+                                }
+                                
+                                // Ambient screen depth vignette
+                                RoundedRectangle(cornerRadius: 7)
+                                    .fill(
+                                        RadialGradient(
+                                            gradient: Gradient(colors: [
+                                                Color.clear,
+                                                Color.black.opacity(0.06),
+                                                Color.black.opacity(0.18)
+                                            ]),
+                                            center: .center,
+                                            startRadius: 45,
+                                            endRadius: 92
+                                        )
+                                    )
+                            }
                             .overlay(
                                 // Subtle macOS window buttons in screen
                                 VStack(spacing: 4) {
                                     HStack(spacing: 3) {
-                                        Circle().fill(Color.red.opacity(0.8)).frame(width: 3.5, height: 3.5)
-                                        Circle().fill(Color.yellow.opacity(0.8)).frame(width: 3.5, height: 3.5)
-                                        Circle().fill(Color.green.opacity(0.8)).frame(width: 3.5, height: 3.5)
+                                        Circle().fill(Color.red.opacity(0.85)).frame(width: 3.5, height: 3.5)
+                                        Circle().fill(Color.yellow.opacity(0.85)).frame(width: 3.5, height: 3.5)
+                                        Circle().fill(Color.green.opacity(0.85)).frame(width: 3.5, height: 3.5)
                                         Spacer()
                                     }
                                     .padding(.horizontal, 6)
@@ -604,117 +608,251 @@ public struct WorkstationMonitorView: View {
                                     .padding(.vertical, 2)
                                     .background(
                                         Capsule()
-                                            .fill(Color.white.opacity(0.18))
-                                            .overlay(Capsule().stroke(Color.white.opacity(0.30), lineWidth: 0.5))
+                                            .fill(Color.white.opacity(0.22))
+                                            .overlay(Capsule().stroke(Color.white.opacity(0.35), lineWidth: 0.5))
                                     )
                                     .shadow(color: .black.opacity(0.25), radius: 1, y: 1)
                                     .padding(.bottom, 4)
                                 }
                                 .frame(width: 167, height: 104)
                             )
-                        
-                        // Pristine Apple Retina Studio Glass Reflection & Bevel Catchlight
-                        ZStack {
-                            // 1. Subtle Optical Anti-Reflective Coating Sheen (Nano-texture Violet/Cyan Tint)
-                            LinearGradient(
-                                stops: [
-                                    .init(color: Color(red: 0.50, green: 0.35, blue: 0.90).opacity(0.05), location: 0.0),
-                                    .init(color: Color(red: 0.20, green: 0.65, blue: 0.85).opacity(0.03), location: 0.35),
-                                    .init(color: Color.clear, location: 0.70)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                            
-                            // 2. Corner Specular Softbox Flare (Top-Left Ambient Light Source)
-                            RadialGradient(
-                                gradient: Gradient(colors: [
-                                    Color.white.opacity(0.18),
-                                    Color.white.opacity(0.07),
-                                    Color.white.opacity(0.02),
-                                    Color.clear
-                                ]),
-                                center: .topLeading,
-                                startRadius: 0,
-                                endRadius: 85
-                            )
-                            
-                            // 3. Studio Window Pane Reflections (Two Soft Diffuse Light Bands)
-                            HStack(spacing: 10) {
-                                Rectangle()
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [Color.white.opacity(0.14), Color.white.opacity(0.01)],
-                                            startPoint: .top,
-                                            endPoint: .bottom
-                                        )
-                                    )
-                                    .frame(width: 28, height: 160)
-                                    .rotationEffect(.degrees(-30))
-                                
-                                Rectangle()
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [Color.white.opacity(0.09), Color.white.opacity(0.01)],
-                                            startPoint: .top,
-                                            endPoint: .bottom
-                                        )
-                                    )
-                                    .frame(width: 14, height: 160)
-                                    .rotationEffect(.degrees(-30))
-                            }
-                            .blur(radius: 3.5)
-                            .offset(x: -28, y: -12)
-                            
-                            // 4. Crisp Inner Glass Perimeter Catchlight (0.75pt Bezel Reflection)
-                            RoundedRectangle(cornerRadius: 7)
-                                .stroke(
+                            .transition(.opacity)
+                        }
+                    }
+                    .frame(width: 167, height: 104)
+                    .clipShape(RoundedRectangle(cornerRadius: 7))
+                    
+                    // Pristine Apple Retina Studio Glass Reflection & Bevel Catchlight (Diperkuat natural)
+                    ZStack {
+                        // 1. Studio Window Light Pane Reflections (Angled diagonal light streaks)
+                        HStack(spacing: 8) {
+                            Rectangle()
+                                .fill(
                                     LinearGradient(
                                         stops: [
-                                            .init(color: Color.white.opacity(0.42), location: 0.0),
-                                            .init(color: Color.white.opacity(0.15), location: 0.25),
-                                            .init(color: Color.white.opacity(0.03), location: 0.55),
+                                            .init(color: Color.white.opacity(0.30), location: 0.0),
+                                            .init(color: Color.white.opacity(0.12), location: 0.45),
+                                            .init(color: Color.white.opacity(0.01), location: 0.90)
+                                        ],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
+                                )
+                                .frame(width: 32, height: 170)
+                                .rotationEffect(.degrees(-32))
+                            
+                            Rectangle()
+                                .fill(
+                                    LinearGradient(
+                                        stops: [
+                                            .init(color: Color.white.opacity(0.20), location: 0.0),
+                                            .init(color: Color.white.opacity(0.08), location: 0.45),
+                                            .init(color: Color.white.opacity(0.01), location: 0.85)
+                                        ],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
+                                )
+                                .frame(width: 16, height: 170)
+                                .rotationEffect(.degrees(-32))
+                            
+                            Rectangle()
+                                .fill(
+                                    LinearGradient(
+                                        stops: [
+                                            .init(color: Color.white.opacity(0.10), location: 0.0),
+                                            .init(color: Color.white.opacity(0.02), location: 0.50),
                                             .init(color: Color.clear, location: 0.80)
                                         ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ),
-                                    lineWidth: 0.75
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
                                 )
+                                .frame(width: 40, height: 170)
+                                .rotationEffect(.degrees(-32))
                         }
-                        .frame(width: 167, height: 104)
-                        .clipShape(RoundedRectangle(cornerRadius: 7))
-                        .allowsHitTesting(false)
+                        .blur(radius: 3.0)
+                        .offset(x: -22, y: -10)
+                        
+                        // 2. Corner Specular Softbox Flare (Overhead light catch)
+                        RadialGradient(
+                            gradient: Gradient(colors: [
+                                Color.white.opacity(0.34),
+                                Color.white.opacity(0.15),
+                                Color.white.opacity(0.04),
+                                Color.clear
+                            ]),
+                            center: .topLeading,
+                            startRadius: 0,
+                            endRadius: 90
+                        )
+                        
+                        // 3. Diagonal Curved Screen Sheen & Glass Fresnel Glare
+                        LinearGradient(
+                            stops: [
+                                .init(color: Color.white.opacity(0.22), location: 0.0),
+                                .init(color: Color.white.opacity(0.07), location: 0.30),
+                                .init(color: Color.clear, location: 0.62)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        
+                        // 4. Subtle Anti-Reflective Optical Coating Tint
+                        LinearGradient(
+                            stops: [
+                                .init(color: Color(red: 0.48, green: 0.35, blue: 0.95).opacity(0.07), location: 0.0),
+                                .init(color: Color(red: 0.15, green: 0.70, blue: 0.85).opacity(0.04), location: 0.35),
+                                .init(color: Color.clear, location: 0.75)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        
+                        // 5. Crisp Inner Glass Perimeter Catchlight
+                        RoundedRectangle(cornerRadius: 7)
+                            .stroke(
+                                LinearGradient(
+                                    stops: [
+                                        .init(color: Color.white.opacity(0.65), location: 0.0),
+                                        .init(color: Color.white.opacity(0.26), location: 0.25),
+                                        .init(color: Color.white.opacity(0.05), location: 0.55),
+                                        .init(color: Color.clear, location: 0.80)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 0.85
+                            )
                     }
+                    .frame(width: 167, height: 104)
+                    .clipShape(RoundedRectangle(cornerRadius: 7))
+                    .opacity(isScreenOn ? 1.0 : 1.25)
+                    .allowsHitTesting(false)
+                }
+                
+                // Iconic Metallic Aluminum Chin
+                ZStack {
+                    Rectangle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(white: 0.92), Color(white: 0.78)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .frame(width: 175, height: 18)
+                        .overlay(
+                            Rectangle()
+                                .stroke(Color.white.opacity(0.6), lineWidth: 0.5)
+                        )
                     
-                    // Iconic Metallic Aluminum Chin
-                    ZStack {
-                        Rectangle()
+                    // Apple logo silhouette
+                    Image(systemName: "applelogo")
+                        .font(.system(size: 8, weight: .semibold))
+                        .foregroundColor(Color.black.opacity(0.35))
+                }
+            }
+            .shadow(color: .black.opacity(0.18), radius: 4, y: 3)
+            
+            // 2. Visible Brushed Aluminum Stand Grounded on Desk Surface
+            VStack(spacing: 0) {
+                // Vertical / Angled Aluminum Neck Stem
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(white: 0.84), Color(white: 0.68), Color(white: 0.78)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: 34, height: 24)
+                    .overlay(
+                        HStack {
+                            Rectangle().fill(Color.white.opacity(0.55)).frame(width: 1)
+                            Spacer()
+                            Rectangle().fill(Color.black.opacity(0.22)).frame(width: 1)
+                        }
+                    )
+                    .shadow(color: .black.opacity(0.18), radius: 2, y: 1)
+                
+                // Stand Foot / Aluminum Base Plate in 2.5D Perspective
+                ZStack(alignment: .bottom) {
+                    // Tabletop ambient occlusion contact shadow directly under foot
+                    Ellipse()
+                        .fill(Color.black.opacity(0.42))
+                        .frame(width: 78, height: 9)
+                        .blur(radius: 2.5)
+                        .offset(y: 3)
+                    
+                    VStack(spacing: 0) {
+                        // Top horizontal perspective plane
+                        RoundedRectangle(cornerRadius: 3.5)
                             .fill(
                                 LinearGradient(
-                                    colors: [Color(white: 0.90), Color(white: 0.78)],
+                                    colors: [
+                                        Color(white: 0.95),
+                                        Color(white: 0.82),
+                                        Color(white: 0.88)
+                                    ],
                                     startPoint: .top,
                                     endPoint: .bottom
                                 )
                             )
-                            .frame(width: 175, height: 18)
+                            .frame(width: 72, height: 11.5)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 3.5)
+                                    .stroke(
+                                        LinearGradient(
+                                            colors: [Color.white.opacity(0.95), Color(white: 0.75)],
+                                            startPoint: .top,
+                                            endPoint: .bottom
+                                        ),
+                                        lineWidth: 0.6
+                                    )
+                            )
                         
-                        // Apple logo silhouette
-                        Image(systemName: "applelogo")
-                            .font(.system(size: 8, weight: .semibold))
-                            .foregroundColor(Color.black.opacity(0.35))
+                        // Front chamfer edge
+                        RoundedRectangle(cornerRadius: 1.5)
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color(white: 0.76), Color(white: 0.60)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .frame(width: 72, height: 2.5)
                     }
                 }
+                .frame(width: 78, height: 14)
             }
-            .frame(width: 175, height: 155)
-            .contentShape(Rectangle())
-            .onTapGesture(count: 2) {
-                NSWorkspace.shared.activateFileViewerSelecting([FileManager.default.homeDirectoryForCurrentUser])
+            .frame(width: 175, height: 38)
+        }
+        .frame(width: 175, height: 170)
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2) {
+            NSWorkspace.shared.activateFileViewerSelecting([FileManager.default.homeDirectoryForCurrentUser])
+        }
+        .onTapGesture {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                appState.isMonitorScreenOn.toggle()
             }
-            .onTapGesture {
+        }
+        .contextMenu {
+            Button(isScreenOn ? "Matikan Layar Komputer" : "Nyalakan Layar Komputer") {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    appState.isMonitorScreenOn.toggle()
+                }
+            }
+            Button("Buka Info Sistem & Spesifikasi Mac") {
                 AppState.shared.toggleQuickView(.monitor)
             }
-            .help("Layar iMac: Klik untuk melihat info Mac & akses cepat, klik 2x untuk buka Finder")
+            Divider()
+            Button("Buka Finder") {
+                NSWorkspace.shared.activateFileViewerSelecting([FileManager.default.homeDirectoryForCurrentUser])
+            }
+        }
+        .help(isScreenOn ? "Layar iMac: Klik 1x untuk mematikan layar, klik 2x untuk buka Finder" : "Layar iMac: Klik 1x untuk menyalakan layar")
     }
 }
 
@@ -1035,55 +1173,60 @@ struct FloatingNotesView: View {
         NoteParticle(symbol: "♬", color: Color(red: 0.40, green: 0.88, blue: 1.0), size: 15, baseX: 4, delay: 1.65, swaySpeed: 2.5, floatDistance: 28)
     ]
     
+    @ViewBuilder
     var body: some View {
-        let updateRate: TimeInterval = appState.isWindowVisible ? (1.0 / 30.0) : 1.0
-        TimelineView(.periodic(from: .now, by: updateRate)) { timeline in
-            let time = timeline.date.timeIntervalSinceReferenceDate
-            let loopDuration: Double = 2.2
-            
-            ZStack {
-                ForEach(0..<particles.count, id: \.self) { idx in
-                    let p = particles[idx]
-                    // Loop progress 0.0 -> 1.0 for each note with delay offset
-                    let rawProgress = (time + p.delay).truncatingRemainder(dividingBy: loopDuration) / loopDuration
-                    let progress = min(max(rawProgress, 0.0), 1.0)
-                    
-                    // Smooth fade-in (first 20%) and fade-out (last 30%)
-                    let opacity: Double = {
-                        if progress < 0.20 {
-                            return progress / 0.20
-                        } else if progress > 0.70 {
-                            return max(0.0, (1.0 - progress) / 0.30)
-                        } else {
-                            return 1.0
-                        }
-                    }()
-                    
-                    // Scale: pop in slightly, float up, dissolve
-                    let scale: CGFloat = {
-                        if progress < 0.20 {
-                            return 0.6 + CGFloat(progress / 0.20) * 0.4
-                        } else {
-                            return 1.0 + CGFloat(sin(progress * .pi)) * 0.15
-                        }
-                    }()
-                    
-                    // Vertical rise & horizontal graceful sway
-                    let offsetY = -4 - (progress * p.floatDistance)
-                    let offsetX = p.baseX + CGFloat(sin((time * p.swaySpeed) + Double(idx))) * 4.5
-                    let rotation = sin((time * 2.0) + Double(idx)) * 12.0
-                    
-                    Text(p.symbol)
-                        .font(.system(size: p.size, weight: .bold))
-                        .foregroundColor(p.color)
-                        .scaleEffect(scale)
-                        .rotationEffect(.degrees(rotation))
-                        .offset(x: offsetX, y: offsetY)
-                        .opacity(opacity)
-                        .shadow(color: p.color.opacity(0.80), radius: 3, x: 0, y: 1)
+        let isActive = appState.isWindowVisible && appState.isAppActive && !appState.isLowPower
+        if !isActive {
+            EmptyView()
+        } else {
+            TimelineView(.periodic(from: .now, by: 1.0 / 30.0)) { timeline in
+                let time = timeline.date.timeIntervalSinceReferenceDate
+                let loopDuration: Double = 2.2
+                
+                ZStack {
+                    ForEach(0..<particles.count, id: \.self) { idx in
+                        let p = particles[idx]
+                        // Loop progress 0.0 -> 1.0 for each note with delay offset
+                        let rawProgress = (time + p.delay).truncatingRemainder(dividingBy: loopDuration) / loopDuration
+                        let progress = min(max(rawProgress, 0.0), 1.0)
+                        
+                        // Smooth fade-in (first 20%) and fade-out (last 30%)
+                        let opacity: Double = {
+                            if progress < 0.20 {
+                                return progress / 0.20
+                            } else if progress > 0.70 {
+                                return max(0.0, (1.0 - progress) / 0.30)
+                            } else {
+                                return 1.0
+                            }
+                        }()
+                        
+                        // Scale: pop in slightly, float up, dissolve
+                        let scale: CGFloat = {
+                            if progress < 0.20 {
+                                return 0.6 + CGFloat(progress / 0.20) * 0.4
+                            } else {
+                                return 1.0 + CGFloat(sin(progress * .pi)) * 0.15
+                            }
+                        }()
+                        
+                        // Vertical rise & horizontal graceful sway
+                        let offsetY = -4 - (progress * p.floatDistance)
+                        let offsetX = p.baseX + CGFloat(sin((time * p.swaySpeed) + Double(idx))) * 4.5
+                        let rotation = sin((time * 2.0) + Double(idx)) * 12.0
+                        
+                        Text(p.symbol)
+                            .font(.system(size: p.size, weight: .bold))
+                            .foregroundColor(p.color)
+                            .scaleEffect(scale)
+                            .rotationEffect(.degrees(rotation))
+                            .offset(x: offsetX, y: offsetY)
+                            .opacity(opacity)
+                            .shadow(color: p.color.opacity(0.80), radius: 3, x: 0, y: 1)
+                    }
                 }
+                .frame(width: 48, height: 42)
             }
-            .frame(width: 48, height: 42)
         }
     }
 }

@@ -53,7 +53,7 @@ public final class StorageManager: ObservableObject {
     private let layoutFileURL: URL
     private let transformsFileURL: URL
     private let floorPositionsFileURL: URL
-    private var dirSource: DispatchSourceFileSystemObject?
+    private var dirSources: [DispatchSourceFileSystemObject] = []
     
     @Published public var bookshelfItems: [URL] = []
     @Published public var carpetItems: [URL] = []
@@ -144,23 +144,26 @@ public final class StorageManager: ObservableObject {
         }
     }
     
-    // Auto-refresh when files change in DesktopRoom
+    // Auto-refresh when files change in DesktopRoom or any subfolder (Karpet, Rak, Album)
     private func watchDirectory() {
-        let descriptor = open(baseDirectory.path, O_EVTONLY)
-        guard descriptor >= 0 else { return }
-        let source = DispatchSource.makeFileSystemObjectSource(
-            fileDescriptor: descriptor,
-            eventMask: [.write, .rename, .delete],
-            queue: .main
-        )
-        source.setEventHandler { [weak self] in
-            self?.loadAllData()
+        let dirsToWatch = [baseDirectory, carpetDirectory, bookshelfDirectory, photosDirectory]
+        for dir in dirsToWatch {
+            let descriptor = open(dir.path, O_EVTONLY)
+            guard descriptor >= 0 else { continue }
+            let source = DispatchSource.makeFileSystemObjectSource(
+                fileDescriptor: descriptor,
+                eventMask: [.write, .rename, .delete, .extend],
+                queue: .main
+            )
+            source.setEventHandler { [weak self] in
+                self?.loadAllData()
+            }
+            source.setCancelHandler {
+                close(descriptor)
+            }
+            source.resume()
+            self.dirSources.append(source)
         }
-        source.setCancelHandler {
-            close(descriptor)
-        }
-        source.resume()
-        self.dirSource = source
     }
     
     public func loadAllData() {
@@ -427,8 +430,13 @@ public final class StorageManager: ObservableObject {
     public func refreshCarpet() {
         let fileManager = FileManager.default
         if let contents = try? fileManager.contentsOfDirectory(at: carpetDirectory, includingPropertiesForKeys: [.contentModificationDateKey], options: [.skipsHiddenFiles]) {
-            DispatchQueue.main.async {
-                self.carpetItems = contents.sorted(by: { $0.lastPathComponent < $1.lastPathComponent })
+            let sorted = contents.sorted(by: { $0.lastPathComponent < $1.lastPathComponent })
+            if Thread.isMainThread {
+                self.carpetItems = sorted
+            } else {
+                DispatchQueue.main.async {
+                    self.carpetItems = sorted
+                }
             }
         }
     }
@@ -505,7 +513,7 @@ public final class StorageManager: ObservableObject {
             saveFloorPositions()
             refreshCarpet()
         } catch {
-            print("DesktopOrganizer: gagal mengembalikan \(itemURL.lastPathComponent): \(error)")
+            print("Custom Desktop Mac: gagal mengembalikan \(itemURL.lastPathComponent): \(error)")
         }
     }
     
@@ -565,23 +573,49 @@ public final class StorageManager: ObservableObject {
         return false
     }
     
-    // Natural scattered coordinates across grass lawn
+    // Natural scattered coordinates across open grass lawn (guaranteed visible, outside carpet)
     public static func scatteredPosition(for filename: String) -> CGPoint {
         let hash = abs(filename.hashValue)
-        let jitterX = Double(hash % 1000) / 1000.0
-        let jitterY = Double((hash / 1000) % 1000) / 1000.0
-        let normX = 0.15 + (jitterX * 0.70)
-        let normY = 0.72 + (jitterY * 0.22)
-        return CGPoint(x: normX, y: normY)
+        // Carpet is typically at center (normX: 0.30 ... 0.70, normY: 0.74 ... 0.88)
+        // Spread items across the open left grass lawn (normX: 0.10 ... 0.29, normY: 0.75 ... 0.88)
+        // or the right open lawn area (normX: 0.76 ... 0.86, normY: 0.79 ... 0.88)
+        let slot = hash % 8
+        if slot < 6 {
+            // Left open grass lawn (ample open space under bookshelf)
+            let col = slot % 3
+            let row = slot / 3
+            let jitterX = Double((hash / 17) % 100) / 100.0 * 0.05
+            let jitterY = Double((hash / 1000) % 100) / 100.0 * 0.04
+            let normX = 0.10 + (Double(col) * 0.07) + jitterX
+            let normY = 0.75 + (Double(row) * 0.065) + jitterY
+            return CGPoint(x: normX, y: normY)
+        } else {
+            // Right open grass lawn
+            let sub = slot - 6
+            let jitterX = Double((hash / 17) % 100) / 100.0 * 0.04
+            let jitterY = Double((hash / 1000) % 100) / 100.0 * 0.04
+            let normX = 0.76 + (Double(sub) * 0.05) + jitterX
+            let normY = 0.80 + jitterY
+            return CGPoint(x: normX, y: normY)
+        }
     }
     
     public func positionForFloorItem(filename: String, index: Int, total: Int) -> CGPoint {
         if let stored = floorItemPositions[filename] {
-            let clampedX = min(0.96, max(0.04, CGFloat(stored.x)))
-            let clampedY = min(0.96, max(0.68, CGFloat(stored.y)))
-            return CGPoint(x: clampedX, y: clampedY)
+            // Sanitize older positions that were pushed off-screen into the Dock (y >= 0.90) or out of bounds
+            if stored.y < 0.90 && stored.y >= 0.70 {
+                let clampedX = min(0.92, max(0.08, CGFloat(stored.x)))
+                let clampedY = min(0.88, max(0.72, CGFloat(stored.y)))
+                return CGPoint(x: clampedX, y: clampedY)
+            }
         }
         return Self.scatteredPosition(for: filename)
+    }
+    
+    public func scatterAllItemsToLawn() {
+        floorItemPositions.removeAll()
+        saveFloorPositions()
+        refreshCarpet()
     }
     
     public func moveFloorItemsToBookshelf(filenames: [String]) {
@@ -654,7 +688,7 @@ public final class StorageManager: ObservableObject {
             guard let script = NSAppleScript(source: scriptSource) else { return }
             let desc = script.executeAndReturnError(&error)
             guard error == nil else {
-                print("DesktopOrganizer: AppleScript error: \(String(describing: error))")
+                print("Custom Desktop Mac: AppleScript error: \(String(describing: error))")
                 return
             }
             

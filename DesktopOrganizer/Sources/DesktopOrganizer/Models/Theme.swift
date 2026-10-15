@@ -52,8 +52,8 @@ public enum RoomTheme: String, CaseIterable, Identifiable, Codable {
 public final class AssetLoader {
     private static let cache: NSCache<NSString, NSImage> = {
         let c = NSCache<NSString, NSImage>()
-        c.countLimit = 64
-        c.totalCostLimit = 40 * 1024 * 1024 // 40MB max, auto-purged under RAM pressure
+        c.countLimit = 32
+        c.totalCostLimit = 16 * 1024 * 1024 // 16MB max, auto-purged under RAM pressure
         return c
     }()
     
@@ -64,21 +64,35 @@ public final class AssetLoader {
         return img
     }
     
+    public static func purgeMemory() {
+        cache.removeAllObjects()
+    }
+    
     public static func image(named name: String) -> NSImage? {
         if let cached = cache.object(forKey: name as NSString) {
             return cached
         }
         
-        let cleanName = name.hasSuffix(".png") ? String(name.dropLast(4)) : name
+        var cleanName = name
+        for ext in [".png", ".jpg", ".jpeg"] {
+            if cleanName.hasSuffix(ext) {
+                cleanName = String(cleanName.dropLast(ext.count))
+                break
+            }
+        }
+        
+        let extensions = ["png", "jpg", "jpeg"]
         
         // 1. Check Bundle.module if available
         #if SWIFT_PACKAGE
         if let img = Bundle.module.image(forResource: cleanName) {
             return cacheImage(img, for: name)
         }
-        if let path = Bundle.module.path(forResource: cleanName, ofType: "png"),
-           let img = NSImage(contentsOfFile: path) {
-            return cacheImage(img, for: name)
+        for ext in extensions {
+            if let path = Bundle.module.path(forResource: cleanName, ofType: ext),
+               let img = NSImage(contentsOfFile: path) {
+                return cacheImage(img, for: name)
+            }
         }
         #endif
         
@@ -86,22 +100,25 @@ public final class AssetLoader {
         if let img = NSImage(named: cleanName) {
             return cacheImage(img, for: name)
         }
-        if let path = Bundle.main.path(forResource: cleanName, ofType: "png"),
-           let img = NSImage(contentsOfFile: path) {
-            return cacheImage(img, for: name)
+        for ext in extensions {
+            if let path = Bundle.main.path(forResource: cleanName, ofType: ext),
+               let img = NSImage(contentsOfFile: path) {
+                return cacheImage(img, for: name)
+            }
         }
         
         // 3. Check inside Resources subfolder / Custom Desktop Mac.app
         let main = Bundle.main.bundleURL
-        let checks = [
-            main.appendingPathComponent("Contents/Resources/\(cleanName).png"),
-            main.appendingPathComponent("Contents/Resources/DesktopOrganizer_DesktopOrganizer.bundle/Contents/Resources/\(cleanName).png"),
-            URL(fileURLWithPath: "Sources/DesktopOrganizer/Resources/\(cleanName).png")
-        ]
-        
-        for url in checks {
-            if let img = NSImage(contentsOf: url) {
-                return cacheImage(img, for: name)
+        for ext in extensions {
+            let checks = [
+                main.appendingPathComponent("Contents/Resources/\(cleanName).\(ext)"),
+                main.appendingPathComponent("Contents/Resources/DesktopOrganizer_DesktopOrganizer.bundle/Contents/Resources/\(cleanName).\(ext)"),
+                URL(fileURLWithPath: "Sources/DesktopOrganizer/Resources/\(cleanName).\(ext)")
+            ]
+            for url in checks {
+                if let img = NSImage(contentsOf: url) {
+                    return cacheImage(img, for: name)
+                }
             }
         }
         

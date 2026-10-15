@@ -4,7 +4,7 @@ set -e
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 cd "$DIR"
 
-echo "🔨 Membangun DesktopOrganizer versi Release..."
+echo "🔨 Membangun Custom Desktop Mac versi Release..."
 ./bundle_app.sh
 
 APP_BUNDLE="../Custom Desktop Mac.app"

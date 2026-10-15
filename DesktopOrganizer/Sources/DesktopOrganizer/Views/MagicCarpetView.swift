@@ -7,7 +7,7 @@ final class FileIconCache {
     static let shared = FileIconCache()
     private let cache: NSCache<NSURL, NSImage> = {
         let c = NSCache<NSURL, NSImage>()
-        c.countLimit = 64
+        c.countLimit = 32
         return c
     }()
     
@@ -20,7 +20,12 @@ final class FileIconCache {
         cache.setObject(icon, forKey: key)
         return icon
     }
+    
+    func purge() {
+        cache.removeAllObjects()
+    }
 }
+
 
 // MARK: - Magic Carpet & Grass Floor File Interactive View
 public struct MagicCarpetView: View {
@@ -37,7 +42,7 @@ public struct MagicCarpetView: View {
     public var body: some View {
         let w = screenSize.width
         let h = screenSize.height
-        let floorMinY = h * 0.68
+        let floorMinY = h * 0.58
         let floorHeight = h - floorMinY
         
         let baseCarpetX = storage.carpetPositionNorm.x * w
@@ -66,34 +71,64 @@ public struct MagicCarpetView: View {
         }.count
         
         ZStack(alignment: .topLeading) {
-            // LAYER 1: Full Lawn Drop Zone (Transparent drop receiver across entire grass floor)
-            // LAYER 1: Full Lawn Drop Zone & Marquee Multi-Select ("Blok") Area
+            // LAYER -1: Full-Screen Deselect Tap Catcher (Click anywhere outside files to cancel block selection)
+            if !floorState.selectedFileNames.isEmpty {
+                Color.black.opacity(0.0001)
+                    .contentShape(Rectangle())
+                    .frame(width: w, height: h)
+                    .position(x: w * 0.5, y: h * 0.5)
+                    .onTapGesture {
+                        floorState.clearSelection()
+                    }
+                    .zIndex(1)
+            }
+            
+            // LAYER 0: Full Lawn Drop Zone (Transparent drop receiver across entire grass floor for Finder drops)
             Color.clear
                 .contentShape(Rectangle())
                 .frame(width: w, height: floorHeight)
                 .position(x: w * 0.5, y: floorMinY + (floorHeight * 0.5))
                 .onDrop(of: [.fileURL, .folder, .directory, .item], delegate: FloorDropDelegate(screenSize: screenSize, storage: storage))
+                .overlay(
+                    Group {
+                        if floorState.isFloorTargeted {
+                            FloorDropHighlightOverlay()
+                        }
+                    }
+                )
+            
+            // LAYER 1: Dedicated Marquee Multi-Select ("Blok") Gesture Area across Grass Lawn
+            Color.black.opacity(0.001)
+                .contentShape(Rectangle())
+                .frame(width: w, height: floorHeight)
+                .position(x: w * 0.5, y: floorMinY + (floorHeight * 0.5))
+                .onTapGesture {
+                    floorState.clearSelection()
+                }
                 .gesture(
                     DragGesture(minimumDistance: 3, coordinateSpace: .global)
                         .onChanged { value in
                             floorState.isMarqueeSelecting = true
-                            floorState.marqueeStart = value.startLocation
-                            floorState.marqueeCurrent = value.location
                             
-                            let start = value.startLocation
-                            let curr = value.location
+                            let startPt = value.startLocation
+                            let currPt = value.location
+                            
+                            floorState.marqueeStart = startPt
+                            floorState.marqueeCurrent = currPt
+                            
                             let box = CGRect(
-                                x: min(start.x, curr.x),
-                                y: min(start.y, curr.y),
-                                width: max(abs(curr.x - start.x), 1),
-                                height: max(abs(curr.y - start.y), 1)
+                                x: min(startPt.x, currPt.x),
+                                y: min(startPt.y, currPt.y),
+                                width: max(abs(currPt.x - startPt.x), 1),
+                                height: max(abs(currPt.y - startPt.y), 1)
                             )
                             
                             var newlySelected: Set<String> = []
                             for item in storage.carpetItems {
                                 let p = storage.positionForFloorItem(filename: item.lastPathComponent, index: 0, total: 1)
                                 let itemPt = CGPoint(x: p.x * w, y: p.y * h)
-                                if box.contains(itemPt) {
+                                let itemRect = CGRect(x: itemPt.x - 36, y: itemPt.y - 36, width: 72, height: 72)
+                                if box.intersects(itemRect) {
                                     newlySelected.insert(item.lastPathComponent)
                                 }
                             }
@@ -101,7 +136,7 @@ public struct MagicCarpetView: View {
                         }
                         .onEnded { value in
                             let dist = hypot(value.translation.width, value.translation.height)
-                            if dist < 5 {
+                            if dist < 4 {
                                 floorState.clearSelection()
                                 if floorState.isCarpetLifted {
                                     withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
@@ -114,15 +149,8 @@ public struct MagicCarpetView: View {
                             floorState.marqueeCurrent = nil
                         }
                 )
-                .overlay(
-                    Group {
-                        if floorState.isFloorTargeted {
-                            FloorDropHighlightOverlay()
-                        }
-                    }
-                )
             
-            // Marquee ("Blok") Selection Box Visualizer
+            // Native macOS Finder Rubber-Band Selection Box ("Drag Blok")
             if floorState.isMarqueeSelecting,
                let start = floorState.marqueeStart,
                let curr = floorState.marqueeCurrent {
@@ -133,11 +161,15 @@ public struct MagicCarpetView: View {
                     height: max(abs(curr.y - start.y), 1)
                 )
                 Rectangle()
-                    .stroke(SANSColors.lime, style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
-                    .background(Rectangle().fill(SANSColors.primaryBlue.opacity(0.18)))
+                    .fill(Color(NSColor.selectedControlColor).opacity(0.24))
+                    .overlay(
+                        Rectangle()
+                            .stroke(Color(NSColor.controlAccentColor).opacity(0.85), lineWidth: 1.0)
+                    )
                     .frame(width: box.width, height: box.height)
                     .position(x: box.midX, y: box.midY)
                     .allowsHitTesting(false)
+                    .zIndex(45)
             }
             
             // LAYER 2: Files & Folders placed on the grass lawn
@@ -191,7 +223,7 @@ public struct MagicCarpetView: View {
                         }
                     }
                 )
-                .position(x: w * 0.5, y: h * 0.94)
+                .position(x: w * 0.5, y: h * 0.88)
                 .zIndex(50)
                 .transition(.scale(scale: 0.9).combined(with: .opacity))
             }
@@ -367,9 +399,13 @@ struct MovableCarpetMatView: View {
                     floorState.isCarpetDragging = false
                     
                     if dist < 6 {
-                        // Click / tap action: toggle peek / lift
-                        withAnimation(.spring(response: 0.36, dampingFraction: 0.72)) {
-                            floorState.isCarpetLifted.toggle()
+                        if !floorState.selectedFileNames.isEmpty {
+                            floorState.clearSelection()
+                        } else {
+                            // Click / tap action: toggle peek / lift
+                            withAnimation(.spring(response: 0.36, dampingFraction: 0.72)) {
+                                floorState.isCarpetLifted.toggle()
+                            }
                         }
                         floorState.carpetDragOffset = .zero
                     } else {
@@ -407,6 +443,12 @@ struct MovableCarpetMatView: View {
             Button("Rapikan File di Bawah Karpet") {
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                     storage.tidyCarpetItemPositions()
+                }
+            }
+            
+            Button("Sebarkan Semua File ke Lantai Rumput") {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                    storage.scatterAllItemsToLawn()
                 }
             }
             
@@ -478,8 +520,8 @@ struct FloorItemView: View {
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(SANSColors.lime)
-                        .background(Circle().fill(Color.black))
+                        .foregroundColor(Color(NSColor.controlAccentColor))
+                        .background(Circle().fill(Color.white))
                         .offset(x: -26, y: -4)
                 }
                 
@@ -512,11 +554,11 @@ struct FloorItemView: View {
                 .padding(.vertical, 2)
                 .background(
                     Capsule()
-                        .fill(isSelected ? SANSColors.primaryBlue.opacity(0.9) : Color.black.opacity(0.72))
+                        .fill(isSelected ? Color(NSColor.selectedControlColor) : Color.black.opacity(0.72))
                 )
                 .overlay(
                     Capsule()
-                        .stroke(isSelected ? SANSColors.lime : (isCovered ? Color.yellow.opacity(0.4) : Color.white.opacity(0.18)), lineWidth: isSelected ? 1.5 : 0.8)
+                        .stroke(isSelected ? Color.white.opacity(0.75) : (isCovered ? Color.yellow.opacity(0.4) : Color.white.opacity(0.18)), lineWidth: isSelected ? 1.2 : 0.8)
                 )
                 .shadow(color: .black.opacity(0.4), radius: 2, y: 1)
         }
@@ -546,11 +588,7 @@ struct FloorItemView: View {
                     
                     let dist = hypot(value.translation.width, value.translation.height)
                     if dist < 5 {
-                        if NSEvent.modifierFlags.contains(.shift) || NSEvent.modifierFlags.contains(.command) {
-                            floorState.toggleSelection(for: itemURL.lastPathComponent)
-                        } else {
-                            AppState.shared.toggleQuickView(.carpetItem(url: itemURL))
-                        }
+                        floorState.toggleSelection(for: itemURL.lastPathComponent)
                     } else {
                         let basePos = storage.positionForFloorItem(filename: itemURL.lastPathComponent, index: 0, total: 1)
                         let releasePoint = CGPoint(x: (basePos.x * w) + value.translation.width, y: (basePos.y * h) + value.translation.height)
@@ -706,11 +744,11 @@ struct FloorDropDelegate: DropDelegate {
         let loc = info.location
         let w = screenSize.width
         let h = screenSize.height
-        let floorMinY = h * 0.68
+        let floorMinY = h * 0.58
         let screenX = loc.x
-        let screenY = floorMinY + loc.y
-        let normX = min(0.95, max(0.05, screenX / w))
-        let normY = min(0.96, max(0.68, screenY / h))
+        let screenY = loc.y >= floorMinY ? loc.y : (floorMinY + loc.y)
+        let normX = min(0.92, max(0.08, screenX / w))
+        let normY = min(0.88, max(floorMinY / h, screenY / h))
         
         let providers = info.itemProviders(for: [.fileURL, .folder, .directory, .item])
         guard !providers.isEmpty else { return false }
@@ -989,6 +1027,7 @@ struct ArabicRugView: View {
                 .allowsHitTesting(false)
             }
             .frame(width: rugWidth, height: rugHeight)
+            .drawingGroup()
             
             // Right Ivory Fringe Tassels
             RugFringeEdge(isLeading: false)

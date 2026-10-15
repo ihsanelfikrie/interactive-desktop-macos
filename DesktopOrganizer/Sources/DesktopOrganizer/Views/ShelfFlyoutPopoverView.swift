@@ -229,6 +229,23 @@ public struct ShelfFlyoutPopoverView: View {
                             Spacer()
                             
                             Button(action: {
+                                storage.ejectBookshelfItemToFloor(itemURL: url)
+                                onClose()
+                            }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "arrow.down.right.and.arrow.up.left")
+                                    Text("Ke Lantai")
+                                }
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(SANSColors.lime)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 5)
+                                .background(Capsule().fill(Color.primary.opacity(0.12)))
+                            }
+                            .buttonStyle(.plain)
+                            .help("Keluarkan ke lantai rumput")
+                            
+                            Button(action: {
                                 storage.restoreBookshelfItemToDesktop(itemURL: url)
                                 onClose()
                             }) {

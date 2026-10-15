@@ -48,6 +48,7 @@ public final class DesktopWindowManager: ObservableObject {
         
         // Setup occlusion observer for zero-CPU background throttling
         setupOcclusionObserver(for: window)
+        setupAppActiveObserver()
         
         // Normal window level by default so all clicks, textfields, and drag-drops work seamlessly
         window.level = .normal
@@ -66,7 +67,32 @@ public final class DesktopWindowManager: ObservableObject {
             let isVisible = window.occlusionState.contains(.visible)
             if AppState.shared.isWindowVisible != isVisible {
                 AppState.shared.isWindowVisible = isVisible
+                if !isVisible {
+                    AssetLoader.purgeMemory()
+                    FileIconCache.shared.purge()
+                }
             }
+        }
+    }
+    
+    private func setupAppActiveObserver() {
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            AppState.shared.isAppActive = true
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didResignActiveNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            AppState.shared.isAppActive = false
+            // Purge non-essential caches to free RAM for user heavy applications
+            AssetLoader.purgeMemory()
+            FileIconCache.shared.purge()
         }
     }
     

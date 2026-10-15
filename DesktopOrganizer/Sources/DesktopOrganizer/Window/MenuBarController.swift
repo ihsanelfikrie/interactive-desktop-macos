@@ -11,8 +11,8 @@ public final class MenuBarController {
         let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "house.fill", accessibilityDescription: "Desktop Organizer")
-            button.toolTip = "Desktop Organizer macOS"
+            button.image = NSImage(systemSymbolName: "house.fill", accessibilityDescription: "Custom Desktop Mac")
+            button.toolTip = "Custom Desktop Mac"
         }
         
         let menu = NSMenu()
@@ -59,7 +59,7 @@ public final class MenuBarController {
         menu.addItem(NSMenuItem.separator())
         
         // 8. About
-        let aboutItem = NSMenuItem(title: "Tentang Desktop Organizer", action: #selector(aboutAction), keyEquivalent: "a")
+        let aboutItem = NSMenuItem(title: "Tentang Custom Desktop Mac", action: #selector(aboutAction), keyEquivalent: "a")
         aboutItem.target = self
         menu.addItem(aboutItem)
         
@@ -117,8 +117,8 @@ public final class MenuBarController {
     
     @objc private func aboutAction() {
         let alert = NSAlert()
-        alert.messageText = "Desktop Organizer"
-        alert.informativeText = "Desktop Organizer™ 1.0\nCopyright © 2026 Chelsy Lifardy. All rights reserved.\nInteractive desktop organizer for macOS."
+        alert.messageText = "Custom Desktop Mac"
+        alert.informativeText = "Custom Desktop Mac 1.0\nCopyright © 2026 Ihsan Elfikrie & SANS Studio. All rights reserved.\nInteractive desktop organizer for macOS."
         alert.runModal()
     }
     

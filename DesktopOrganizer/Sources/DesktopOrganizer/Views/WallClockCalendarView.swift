@@ -25,7 +25,8 @@ public struct AnalogWallClockView: View {
     }
     
     public var body: some View {
-        let updateInterval: TimeInterval = !appState.isWindowVisible ? 60.0 : 1.0
+        let shouldThrottle = !appState.isWindowVisible || !appState.isAppActive || appState.isLowPower
+        let updateInterval: TimeInterval = shouldThrottle ? 60.0 : 1.0
         TimelineView(.periodic(from: .now, by: updateInterval)) { timeline in
             let date = overrideDate ?? timeline.date
             let calendar = Calendar.current
