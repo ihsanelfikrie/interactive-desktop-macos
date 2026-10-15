@@ -23,26 +23,20 @@ public struct StratocasterGuitarView: View {
                 Canvas { ctx, size in
                     drawStratocaster(ctx: ctx, w: size.width, h: size.height)
                 }
-                .scaleEffect(appState.isHoveringGuitar ? 1.025 : 1.0)
                 .shadow(
-                    color: Color.black.opacity(appState.isHoveringGuitar ? 0.35 : 0.18),
-                    radius: appState.isHoveringGuitar ? 10 : 5,
+                    color: Color.black.opacity(0.18),
+                    radius: 5,
                     x: 2, y: 4
                 )
-                .animation(.spring(response: 0.25, dampingFraction: 0.75), value: appState.isHoveringGuitar)
             }
         }
         .contentShape(Rectangle())
-        .onHover { hovering in
-            appState.isHoveringGuitar = hovering
-        }
         .onTapGesture(count: 2) { openMusicOrGarageBand() }
         .onTapGesture {
             withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
                 appState.toggleQuickView(.guitar)
             }
         }
-        .help("Gitar: Klik 1x untuk info, klik 2x untuk GarageBand / Musik")
     }
     
     private func openMusicOrGarageBand() {
