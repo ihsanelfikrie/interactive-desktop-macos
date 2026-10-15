@@ -10,6 +10,10 @@ public struct DesktopRootView: View {
         GeometryReader { geo in
             let w = geo.size.width
             let h = geo.size.height
+            let bookshelfW = w * 0.2444
+            let bookshelfH = h * 0.2860
+            let bookshelfX = w * 0.1678
+            let bookshelfY = h * 0.3705
             
             ZStack(alignment: .topLeading) {
                 // 1. Pixel Art Room Background (100% full screen)
@@ -18,17 +22,17 @@ public struct DesktopRootView: View {
                 
                 // 2. Interactive Hot Zones (Mapped 1:1 onto the illustrated furniture)
                 
-                // Wall Shelf (Left Wall: centered perfectly in left wall boiserie panel)
+                // Wall Shelf (Left Wall: centered in left wall boiserie panel)
                 BookshelfView(theme: appState.currentTheme)
-                    .frame(width: w * 0.2444, height: h * 0.2860)
-                    .position(x: w * 0.1678, y: h * 0.3380)
+                    .frame(width: bookshelfW, height: bookshelfH)
+                    .position(x: bookshelfX, y: bookshelfY)
                 
                 // Live Modern Architectural Wall Clock & Official Presidential Portraits (Mounted above Bookshelf)
                 let wallClockSize = min(w * 0.068, h * 0.108)
                 let portraitH = wallClockSize * 0.86
                 let portraitW = portraitH * 0.72
-                let clockY = h * 0.118
-                let clockX = w * 0.1678
+                let clockY = h * 0.1410
+                let clockX = bookshelfX
                 let portraitOffset = (wallClockSize * 0.5) + (portraitW * 0.5) + (wallClockSize * 0.14)
                 
                 // Foto Resmi Presiden RI (H. Prabowo Subianto) - Left of Clock
@@ -159,8 +163,8 @@ public struct DesktopRootView: View {
                 if let targetURL = appState.activeShelfPopoverURL {
                     let shelfPlanks: [CGFloat] = [0.488, 0.922]
                     let shelfIdx = min(max(appState.activeShelfIndex, 0), 1)
-                    let bookshelfTop = h * (0.2785 - 0.288 / 2)
-                    let bookshelfHeight = h * 0.288
+                    let bookshelfTop = bookshelfY - (bookshelfH / 2)
+                    let bookshelfHeight = bookshelfH
                     let plankY = bookshelfTop + (bookshelfHeight * shelfPlanks[shelfIdx])
                     let shelfItemY = plankY - 35
                     let popoverWidth: CGFloat = 279
