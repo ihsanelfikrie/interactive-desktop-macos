@@ -107,10 +107,7 @@ public struct DesktopRootView: View {
                 )
                 .frame(width: plaqueW, height: plaqueH)
                 .position(x: w * 0.410, y: tabletopSurfaceY - (plaqueH / 2) + 6)
-                
-                // Desk WhatsApp Card (Modern Apple Frosted Glass Card - Beside iMac Stand)
-                DeskWhatsAppCardView()
-                .position(x: w * 0.468, y: tabletopSurfaceY - 14)
+
                 
                 // Right Desk Trophy Plaque (Sans Studio - Crystal Acrylic)
                 DesktopAwardPlaqueView(
@@ -385,80 +382,6 @@ public struct DesktopRootView: View {
 }
 
 
-// MARK: - Desk WhatsApp (Modern Apple Frosted Glass Card)
-struct DeskWhatsAppCardView: View {
-    @ObservedObject var appState = AppState.shared
-    
-    private func openWhatsApp() {
-        if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "net.whatsapp.WhatsApp") {
-            NSWorkspace.shared.openApplication(at: appURL, configuration: NSWorkspace.OpenConfiguration())
-        } else if let url = URL(string: "whatsapp://") {
-            NSWorkspace.shared.open(url)
-        } else if let webURL = URL(string: "https://web.whatsapp.com") {
-            NSWorkspace.shared.open(webURL)
-        }
-    }
-    
-    var body: some View {
-        ZStack {
-            // Sleek Apple Frosted Glass Card
-            RoundedRectangle(cornerRadius: 6)
-                .fill(
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.88), Color(red: 0.94, green: 0.98, blue: 0.95).opacity(0.65)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(width: 52, height: 32)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(
-                            LinearGradient(
-                                colors: [Color.white.opacity(0.95), Color.white.opacity(0.40)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1
-                        )
-                )
-                .shadow(color: Color.black.opacity(0.20), radius: 5, y: 3)
-            
-            // WhatsApp Icon & Online Indicator Dot
-            HStack(spacing: 5) {
-                if let img = AssetLoader.image(named: "whatsapp_icon") {
-                    Image(nsImage: img)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 20, height: 20)
-                } else {
-                    Image(systemName: "phone.bubble.fill")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(Color(red: 0.15, green: 0.83, blue: 0.40))
-                }
-                
-                Circle()
-                    .fill(Color(red: 0.15, green: 0.83, blue: 0.40))
-                    .frame(width: 6, height: 6)
-                    .overlay(Circle().stroke(Color.white, lineWidth: 1))
-                    .shadow(color: Color(red: 0.15, green: 0.83, blue: 0.40).opacity(0.5), radius: 2)
-            }
-        }
-        .contentShape(Rectangle())
-        .onTapGesture(count: 2) {
-            openWhatsApp()
-        }
-        .onTapGesture {
-            withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
-                appState.toggleQuickView(.whatsapp)
-            }
-        }
-        .onHover { hovering in
-            appState.isHoveringDeskMail = hovering
-        }
-        .help("WhatsApp: Klik 1x untuk opsi, klik 2x untuk membuka WhatsApp")
-    }
-}
 
 // MARK: - Woven Wastebasket Hot Zone (Directly over the illustrated trash basket)
 struct BasketTrashHotZoneView: View {
