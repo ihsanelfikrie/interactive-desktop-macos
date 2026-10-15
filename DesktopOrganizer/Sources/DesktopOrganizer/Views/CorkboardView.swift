@@ -27,6 +27,10 @@ public struct CorkboardView: View {
                 Dewa19StickerView()
                     .position(x: boardW - 38, y: 28)
                 
+                // Top-Center Bismillah Arabic Calligraphy (Sacred Header)
+                BismillahCalligraphyHeaderView()
+                    .position(x: boardW / 2, y: 22)
+                
                 // Sticky Notes Container
                 ForEach($storage.stickyNotes) { $note in
                     DraggableStickyNote(
@@ -612,6 +616,43 @@ public struct StickyNoteCardView: View {
     }
 }
 
+// MARK: - Native Arabic Bismillah Calligraphy Header
+struct BismillahCalligraphyHeaderView: View {
+    var body: some View {
+        HStack(spacing: 8) {
+            // Left ornamental filigree accent
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [Color.clear, Color(red: 0.65, green: 0.52, blue: 0.35).opacity(0.40)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(width: 24, height: 1)
+            
+            // Sacred Calligraphy Ligature (Geeza Pro / Native macOS Arabic Typography)
+            Text("﷽")
+                .font(.custom("Geeza Pro", size: 24).weight(.medium))
+                .foregroundColor(Color(red: 0.24, green: 0.15, blue: 0.09))
+                .shadow(color: Color.black.opacity(0.18), radius: 0.8, x: 0, y: 1.0)
+            
+            // Right ornamental filigree accent
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [Color(red: 0.65, green: 0.52, blue: 0.35).opacity(0.40), Color.clear],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(width: 24, height: 1)
+        }
+        .help("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ — Dengan nama Allah Yang Maha Pengasih lagi Maha Penyayang")
+        .allowsHitTesting(false)
+    }
+}
+
 // MARK: - Draggable Sticky Note Wrapper
 struct DraggableStickyNote: View {
     @Binding var note: StickyNote
@@ -626,10 +667,32 @@ struct DraggableStickyNote: View {
         appState.draggingNoteId == note.id ? appState.noteDragTranslation : .zero
     }
     
+    // Calligraphy Protected Zone Bounds (Top Center of Corkboard)
+    private var zoneMinX: CGFloat { (boardW / 2) - 95 }
+    private var zoneMaxX: CGFloat { (boardW / 2) + 95 }
+    private let zoneBottom: CGFloat = 48
+    private let noteW: CGFloat = 148
+    
+    // Enforce exclusion zone during rendering & live dragging
+    private var safeX: CGFloat {
+        let rawX = note.x + currentOffset.width
+        return max(6, min(rawX, max(6, boardW - 154)))
+    }
+    
+    private var safeY: CGFloat {
+        let rawY = note.y + currentOffset.height
+        let boundedY = max(6, min(rawY, max(6, boardH - 90)))
+        // If note overlaps the calligraphy zone horizontally, prevent it from entering vertically
+        if (safeX + noteW > zoneMinX) && (safeX < zoneMaxX) {
+            return max(boundedY, zoneBottom)
+        }
+        return boundedY
+    }
+    
     var body: some View {
         StickyNoteCardView(note: $note, onDelete: onDelete, onSave: onSave)
             .shadow(color: Color.black.opacity(0.12), radius: 2.5, x: 0.8, y: 2.0)
-            .offset(x: note.x + currentOffset.width, y: note.y + currentOffset.height)
+            .offset(x: safeX, y: safeY)
             .rotationEffect(.degrees(note.rotation))
             .gesture(
                 DragGesture(minimumDistance: 4)
@@ -638,8 +701,8 @@ struct DraggableStickyNote: View {
                         appState.noteDragTranslation = value.translation
                     }
                     .onEnded { value in
-                        note.x = max(6, min(note.x + value.translation.width, max(6, boardW - 154)))
-                        note.y = max(6, min(note.y + value.translation.height, max(6, boardH - 90)))
+                        note.x = safeX
+                        note.y = safeY
                         appState.draggingNoteId = nil
                         appState.noteDragTranslation = .zero
                         onSave()

@@ -911,6 +911,10 @@ public final class StorageManager: ObservableObject {
             if n.freeformText.isEmpty && !n.tasks.isEmpty {
                 n.freeformText = n.tasks.map { $0.text }.joined(separator: "\n")
             }
+            // Prevent saved notes from covering top-center Bismillah calligraphy header
+            if (n.x + 148 > 95) && (n.x < 290) && n.y < 48 {
+                n.y = 50
+            }
             return n
         }
         self.stickyNotes = migrated
@@ -932,8 +936,8 @@ public final class StorageManager: ObservableObject {
             mode: .freeform,
             color: randomColor,
             pinStyle: randomStyle,
-            x: CGFloat.random(in: 40...200),
-            y: CGFloat.random(in: 40...160)
+            x: CGFloat.random(in: 20...180),
+            y: CGFloat.random(in: 54...150)
         )
         DispatchQueue.main.async {
             self.stickyNotes.append(newNote)
