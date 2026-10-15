@@ -305,21 +305,94 @@ struct ModernDrawerRow: View {
     }
 }
 
-// MARK: - Tabletop Surface with Edge Bevel & Sheen
+// MARK: - Tabletop Surface with Receding Depth Plane, Edge Bevel & Sheen
+struct DeskTabletopDepthShape: Shape {
+    let scaleX: CGFloat
+    let scaleY: CGFloat
+    
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let insetX = 4.5 * scaleX
+        path.move(to: CGPoint(x: rect.minX + insetX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX - insetX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+        path.closeSubpath()
+        return path
+    }
+}
+
 struct DeskTabletopSurface: View {
     let scaleX: CGFloat
     let scaleY: CGFloat
     
     var body: some View {
+        let topDepth = 24.0 * scaleY
         ZStack(alignment: .bottom) {
-            // Drop shadow cast downward
+            // 1. Perspective Horizontal Tabletop Surface Plane (Receding back to wall)
+            ZStack(alignment: .top) {
+                // Tabletop Surface Base (High-end Pearl-White Lacquer)
+                DeskTabletopDepthShape(scaleX: scaleX, scaleY: scaleY)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.88, green: 0.90, blue: 0.93),
+                                Color(red: 0.93, green: 0.95, blue: 0.97),
+                                Color(red: 0.98, green: 0.98, blue: 0.99)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                
+                // Deep Ambient Wall Contact Shadow at the top edge meeting the wall
+                DeskTabletopDepthShape(scaleX: scaleX, scaleY: scaleY)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.black.opacity(0.35),
+                                Color.black.opacity(0.12),
+                                Color.clear
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(height: 7 * scaleY)
+                    .frame(maxHeight: .infinity, alignment: .top)
+                
+                // Soft Polish Sheen Band across Tabletop Surface
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.clear,
+                                Color.white.opacity(0.45),
+                                Color.clear
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(height: 8 * scaleY)
+                    .frame(maxHeight: .infinity, alignment: .center)
+                    .clipShape(DeskTabletopDepthShape(scaleX: scaleX, scaleY: scaleY))
+                
+                // Subtle side perspective beveled edge strokes
+                DeskTabletopDepthShape(scaleX: scaleX, scaleY: scaleY)
+                    .stroke(Color.black.opacity(0.12), lineWidth: 0.8)
+            }
+            .frame(width: 555 * scaleX, height: topDepth)
+            .offset(y: -24 * scaleY)
+            
+            // 2. Drop shadow cast downward onto pedestals and kneehole
             RoundedRectangle(cornerRadius: 4)
                 .fill(Color.black.opacity(0.28))
                 .frame(width: 555 * scaleX, height: 22 * scaleY)
                 .blur(radius: 4)
                 .offset(y: 3 * scaleY)
             
-            // Main Solid Lacquered Top
+            // 3. Main Solid Lacquered Front Facing Apron
             RoundedRectangle(cornerRadius: 3.5)
                 .fill(
                     LinearGradient(
@@ -338,19 +411,20 @@ struct DeskTabletopSurface: View {
                         .stroke(Color.black.opacity(0.12), lineWidth: 0.8)
                 )
             
-            // Polished Chamfer Top Edge Highlight
+            // 4. Polished Chamfer Top Edge Highlight Line (Transition from top surface to front edge)
             RoundedRectangle(cornerRadius: 2)
                 .fill(Color.white.opacity(0.95))
                 .frame(width: 549 * scaleX, height: 2 * scaleY)
                 .frame(maxHeight: .infinity, alignment: .top)
                 .padding(.top, 1.5)
             
-            // Dark Under-beveled shadow lip
+            // 5. Dark Under-beveled shadow lip
             Rectangle()
                 .fill(Color.black.opacity(0.18))
                 .frame(width: 553 * scaleX, height: 2 * scaleY)
                 .frame(maxHeight: .infinity, alignment: .bottom)
         }
+        .frame(width: 555 * scaleX, height: 24 * scaleY, alignment: .bottom)
     }
 }
 
@@ -499,6 +573,140 @@ struct CantileverChairView: View {
             .offset(y: 20 * scaleY)
         }
         .frame(width: 150 * scaleX, height: 170 * scaleY)
+    }
+}
+
+// MARK: - Workstation Apple Magic Keyboard & Mouse Set
+public struct WorkstationPeripheralsView: View {
+    let scale: CGFloat
+    
+    public init(scale: CGFloat = 1.0) {
+        self.scale = scale
+    }
+    
+    public var body: some View {
+        HStack(spacing: 7 * scale) {
+            // Apple Magic Keyboard (Silver Aluminum Unibody with Crisp Keycaps)
+            ZStack {
+                // Grounding contact drop shadow on white tabletop
+                RoundedRectangle(cornerRadius: 2.5 * scale)
+                    .fill(Color.black.opacity(0.24))
+                    .frame(width: 70 * scale, height: 16 * scale)
+                    .blur(radius: 1.2 * scale)
+                    .offset(y: 1.2 * scale)
+                
+                // Keyboard Aluminum Body Wedge
+                RoundedRectangle(cornerRadius: 2.0 * scale)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(white: 0.95),
+                                Color(white: 0.85),
+                                Color(white: 0.80)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(width: 68 * scale, height: 15 * scale)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 2.0 * scale)
+                            .stroke(Color.white.opacity(0.85), lineWidth: 0.5 * scale)
+                    )
+                
+                // Keycaps Deck Well
+                RoundedRectangle(cornerRadius: 1.2 * scale)
+                    .fill(Color(white: 0.87))
+                    .frame(width: 64 * scale, height: 12 * scale)
+                    .overlay(
+                        VStack(spacing: 0.8 * scale) {
+                            // Function row
+                            HStack(spacing: 0.8 * scale) {
+                                ForEach(0..<10, id: \.self) { _ in
+                                    RoundedRectangle(cornerRadius: 0.4 * scale)
+                                        .fill(Color.white)
+                                        .frame(height: 1.4 * scale)
+                                }
+                            }
+                            // Number row
+                            HStack(spacing: 0.8 * scale) {
+                                ForEach(0..<10, id: \.self) { _ in
+                                    RoundedRectangle(cornerRadius: 0.4 * scale)
+                                        .fill(Color.white)
+                                        .frame(height: 1.8 * scale)
+                                }
+                            }
+                            // QWERTY row
+                            HStack(spacing: 0.8 * scale) {
+                                ForEach(0..<9, id: \.self) { _ in
+                                    RoundedRectangle(cornerRadius: 0.4 * scale)
+                                        .fill(Color.white)
+                                        .frame(height: 1.8 * scale)
+                                }
+                            }
+                            // Spacebar & bottom modifier keys
+                            HStack(spacing: 0.8 * scale) {
+                                RoundedRectangle(cornerRadius: 0.4 * scale)
+                                    .fill(Color.white)
+                                    .frame(width: 6 * scale, height: 1.8 * scale)
+                                RoundedRectangle(cornerRadius: 0.4 * scale)
+                                    .fill(Color.white)
+                                    .frame(width: 20 * scale, height: 1.8 * scale)
+                                RoundedRectangle(cornerRadius: 0.4 * scale)
+                                    .fill(Color.white)
+                                    .frame(width: 6 * scale, height: 1.8 * scale)
+                                ForEach(0..<3, id: \.self) { _ in
+                                    RoundedRectangle(cornerRadius: 0.4 * scale)
+                                        .fill(Color.white)
+                                        .frame(height: 1.8 * scale)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 1.2 * scale)
+                    )
+            }
+            .frame(width: 70 * scale, height: 16 * scale)
+            
+            // Apple Magic Mouse (Glossy Pure White Acrylic Surface Top)
+            ZStack {
+                // Drop shadow on tabletop
+                Capsule()
+                    .fill(Color.black.opacity(0.24))
+                    .frame(width: 13 * scale, height: 19 * scale)
+                    .blur(radius: 1.2 * scale)
+                    .offset(y: 1.2 * scale)
+                
+                // Aluminum Chassis
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(white: 0.86), Color(white: 0.72)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(width: 12.5 * scale, height: 18.5 * scale)
+                
+                // Glossy Acrylic White Top
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(white: 1.0), Color(white: 0.98), Color(white: 0.92)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(width: 11.5 * scale, height: 17.5 * scale)
+                    .overlay(Capsule().stroke(Color.white, lineWidth: 0.4 * scale))
+                
+                // Subtle Center Touch Divider
+                Rectangle()
+                    .fill(Color.black.opacity(0.12))
+                    .frame(width: 0.5 * scale, height: 6 * scale)
+                    .offset(y: -3.5 * scale)
+            }
+            .frame(width: 13 * scale, height: 19 * scale)
+        }
     }
 }
 
@@ -778,22 +986,28 @@ public struct WorkstationMonitorView: View {
                 
                 // Stand Foot / Aluminum Base Plate in 2.5D Perspective
                 ZStack(alignment: .bottom) {
-                    // Tabletop ambient occlusion contact shadow directly under foot
+                    // Wide diffuse ambient tabletop shadow
                     Ellipse()
-                        .fill(Color.black.opacity(0.42))
-                        .frame(width: 78, height: 9)
+                        .fill(Color.black.opacity(0.32))
+                        .frame(width: 84, height: 8)
                         .blur(radius: 2.5)
-                        .offset(y: 3)
+                        .offset(y: 2.5)
+                    
+                    // Tight crisp contact occlusion shadow directly under metal foot
+                    Capsule()
+                        .fill(Color.black.opacity(0.75))
+                        .frame(width: 70, height: 3)
+                        .offset(y: 1.0)
                     
                     VStack(spacing: 0) {
                         // Top horizontal perspective plane
-                        RoundedRectangle(cornerRadius: 3.5)
+                        RoundedRectangle(cornerRadius: 2.5)
                             .fill(
                                 LinearGradient(
                                     colors: [
                                         Color(white: 0.95),
-                                        Color(white: 0.82),
-                                        Color(white: 0.88)
+                                        Color(white: 0.84),
+                                        Color(white: 0.89)
                                     ],
                                     startPoint: .top,
                                     endPoint: .bottom
@@ -801,7 +1015,7 @@ public struct WorkstationMonitorView: View {
                             )
                             .frame(width: 72, height: 11.5)
                             .overlay(
-                                RoundedRectangle(cornerRadius: 3.5)
+                                RoundedRectangle(cornerRadius: 2.5)
                                     .stroke(
                                         LinearGradient(
                                             colors: [Color.white.opacity(0.95), Color(white: 0.75)],
@@ -824,7 +1038,7 @@ public struct WorkstationMonitorView: View {
                             .frame(width: 72, height: 2.5)
                     }
                 }
-                .frame(width: 78, height: 14)
+                .frame(width: 84, height: 14)
             }
             .frame(width: 175, height: 38)
         }
@@ -912,16 +1126,16 @@ public struct DeskLampView: View {
                 // 2. Base Grounding Shadows under brass plinth (Firmly anchors lamp to tabletop)
                 // A. Wide soft ambient contact shadow
                 Ellipse()
-                    .fill(Color.black.opacity(0.42))
-                    .frame(width: 64, height: 9)
-                    .offset(y: 4)
+                    .fill(Color.black.opacity(0.35))
+                    .frame(width: 62, height: 8)
+                    .offset(y: 2.5)
                     .blur(radius: 2)
                 
                 // B. Crisp deep dark contact occlusion line (Zero gap between plinth and desk)
                 Capsule()
                     .fill(Color.black.opacity(0.85))
-                    .frame(width: 52, height: 4)
-                    .offset(y: 1.5)
+                    .frame(width: 48, height: 3.5)
+                    .offset(y: 1.0)
                 
                 // 3. Vector Boudoir Lamp Body & Shade (Enlarged ~1.36x & Bottom-anchored)
                 BoudoirEmeraldLampVector(isOn: isOn)

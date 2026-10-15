@@ -129,7 +129,7 @@ public struct DesktopRootView: View {
                     .position(x: deskX, y: deskY)
                     .allowsHitTesting(false)
                 
-                // Workstation iMac Monitor (Center of Desk - Click to open Finder)
+                // Workstation iMac Monitor (Center of Desk - Firmly Grounded on Tabletop)
                 let monitorW = w * 0.104
                 let monitorH = monitorW * (170.0 / 175.0)
                 let monitorScale = monitorW / 175.0
@@ -137,15 +137,20 @@ public struct DesktopRootView: View {
                     .frame(width: 175, height: 170)
                     .scaleEffect(monitorScale)
                     .frame(width: monitorW, height: monitorH)
-                    .position(x: deskX, y: tabletopSurfaceY - (monitorH / 2) + (13.5 * monitorScale))
+                    .position(x: deskX, y: tabletopSurfaceY - (monitorH / 2) - (10.5 * monitorScale))
                 
-                // Vintage Emerald & Brass Boudoir Lamp (Left Pedestal Top - Raised & Enlarged)
+                // Apple Magic Keyboard & Mouse Set (Grounded on Tabletop in Front of iMac)
+                WorkstationPeripheralsView(scale: monitorScale)
+                    .position(x: deskX + (4 * monitorScale), y: tabletopSurfaceY - (1.0 * monitorScale))
+                    .allowsHitTesting(false)
+                
+                // Vintage Emerald & Brass Boudoir Lamp (Left Pedestal Top - Firmly Grounded)
                 DeskLampView(isOn: appState.lampOn) {
                     withAnimation(.easeInOut(duration: 0.35)) {
                         appState.lampOn.toggle()
                     }
                 }
-                .position(x: w * 0.350, y: tabletopSurfaceY - 87)
+                .position(x: w * 0.358, y: tabletopSurfaceY - 94)
                 
                 // Left Desk Trophy Plaque (Tegoer Sapa - Crystal Acrylic)
                 let plaqueH = min(h * 0.138, 142.0)
@@ -158,8 +163,7 @@ public struct DesktopRootView: View {
                     quickViewType: .tegoerPlaque
                 )
                 .frame(width: plaqueW, height: plaqueH)
-                .position(x: w * 0.410, y: tabletopSurfaceY - (plaqueH / 2) + 6)
-
+                .position(x: w * 0.412, y: tabletopSurfaceY - (plaqueH / 2) - 6.0)
                 
                 // Right Desk Trophy Plaque (Sans Studio - Crystal Acrylic)
                 DesktopAwardPlaqueView(
@@ -170,11 +174,11 @@ public struct DesktopRootView: View {
                     quickViewType: .sansPlaque
                 )
                 .frame(width: plaqueW, height: plaqueH)
-                .position(x: w * 0.588, y: tabletopSurfaceY - (plaqueH / 2) + 6)
+                .position(x: w * 0.584, y: tabletopSurfaceY - (plaqueH / 2) - 6.0)
                 
                 // Desk Speaker (Marshall Bluetooth Speaker - Right Pedestal Top)
                 VintageRadioView()
-                    .position(x: w * 0.648, y: tabletopSurfaceY - 17)
+                    .position(x: w * 0.638, y: tabletopSurfaceY - 26)
                 
                 // Photo Gallery (Right Wall: centered perfectly in right wall boiserie panel)
                 PhotoGalleryView()
