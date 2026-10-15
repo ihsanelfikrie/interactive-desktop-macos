@@ -994,6 +994,116 @@ struct GuitarQuickView: View {
     }
 }
 
+// MARK: - 8b. Acoustic Guitar Quick View
+struct AcousticGuitarQuickView: View {
+    let onClose: () -> Void
+    
+    var body: some View {
+        DesktopQuickViewCard(
+            title: "Gitar Akustik Dreadnought",
+            iconName: "guitars.fill",
+            iconColor: Color(red: 0.92, green: 0.65, blue: 0.32),
+            onClose: onClose
+        ) {
+            VStack(alignment: .leading, spacing: 10) {
+                // Guitar Badge & Specs
+                HStack(spacing: 8) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color(red: 0.88, green: 0.72, blue: 0.48),
+                                        Color(red: 0.60, green: 0.42, blue: 0.24)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 38, height: 38)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.white.opacity(0.25), lineWidth: 1)
+                            )
+                        
+                        Image(systemName: "music.note")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Dreadnought Natural Spruce")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(Color(NSColor.labelColor))
+                        
+                        Text("Solid Sitka • Rosewood • Phosphor Bronze")
+                            .font(.system(size: 9.5))
+                            .foregroundColor(Color(NSColor.secondaryLabelColor))
+                    }
+                }
+                
+                Divider().opacity(0.3)
+                
+                // Audio / Sound Test Action
+                HStack(spacing: 6) {
+                    Button(action: {
+                        if let sound = NSSound(named: "Hero") {
+                            sound.play()
+                        } else if let sound = NSSound(named: "Funk") {
+                            sound.play()
+                        } else {
+                            NSSound.beep()
+                        }
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "speaker.wave.2.fill")
+                            Text("Petik Akustik")
+                        }
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(Color(NSColor.labelColor))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.06)))
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Button(action: {
+                        openMusicApp()
+                        onClose()
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.up.forward.app.fill")
+                            Text("Buka Musik")
+                        }
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(Color(red: 0.88, green: 0.55, blue: 0.22)))
+                    }
+                    .buttonStyle(.plain)
+                }
+                
+                Text("💡 Tips: Klik 2x pada gitar akustik untuk langsung membuka GarageBand / Musik")
+                    .font(.system(size: 9))
+                    .foregroundColor(Color(NSColor.tertiaryLabelColor))
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+    
+    private func openMusicApp() {
+        if let gbURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.garageband10") {
+            NSWorkspace.shared.openApplication(at: gbURL, configuration: NSWorkspace.OpenConfiguration())
+        } else if let musicURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Music") {
+            NSWorkspace.shared.openApplication(at: musicURL, configuration: NSWorkspace.OpenConfiguration())
+        } else {
+            NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Music.app"))
+        }
+    }
+}
+
+
 // MARK: - 9. Award Plaque Quick View
 public struct AwardPlaqueQuickView: View {
     let title: String

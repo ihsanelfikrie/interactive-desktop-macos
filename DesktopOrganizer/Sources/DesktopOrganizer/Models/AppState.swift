@@ -12,6 +12,7 @@ public enum ActiveDesktopQuickView: Equatable {
     case photo(slot: Int)
     case carpetItem(url: URL)
     case guitar
+    case acousticGuitar
     case tegoerPlaque
     case sansPlaque
 }

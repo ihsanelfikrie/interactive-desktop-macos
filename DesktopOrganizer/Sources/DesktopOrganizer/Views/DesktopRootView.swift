@@ -150,6 +150,15 @@ public struct DesktopRootView: View {
                 StratocasterGuitarView()
                     .frame(width: guitarW, height: guitarH)
                     .position(x: w * 0.87, y: h * 0.67)
+                    .zIndex(15)
+                
+                // Dreadnought Acoustic Guitar on Stand (Standing on left lawn beneath wall shelf)
+                let acousticH = h * 0.58
+                let acousticW = acousticH * 0.365
+                AcousticGuitarView()
+                    .frame(width: acousticW, height: acousticH)
+                    .position(x: w * 0.092, y: h * 0.665)
+                    .zIndex(15)
                 
                 // Cartoon Wastebasket (Beside Desk on Floor)
                 TrashCanView()
@@ -368,6 +377,14 @@ public struct DesktopRootView: View {
                                     }
                                 })
                                 .position(x: min(max(w * 0.875 - 135, 140), w - 140), y: min(max(h * 0.640, 150), h - 140))
+                                
+                            case .acousticGuitar:
+                                AcousticGuitarQuickView(onClose: {
+                                    withAnimation(AppState.appleDismissSpring) {
+                                        appState.activeQuickView = nil
+                                    }
+                                })
+                                .position(x: min(max(w * 0.092 + 135, 140), w - 140), y: min(max(h * 0.640, 150), h - 140))
                                 
                             case .tegoerPlaque:
                                 AwardPlaqueQuickView(
