@@ -217,31 +217,47 @@ public final class StorageManager: ObservableObject {
         saveLayout()
     }
     
-    // MARK: - Reliable Drag & Drop URL Extractor
+    // MARK: - Reliable Drag & Drop URL Extractor (Supports Files & Folders)
     public static func extractFileURL(from provider: NSItemProvider, completion: @escaping (URL) -> Void) {
-        if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
-            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
-                var targetURL: URL? = nil
-                if let url = item as? URL {
-                    targetURL = url
-                } else if let data = item as? Data {
-                    targetURL = URL(dataRepresentation: data, relativeTo: nil)
-                } else if let str = item as? String {
-                    targetURL = URL(fileURLWithPath: str)
-                }
-                if let url = targetURL {
-                    DispatchQueue.main.async {
-                        completion(url)
-                    }
-                }
-            }
-        } else {
+        if provider.canLoadObject(ofClass: URL.self) {
             _ = provider.loadObject(ofClass: URL.self) { url, _ in
                 if let url = url {
-                    DispatchQueue.main.async {
-                        completion(url)
+                    DispatchQueue.main.async { completion(url) }
+                    return
+                }
+                fallbackExtract(from: provider, completion: completion)
+            }
+            return
+        }
+        fallbackExtract(from: provider, completion: completion)
+    }
+    
+    private static func fallbackExtract(from provider: NSItemProvider, completion: @escaping (URL) -> Void) {
+        let types = [UTType.fileURL.identifier, UTType.folder.identifier, UTType.directory.identifier, "public.item"]
+        for typeId in types {
+            if provider.hasItemConformingToTypeIdentifier(typeId) {
+                provider.loadItem(forTypeIdentifier: typeId, options: nil) { item, _ in
+                    var targetURL: URL? = nil
+                    if let url = item as? URL {
+                        targetURL = url
+                    } else if let nsurl = item as? NSURL {
+                        targetURL = nsurl as URL
+                    } else if let data = item as? Data {
+                        if let u = URL(dataRepresentation: data, relativeTo: nil) {
+                            targetURL = u
+                        } else if let str = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines), !str.isEmpty {
+                            targetURL = str.hasPrefix("file://") ? URL(string: str) : URL(fileURLWithPath: str)
+                        }
+                    } else if let str = (item as? String)?.trimmingCharacters(in: .whitespacesAndNewlines), !str.isEmpty {
+                        targetURL = str.hasPrefix("file://") ? URL(string: str) : URL(fileURLWithPath: str)
+                    }
+                    if let url = targetURL {
+                        DispatchQueue.main.async {
+                            completion(url)
+                        }
                     }
                 }
+                return
             }
         }
     }
@@ -311,6 +327,9 @@ public final class StorageManager: ObservableObject {
     }
     
     public func addBookshelfItem(from sourceURL: URL) {
+        let accessing = sourceURL.startAccessingSecurityScopedResource()
+        defer { if accessing { sourceURL.stopAccessingSecurityScopedResource() } }
+        
         let destURL = safeDestinationURL(in: bookshelfDirectory, originalName: sourceURL.lastPathComponent)
         do {
             try FileManager.default.moveItem(at: sourceURL, to: destURL)
@@ -495,14 +514,7 @@ public final class StorageManager: ObservableObject {
     }
     
     public func setCarpetPosition(normX: Double, normY: Double) {
-        let deltaX = normX - carpetPositionNorm.x
-        let deltaY = normY - carpetPositionNorm.y
         carpetPositionNorm = StoredPosition(x: normX, y: normY)
-        
-        // Mitigasi: Sinkronisasi posisi file yang berada di karpet agar tidak tertinggal di tepi
-        for (filename, pos) in floorItemPositions {
-            floorItemPositions[filename] = StoredPosition(x: pos.x + deltaX, y: pos.y + deltaY)
-        }
         saveFloorPositions()
     }
     
@@ -518,15 +530,13 @@ public final class StorageManager: ObservableObject {
     }
     
     public func positionForFloorItem(filename: String, index: Int, total: Int) -> CGPoint {
-        let carpetX = CGFloat(carpetPositionNorm.x)
-        let carpetY = CGFloat(carpetPositionNorm.y)
-        
         if let stored = floorItemPositions[filename] {
-            // Mitigasi & Antisipasi: Pastikan item di karpet selalu berada di dalam batas aman karpet
-            let clampedY = min(carpetY + 0.012, max(carpetY - 0.012, CGFloat(stored.y)))
-            let clampedX = min(carpetX + 0.14, max(carpetX - 0.14, CGFloat(stored.x)))
+            let clampedX = min(0.96, max(0.04, CGFloat(stored.x)))
+            let clampedY = min(0.96, max(0.68, CGFloat(stored.y)))
             return CGPoint(x: clampedX, y: clampedY)
         }
+        let carpetX = CGFloat(carpetPositionNorm.x)
+        let carpetY = CGFloat(carpetPositionNorm.y)
         let spread: CGFloat = total > 1 ? (CGFloat(index) / CGFloat(max(1, total - 1)) - 0.5) : 0
         let defX = carpetX + (spread * 0.12)
         let defY = carpetY
@@ -534,6 +544,8 @@ public final class StorageManager: ObservableObject {
     }
     
     public func addFloorItem(from sourceURL: URL, at normPos: CGPoint) {
+        let accessing = sourceURL.startAccessingSecurityScopedResource()
+        defer { if accessing { sourceURL.stopAccessingSecurityScopedResource() } }
         let destURL = safeDestinationURL(in: carpetDirectory, originalName: sourceURL.lastPathComponent)
         do {
             try FileManager.default.moveItem(at: sourceURL, to: destURL)

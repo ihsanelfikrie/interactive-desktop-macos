@@ -64,17 +64,6 @@ public struct BookshelfView: View {
                             }
                         }
                     }
-                    .onDrop(of: [.fileURL], isTargeted: Binding(
-                        get: { appState.isBookshelfTargeted },
-                        set: { appState.isBookshelfTargeted = $0 }
-                    )) { providers in
-                        for provider in providers {
-                            StorageManager.extractFileURL(from: provider) { url in
-                                storage.addBookshelfItem(from: url)
-                            }
-                        }
-                        return true
-                    }
                 
                 // Empty state prompt on shelf when no items are added
                 if storage.bookshelfItems.isEmpty {
@@ -138,8 +127,19 @@ public struct BookshelfView: View {
                         .help("Buka Rak Buku di Laci / Finder")
                         .padding(6)
                     }
-                    Spacer()
                 }
+            }
+            .contentShape(Rectangle())
+            .onDrop(of: [.fileURL, .folder, .directory, .item], isTargeted: Binding(
+                get: { appState.isBookshelfTargeted },
+                set: { appState.isBookshelfTargeted = $0 }
+            )) { providers in
+                for provider in providers {
+                    StorageManager.extractFileURL(from: provider) { url in
+                        storage.addBookshelfItem(from: url)
+                    }
+                }
+                return true
             }
         }
     }
@@ -1304,5 +1304,13 @@ public struct BookshelfDrawerView: View {
             RoundedRectangle(cornerRadius: 14)
                 .stroke(Color.white.opacity(0.16), lineWidth: 1)
         )
+        .onDrop(of: [.fileURL, .folder, .directory, .item], isTargeted: nil) { providers in
+            for provider in providers {
+                StorageManager.extractFileURL(from: provider) { url in
+                    storage.addBookshelfItem(from: url)
+                }
+            }
+            return true
+        }
     }
 }

@@ -71,7 +71,7 @@ public struct MagicCarpetView: View {
                 .contentShape(Rectangle())
                 .frame(width: w, height: floorHeight)
                 .position(x: w * 0.5, y: floorMinY + (floorHeight * 0.5))
-                .onDrop(of: [.fileURL], delegate: FloorDropDelegate(screenSize: screenSize, storage: storage))
+                .onDrop(of: [.fileURL, .folder, .directory, .item], delegate: FloorDropDelegate(screenSize: screenSize, storage: storage))
                 .onTapGesture {
                     if floorState.isCarpetLifted {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
@@ -94,13 +94,12 @@ public struct MagicCarpetView: View {
                 let basePixelY = basePos.y * h
                 let isCovered = carpetRect.contains(CGPoint(x: basePixelX, y: basePixelY))
                 let isThisDragging = floorState.draggingFloorFileName == item.lastPathComponent
-                let carpetLiveOffset = (isCovered && !isThisDragging) ? floorState.carpetDragOffset : .zero
                 let isVisible = !isCovered || floorState.isCarpetLifted
                 
                 if isVisible {
                     FloorItemView(itemURL: item, isCovered: isCovered, screenSize: screenSize)
                         .position(x: basePixelX, y: basePixelY)
-                        .offset(isThisDragging ? floorState.floorFileDragTranslation : carpetLiveOffset)
+                        .offset(isThisDragging ? floorState.floorFileDragTranslation : .zero)
                         .zIndex(isThisDragging ? 35 : (floorState.isCarpetLifted ? 25 : (isCovered ? 5 : 22)))
                         .transition(.scale.combined(with: .opacity))
                 }
@@ -428,7 +427,7 @@ struct FloorDropDelegate: DropDelegate {
         floorState.isFloorTargeted = false
     }
     func validateDrop(info: DropInfo) -> Bool {
-        return info.hasItemsConforming(to: [.fileURL])
+        return info.hasItemsConforming(to: [.fileURL, .folder, .directory, .item])
     }
     func performDrop(info: DropInfo) -> Bool {
         floorState.isFloorTargeted = false
@@ -441,7 +440,7 @@ struct FloorDropDelegate: DropDelegate {
         let normX = min(0.95, max(0.05, screenX / w))
         let normY = min(0.96, max(0.68, screenY / h))
         
-        let providers = info.itemProviders(for: [.fileURL])
+        let providers = info.itemProviders(for: [.fileURL, .folder, .directory, .item])
         guard !providers.isEmpty else { return false }
         for provider in providers {
             StorageManager.extractFileURL(from: provider) { url in
