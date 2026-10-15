@@ -23,11 +23,28 @@ public struct DesktopRootView: View {
                     .frame(width: w * 0.2444, height: h * 0.2860)
                     .position(x: w * 0.1678, y: h * 0.3380)
                 
-                // Live Modern Architectural Wall Clock (Mounted on blue wall directly above Bookshelf)
+                // Live Modern Architectural Wall Clock & Official Presidential Portraits (Mounted above Bookshelf)
                 let wallClockSize = min(w * 0.068, h * 0.108)
+                let portraitH = wallClockSize * 0.86
+                let portraitW = portraitH * 0.72
+                let clockY = h * 0.118
+                let clockX = w * 0.1678
+                let portraitOffset = (wallClockSize * 0.5) + (portraitW * 0.5) + (wallClockSize * 0.14)
+                
+                // Foto Resmi Presiden RI (H. Prabowo Subianto) - Left of Clock
+                PresidentialPortraitView(type: .president)
+                    .frame(width: portraitW, height: portraitH)
+                    .position(x: clockX - portraitOffset, y: clockY)
+                
+                // Clock (Center)
                 AnalogWallClockView()
                     .frame(width: wallClockSize, height: wallClockSize)
-                    .position(x: w * 0.1678, y: h * 0.118)
+                    .position(x: clockX, y: clockY)
+                
+                // Foto Resmi Wakil Presiden RI (Gibran Rakabuming Raka) - Right of Clock
+                PresidentialPortraitView(type: .vicePresident)
+                    .frame(width: portraitW, height: portraitH)
+                    .position(x: clockX + portraitOffset, y: clockY)
                 
                 // Corkboard Notes (Center Wall: Sticky notes & Add Memo inside wooden frame)
                 CorkboardView()
