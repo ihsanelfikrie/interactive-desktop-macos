@@ -1126,6 +1126,12 @@ public struct AwardPlaqueQuickView: View {
             "Assets/\(svgFileName)",
             svgFileName
         ]
+        if let res = Bundle.main.resourceURL {
+            for rel in candidates {
+                let u = res.appendingPathComponent(rel)
+                if FileManager.default.fileExists(atPath: u.path) { return u }
+            }
+        }
         let currentDir = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         for rel in candidates {
             let u = currentDir.appendingPathComponent(rel)

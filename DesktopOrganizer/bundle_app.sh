@@ -35,6 +35,9 @@ fi
 cp Sources/DesktopOrganizer/Resources/AppIcon.icns "$APP_DIR/Contents/Resources/"
 cp Sources/DesktopOrganizer/Resources/*.png "$APP_DIR/Contents/Resources/" 2>/dev/null || true
 cp Sources/DesktopOrganizer/Resources/*.jpg "$APP_DIR/Contents/Resources/" 2>/dev/null || true
+if [ -d "../Assets" ]; then
+    cp -R "../Assets" "$APP_DIR/Contents/Resources/"
+fi
 
 # Buat Info.plist resmi
 cat << 'EOF' > "$APP_DIR/Contents/Info.plist"
