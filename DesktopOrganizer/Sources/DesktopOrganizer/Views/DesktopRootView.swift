@@ -16,7 +16,7 @@ public struct DesktopRootView: View {
             let bookshelfY = h * 0.3705
             
             ZStack(alignment: .topLeading) {
-                // 1. Pixel Art Room Background (100% full screen)
+                // 1. Pixel Art Room Background (100% full screen with native Desktop Marquee "Blok" Selection)
                 ThemeBackgroundView(theme: appState.currentTheme, isNightMode: !appState.lampOn)
                     .frame(width: w, height: h)
                     .contentShape(Rectangle())
@@ -25,6 +25,48 @@ public struct DesktopRootView: View {
                             FloorInteractionState.shared.clearSelection()
                         }
                     }
+                    .gesture(
+                        DragGesture(minimumDistance: 3, coordinateSpace: .global)
+                            .onChanged { value in
+                                let floorState = FloorInteractionState.shared
+                                floorState.isMarqueeSelecting = true
+                                floorState.marqueeStart = value.startLocation
+                                floorState.marqueeCurrent = value.location
+                                
+                                let box = CGRect(
+                                    x: min(value.startLocation.x, value.location.x),
+                                    y: min(value.startLocation.y, value.location.y),
+                                    width: max(abs(value.location.x - value.startLocation.x), 1),
+                                    height: max(abs(value.location.y - value.startLocation.y), 1)
+                                )
+                                
+                                var newlySelected: Set<String> = []
+                                for item in StorageManager.shared.carpetItems {
+                                    let p = StorageManager.shared.positionForFloorItem(filename: item.lastPathComponent, index: 0, total: 1)
+                                    let itemPt = CGPoint(x: p.x * w, y: p.y * h)
+                                    let itemRect = CGRect(x: itemPt.x - 36, y: itemPt.y - 36, width: 72, height: 72)
+                                    if box.intersects(itemRect) {
+                                        newlySelected.insert(item.lastPathComponent)
+                                    }
+                                }
+                                floorState.selectedFileNames = newlySelected
+                            }
+                            .onEnded { value in
+                                let floorState = FloorInteractionState.shared
+                                let dist = hypot(value.translation.width, value.translation.height)
+                                if dist < 4 {
+                                    floorState.clearSelection()
+                                    if floorState.isCarpetLifted {
+                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                                            floorState.isCarpetLifted = false
+                                        }
+                                    }
+                                }
+                                floorState.isMarqueeSelecting = false
+                                floorState.marqueeStart = nil
+                                floorState.marqueeCurrent = nil
+                            }
+                    )
                 
                 // 2. Interactive Hot Zones (Mapped 1:1 onto the illustrated furniture)
                 
@@ -85,6 +127,7 @@ public struct DesktopRootView: View {
                 WorkstationDeskView()
                     .frame(width: deskW, height: deskH)
                     .position(x: deskX, y: deskY)
+                    .allowsHitTesting(false)
                 
                 // Workstation iMac Monitor (Center of Desk - Click to open Finder)
                 let monitorW = w * 0.104
@@ -138,11 +181,11 @@ public struct DesktopRootView: View {
                     .frame(width: w * 0.220, height: h * 0.440)
                     .position(x: w * 0.83125, y: h * 0.320)
                 
-                // Floor Lawn & Movable Carpet (Drop files anywhere on grass floor, movable hiding carpet)
+                // Floor Lawn & Movable Carpet (Drop files anywhere on desktop: desk, wall, carpet, lawn)
                 MagicCarpetView(theme: appState.currentTheme, screenSize: geo.size)
                     .frame(width: w, height: h)
                     .position(x: w * 0.5, y: h * 0.5)
-                    .zIndex(12)
+                    .zIndex(FloorInteractionState.shared.draggingFloorFileName != nil ? 25 : 12)
                 
                 // Fender Stratocaster Guitar on Stand (Standing on lawn beneath photo gallery)
                 let guitarH = h * 0.58
@@ -426,7 +469,15 @@ public struct DesktopRootView: View {
                     }
                     .zIndex(50)
                 }
+                
+                // Full Desktop Drop Overlay when hovering Finder items
+                if FloorInteractionState.shared.isFloorTargeted {
+                    FloorDropHighlightOverlay()
+                        .allowsHitTesting(false)
+                        .zIndex(48)
+                }
             }
+            .onDrop(of: [.fileURL, .folder, .directory, .item], delegate: FloorDropDelegate(screenSize: geo.size, storage: StorageManager.shared))
         }
     }
 }

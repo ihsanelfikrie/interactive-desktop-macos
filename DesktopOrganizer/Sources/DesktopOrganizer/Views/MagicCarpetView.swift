@@ -42,8 +42,6 @@ public struct MagicCarpetView: View {
     public var body: some View {
         let w = screenSize.width
         let h = screenSize.height
-        let floorMinY = h * 0.58
-        let floorHeight = h - floorMinY
         
         let baseCarpetX = storage.carpetPositionNorm.x * w
         let baseCarpetY = storage.carpetPositionNorm.y * h
@@ -71,85 +69,6 @@ public struct MagicCarpetView: View {
         }.count
         
         ZStack(alignment: .topLeading) {
-            // LAYER -1: Full-Screen Deselect Tap Catcher (Click anywhere outside files to cancel block selection)
-            if !floorState.selectedFileNames.isEmpty {
-                Color.black.opacity(0.0001)
-                    .contentShape(Rectangle())
-                    .frame(width: w, height: h)
-                    .position(x: w * 0.5, y: h * 0.5)
-                    .onTapGesture {
-                        floorState.clearSelection()
-                    }
-                    .zIndex(1)
-            }
-            
-            // LAYER 0: Full Lawn Drop Zone (Transparent drop receiver across entire grass floor for Finder drops)
-            Color.clear
-                .contentShape(Rectangle())
-                .frame(width: w, height: floorHeight)
-                .position(x: w * 0.5, y: floorMinY + (floorHeight * 0.5))
-                .onDrop(of: [.fileURL, .folder, .directory, .item], delegate: FloorDropDelegate(screenSize: screenSize, storage: storage))
-                .overlay(
-                    Group {
-                        if floorState.isFloorTargeted {
-                            FloorDropHighlightOverlay()
-                        }
-                    }
-                )
-            
-            // LAYER 1: Dedicated Marquee Multi-Select ("Blok") Gesture Area across Grass Lawn
-            Color.black.opacity(0.001)
-                .contentShape(Rectangle())
-                .frame(width: w, height: floorHeight)
-                .position(x: w * 0.5, y: floorMinY + (floorHeight * 0.5))
-                .onTapGesture {
-                    floorState.clearSelection()
-                }
-                .gesture(
-                    DragGesture(minimumDistance: 3, coordinateSpace: .global)
-                        .onChanged { value in
-                            floorState.isMarqueeSelecting = true
-                            
-                            let startPt = value.startLocation
-                            let currPt = value.location
-                            
-                            floorState.marqueeStart = startPt
-                            floorState.marqueeCurrent = currPt
-                            
-                            let box = CGRect(
-                                x: min(startPt.x, currPt.x),
-                                y: min(startPt.y, currPt.y),
-                                width: max(abs(currPt.x - startPt.x), 1),
-                                height: max(abs(currPt.y - startPt.y), 1)
-                            )
-                            
-                            var newlySelected: Set<String> = []
-                            for item in storage.carpetItems {
-                                let p = storage.positionForFloorItem(filename: item.lastPathComponent, index: 0, total: 1)
-                                let itemPt = CGPoint(x: p.x * w, y: p.y * h)
-                                let itemRect = CGRect(x: itemPt.x - 36, y: itemPt.y - 36, width: 72, height: 72)
-                                if box.intersects(itemRect) {
-                                    newlySelected.insert(item.lastPathComponent)
-                                }
-                            }
-                            floorState.selectedFileNames = newlySelected
-                        }
-                        .onEnded { value in
-                            let dist = hypot(value.translation.width, value.translation.height)
-                            if dist < 4 {
-                                floorState.clearSelection()
-                                if floorState.isCarpetLifted {
-                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-                                        floorState.isCarpetLifted = false
-                                    }
-                                }
-                            }
-                            floorState.isMarqueeSelecting = false
-                            floorState.marqueeStart = nil
-                            floorState.marqueeCurrent = nil
-                        }
-                )
-            
             // Native macOS Finder Rubber-Band Selection Box ("Drag Blok")
             if floorState.isMarqueeSelecting,
                let start = floorState.marqueeStart,
@@ -250,7 +169,7 @@ struct FloorDropHighlightOverlay: View {
             HStack(spacing: 8) {
                 Image(systemName: "tray.and.arrow.down.fill")
                     .font(.system(size: 15, weight: .bold))
-                Text("Taruh File / Folder di Lantai Rumput")
+                Text("Taruh File / Folder di Desktop")
                     .font(.system(size: 12, weight: .bold))
             }
             .foregroundColor(.white)
@@ -470,7 +389,16 @@ struct MovableCarpetMatView: View {
     }
 }
 
-// MARK: - Floor Item View (Files & Folders lying on grass)
+// Helper to determine targeted photo frame slot (0..5) from screen coordinates
+func slotIndexForGallery(point: CGPoint, galleryRect: CGRect) -> Int {
+    let relX = point.x - galleryRect.minX
+    let relY = point.y - galleryRect.minY
+    let col = relX > (galleryRect.width * 0.5) ? 1 : 0
+    let row = Int(min(2, max(0, relY / max(1, galleryRect.height / 3.0))))
+    return min(5, max(0, (row * 2) + col))
+}
+
+// MARK: - Floor Item View (Files & Folders on Desktop)
 struct FloorItemView: View {
     let itemURL: URL
     let isCovered: Bool
@@ -577,15 +505,26 @@ struct FloorItemView: View {
                     let curPt = CGPoint(x: (basePos.x * w) + value.translation.width, y: (basePos.y * h) + value.translation.height)
                     
                     let bookshelfRect = CGRect(x: (w * 0.1678) - (w * 0.2444 * 0.5) - 30, y: (h * 0.3705) - (h * 0.2860 * 0.5) - 30, width: (w * 0.2444) + 60, height: (h * 0.2860) + 60)
+                    let galleryRect = CGRect(x: (w * 0.83125) - (w * 0.220 * 0.5) - 30, y: (h * 0.320) - (h * 0.440 * 0.5) - 30, width: (w * 0.220) + 60, height: (h * 0.440) + 60)
                     let trashPt = CGPoint(x: w * 0.710, y: h * 0.738)
                     
-                    AppState.shared.isBookshelfTargeted = bookshelfRect.contains(curPt)
+                    AppState.shared.isBookshelfTargeted = bookshelfRect.contains(curPt) || bookshelfRect.contains(value.location)
                     AppState.shared.isTrashTargeted = hypot(curPt.x - trashPt.x, curPt.y - trashPt.y) < 85 ||
                                                       hypot(value.location.x - trashPt.x, value.location.y - trashPt.y) < 85
+                    
+                    let isOverGallery = (galleryRect.contains(curPt) || galleryRect.contains(value.location))
+                    if isOverGallery && StorageManager.isImageFile(itemURL) {
+                        let checkPt = galleryRect.contains(curPt) ? curPt : value.location
+                        let slot = slotIndexForGallery(point: checkPt, galleryRect: galleryRect)
+                        AppState.shared.targetedPhotoSlot = slot
+                    } else {
+                        AppState.shared.targetedPhotoSlot = nil
+                    }
                 }
                 .onEnded { value in
                     AppState.shared.isBookshelfTargeted = false
                     AppState.shared.isTrashTargeted = false
+                    AppState.shared.targetedPhotoSlot = nil
                     
                     let dist = hypot(value.translation.width, value.translation.height)
                     if dist < 5 {
@@ -599,7 +538,7 @@ struct FloorItemView: View {
                         
                         // 1. Check Bookshelf Drop (Moves single or all selected files into shelf)
                         let bookshelfRect = CGRect(x: (w * 0.1678) - (w * 0.2444 * 0.5) - 30, y: (h * 0.3705) - (h * 0.2860 * 0.5) - 30, width: (w * 0.2444) + 60, height: (h * 0.2860) + 60)
-                        if bookshelfRect.contains(releasePoint) {
+                        if bookshelfRect.contains(releasePoint) || bookshelfRect.contains(value.location) {
                             withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                                 storage.moveFloorItemsToBookshelf(filenames: groupFiles)
                                 floorState.clearSelection()
@@ -609,11 +548,14 @@ struct FloorItemView: View {
                             return
                         }
                         
-                        // 2. Check Photo Frame Drop (Only if image file)
+                        // 2. Check Photo Frame Slot Drop (Only if image file)
                         let galleryRect = CGRect(x: (w * 0.83125) - (w * 0.220 * 0.5) - 30, y: (h * 0.320) - (h * 0.440 * 0.5) - 30, width: (w * 0.220) + 60, height: (h * 0.440) + 60)
-                        if galleryRect.contains(releasePoint) && StorageManager.isImageFile(itemURL) {
+                        let isGalleryTargeted = galleryRect.contains(releasePoint) || galleryRect.contains(value.location)
+                        if isGalleryTargeted && StorageManager.isImageFile(itemURL) {
+                            let checkPt = galleryRect.contains(releasePoint) ? releasePoint : value.location
+                            let targetSlot = slotIndexForGallery(point: checkPt, galleryRect: galleryRect)
                             withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-                                storage.assignFirstAvailablePhoto(from: itemURL)
+                                storage.assignPhoto(sourceURL: itemURL, slotIndex: targetSlot)
                                 storage.removeFloorItem(itemURL: itemURL)
                                 floorState.selectedFileNames.remove(itemURL.lastPathComponent)
                             }
@@ -638,17 +580,17 @@ struct FloorItemView: View {
                             return
                         }
                         
-                        // 4. Normal floor repositioning
+                        // 4. Free desktop repositioning (Anywhere on desktop: desk, wall, carpet, floor)
                         if isGroup {
                             for name in floorState.selectedFileNames {
                                 let orig = storage.positionForFloorItem(filename: name, index: 0, total: 1)
                                 let nX = min(w * 0.96, max(w * 0.04, (orig.x * w) + value.translation.width))
-                                let nY = min(h * 0.96, max(h * 0.68, (orig.y * h) + value.translation.height))
+                                let nY = min(h * 0.92, max(h * 0.06, (orig.y * h) + value.translation.height))
                                 storage.setFloorPosition(for: name, normX: Double(nX / w), normY: Double(nY / h))
                             }
                         } else {
                             let clampedX = min(w * 0.96, max(w * 0.04, releasePoint.x))
-                            let clampedY = min(h * 0.96, max(h * 0.68, releasePoint.y))
+                            let clampedY = min(h * 0.92, max(h * 0.06, releasePoint.y))
                             storage.setFloorPosition(for: itemURL.lastPathComponent, normX: Double(clampedX / w), normY: Double(clampedY / h))
                         }
                         floorState.draggingFloorFileName = nil
@@ -661,7 +603,7 @@ struct FloorItemView: View {
                 NSWorkspace.shared.open(itemURL)
             }
         )
-        .help("\(itemURL.lastPathComponent): Geser ke mana saja di lantai, geser ke rak buku untuk simpan, klik 2x untuk membuka")
+        .help("\(itemURL.lastPathComponent): Geser ke mana saja di desktop, ke rak buku, slot foto, atau tong sampah. Klik 2x untuk membuka.")
         .contextMenu {
             if isSelected && floorState.selectedFileNames.count > 1 {
                 Button("Masukkan \(floorState.selectedFileNames.count) File ke Rak Buku") {
@@ -739,20 +681,36 @@ struct FloorDropDelegate: DropDelegate {
     func dropExited(info: DropInfo) {
         floorState.isFloorTargeted = false
         AppState.shared.isTrashTargeted = false
+        AppState.shared.isBookshelfTargeted = false
+        AppState.shared.targetedPhotoSlot = nil
     }
     func dropUpdated(info: DropInfo) -> DropProposal? {
         let loc = info.location
         let w = screenSize.width
         let h = screenSize.height
-        let floorMinY = h * 0.58
-        let screenX = loc.x
-        let screenY = loc.y >= floorMinY ? loc.y : (floorMinY + loc.y)
         let trashPoint = CGPoint(x: w * 0.710, y: h * 0.738)
+        let bookshelfRect = CGRect(x: (w * 0.1678) - (w * 0.2444 * 0.5) - 30, y: (h * 0.3705) - (h * 0.2860 * 0.5) - 30, width: (w * 0.2444) + 60, height: (h * 0.2860) + 60)
+        let galleryRect = CGRect(x: (w * 0.83125) - (w * 0.220 * 0.5) - 30, y: (h * 0.320) - (h * 0.440 * 0.5) - 30, width: (w * 0.220) + 60, height: (h * 0.440) + 60)
         
-        let isOverTrash = hypot(screenX - trashPoint.x, screenY - trashPoint.y) < 85
+        let isOverTrash = hypot(loc.x - trashPoint.x, loc.y - trashPoint.y) < 85
         if AppState.shared.isTrashTargeted != isOverTrash {
             AppState.shared.isTrashTargeted = isOverTrash
         }
+        
+        let isOverBookshelf = bookshelfRect.contains(loc)
+        if AppState.shared.isBookshelfTargeted != isOverBookshelf {
+            AppState.shared.isBookshelfTargeted = isOverBookshelf
+        }
+        
+        if galleryRect.contains(loc) {
+            let slot = slotIndexForGallery(point: loc, galleryRect: galleryRect)
+            if AppState.shared.targetedPhotoSlot != slot {
+                AppState.shared.targetedPhotoSlot = slot
+            }
+        } else if AppState.shared.targetedPhotoSlot != nil {
+            AppState.shared.targetedPhotoSlot = nil
+        }
+        
         return DropProposal(operation: .copy)
     }
     func validateDrop(info: DropInfo) -> Bool {
@@ -761,19 +719,18 @@ struct FloorDropDelegate: DropDelegate {
     func performDrop(info: DropInfo) -> Bool {
         floorState.isFloorTargeted = false
         AppState.shared.isTrashTargeted = false
+        AppState.shared.isBookshelfTargeted = false
+        AppState.shared.targetedPhotoSlot = nil
         let loc = info.location
         let w = screenSize.width
         let h = screenSize.height
-        let floorMinY = h * 0.58
-        let screenX = loc.x
-        let screenY = loc.y >= floorMinY ? loc.y : (floorMinY + loc.y)
         
         let providers = info.itemProviders(for: [.fileURL, .folder, .directory, .item])
         guard !providers.isEmpty else { return false }
         
         // 1. Direct Drop into Trash Can
         let trashPoint = CGPoint(x: w * 0.710, y: h * 0.738)
-        if hypot(screenX - trashPoint.x, screenY - trashPoint.y) < 85 {
+        if hypot(loc.x - trashPoint.x, loc.y - trashPoint.y) < 85 {
             for provider in providers {
                 StorageManager.extractFileURL(from: provider) { url in
                     _ = storage.moveToTrash(url: url)
@@ -782,9 +739,42 @@ struct FloorDropDelegate: DropDelegate {
             return true
         }
         
-        // 2. Normal Floor Drop
-        let normX = min(0.92, max(0.08, screenX / w))
-        let normY = min(0.88, max(floorMinY / h, screenY / h))
+        // 2. Direct Drop into Bookshelf
+        let bookshelfRect = CGRect(x: (w * 0.1678) - (w * 0.2444 * 0.5) - 30, y: (h * 0.3705) - (h * 0.2860 * 0.5) - 30, width: (w * 0.2444) + 60, height: (h * 0.2860) + 60)
+        if bookshelfRect.contains(loc) {
+            for provider in providers {
+                StorageManager.extractFileURL(from: provider) { url in
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                        storage.addBookshelfItem(from: url)
+                    }
+                }
+            }
+            return true
+        }
+        
+        // 3. Direct Drop into Photo Gallery Slot
+        let galleryRect = CGRect(x: (w * 0.83125) - (w * 0.220 * 0.5) - 30, y: (h * 0.320) - (h * 0.440 * 0.5) - 30, width: (w * 0.220) + 60, height: (h * 0.440) + 60)
+        if galleryRect.contains(loc) {
+            let slot = slotIndexForGallery(point: loc, galleryRect: galleryRect)
+            for provider in providers {
+                StorageManager.extractFileURL(from: provider) { url in
+                    if StorageManager.isImageFile(url) {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                            storage.assignPhoto(sourceURL: url, slotIndex: slot)
+                        }
+                    } else {
+                        let normX = min(0.96, max(0.04, loc.x / w))
+                        let normY = min(0.92, max(0.06, loc.y / h))
+                        storage.addFloorItem(from: url, at: CGPoint(x: normX, y: normY))
+                    }
+                }
+            }
+            return true
+        }
+        
+        // 4. Normal Desktop Drop anywhere!
+        let normX = min(0.96, max(0.04, loc.x / w))
+        let normY = min(0.92, max(0.06, loc.y / h))
         for provider in providers {
             StorageManager.extractFileURL(from: provider) { url in
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {

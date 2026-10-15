@@ -602,12 +602,10 @@ public final class StorageManager: ObservableObject {
     
     public func positionForFloorItem(filename: String, index: Int, total: Int) -> CGPoint {
         if let stored = floorItemPositions[filename] {
-            // Sanitize older positions that were pushed off-screen into the Dock (y >= 0.90) or out of bounds
-            if stored.y < 0.90 && stored.y >= 0.70 {
-                let clampedX = min(0.92, max(0.08, CGFloat(stored.x)))
-                let clampedY = min(0.88, max(0.72, CGFloat(stored.y)))
-                return CGPoint(x: clampedX, y: clampedY)
-            }
+            // Keep user-chosen position anywhere on the desktop (bounded safely inside screen: x 0.04...0.96, y 0.06...0.92)
+            let clampedX = min(0.96, max(0.04, CGFloat(stored.x)))
+            let clampedY = min(0.92, max(0.06, CGFloat(stored.y)))
+            return CGPoint(x: clampedX, y: clampedY)
         }
         return Self.scatteredPosition(for: filename)
     }
