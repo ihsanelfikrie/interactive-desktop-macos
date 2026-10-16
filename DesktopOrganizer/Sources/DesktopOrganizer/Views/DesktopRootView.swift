@@ -49,7 +49,9 @@ public struct DesktopRootView: View {
                                         newlySelected.insert(item.lastPathComponent)
                                     }
                                 }
-                                floorState.selectedFileNames = newlySelected
+                                if floorState.selectedFileNames != newlySelected {
+                                    floorState.selectedFileNames = newlySelected
+                                }
                             }
                             .onEnded { value in
                                 let floorState = FloorInteractionState.shared

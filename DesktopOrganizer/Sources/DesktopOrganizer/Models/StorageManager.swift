@@ -81,6 +81,7 @@ public final class StorageManager: ObservableObject {
         
         self.setupDirectories()
         self.migrateLegacyIfPresent()
+        self.deduplicateShelfAndCarpet()
         self.loadAllData()
         self.checkDesktopIconStatus()
         self.watchDirectory()
@@ -139,6 +140,61 @@ public final class StorageManager: ObservableObject {
         if !fm.fileExists(atPath: notesFileURL.path) && fm.fileExists(atPath: oldNotes.path) {
             try? fm.copyItem(at: oldNotes, to: notesFileURL)
         }
+    }
+    
+    // Auto-heal duplicate or broken symlinks between Rak and Karpet/Lantai
+    private func deduplicateShelfAndCarpet() {
+        let fm = FileManager.default
+        
+        // 1. Sinkronisasi item di Rak:
+        if let shelfContents = try? fm.contentsOfDirectory(at: bookshelfDirectory, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]) {
+            for shelfURL in shelfContents {
+                let name = shelfURL.lastPathComponent
+                if let symTarget = try? fm.destinationOfSymbolicLink(atPath: shelfURL.path) {
+                    let targetURL = URL(fileURLWithPath: symTarget)
+                    if symTarget.hasPrefix(carpetDirectory.path) {
+                        // Symlink di rak menunjuk ke berkas di karpet/lantai
+                        let targetExists = fm.fileExists(atPath: symTarget) || (try? fm.destinationOfSymbolicLink(atPath: symTarget)) != nil
+                        if targetExists {
+                            try? fm.removeItem(at: shelfURL)
+                            if let externalTarget = try? fm.destinationOfSymbolicLink(atPath: symTarget), !externalTarget.hasPrefix(carpetDirectory.path) {
+                                try? fm.removeItem(at: targetURL)
+                                try? fm.createSymbolicLink(at: shelfURL, withDestinationURL: URL(fileURLWithPath: externalTarget))
+                            } else {
+                                try? fm.moveItem(at: targetURL, to: shelfURL)
+                            }
+                            floorItemPositions.removeValue(forKey: name)
+                        } else {
+                            try? fm.removeItem(at: shelfURL)
+                        }
+                    } else if !fm.fileExists(atPath: symTarget) {
+                        try? fm.removeItem(at: shelfURL)
+                    }
+                } else {
+                    // Berkas fisik di Rak: bersihkan duplikat di Karpet jika ada
+                    let carpetDuplicate = carpetDirectory.appendingPathComponent(name)
+                    let duplicateExists = fm.fileExists(atPath: carpetDuplicate.path) || (try? fm.destinationOfSymbolicLink(atPath: carpetDuplicate.path)) != nil
+                    if duplicateExists {
+                        try? fm.removeItem(at: carpetDuplicate)
+                        floorItemPositions.removeValue(forKey: name)
+                    }
+                }
+            }
+        }
+        
+        // 2. Bersihkan symlink sirkular atau rusak di Karpet/lantai
+        if let carpetContents = try? fm.contentsOfDirectory(at: carpetDirectory, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]) {
+            for carpetURL in carpetContents {
+                if let symTarget = try? fm.destinationOfSymbolicLink(atPath: carpetURL.path) {
+                    if symTarget == carpetURL.path || (!fm.fileExists(atPath: symTarget) && !fm.fileExists(atPath: carpetURL.path)) {
+                        try? fm.removeItem(at: carpetURL)
+                        floorItemPositions.removeValue(forKey: carpetURL.lastPathComponent)
+                    }
+                }
+            }
+        }
+        
+        saveFloorPositions()
     }
     
     // Auto-refresh when files change in DesktopRoom or any subfolder (Karpet, Rak, Album)
@@ -262,19 +318,24 @@ public final class StorageManager: ObservableObject {
         }
     }
     
+    private func entryExists(at url: URL) -> Bool {
+        if FileManager.default.fileExists(atPath: url.path) { return true }
+        if (try? FileManager.default.destinationOfSymbolicLink(atPath: url.path)) != nil { return true }
+        return false
+    }
+    
     // MARK: - Safe File Destination (Prevents Data Overwriting & Path Traversal)
     private func safeDestinationURL(in directory: URL, originalName: String) -> URL {
-        let fileManager = FileManager.default
         let cleanName = (originalName as NSString).lastPathComponent
         var destURL = directory.appendingPathComponent(cleanName)
-        if !fileManager.fileExists(atPath: destURL.path) {
+        if !entryExists(at: destURL) {
             return destURL
         }
         
         let baseName = (originalName as NSString).deletingPathExtension
         let ext = (originalName as NSString).pathExtension
         var counter = 1
-        while fileManager.fileExists(atPath: destURL.path) {
+        while entryExists(at: destURL) {
             let newName = ext.isEmpty ? "\(baseName) (\(counter))" : "\(baseName) (\(counter)).\(ext)"
             destURL = directory.appendingPathComponent(newName)
             counter += 1
@@ -335,8 +396,19 @@ public final class StorageManager: ObservableObject {
         let accessing = sourceURL.startAccessingSecurityScopedResource()
         defer { if accessing { sourceURL.stopAccessingSecurityScopedResource() } }
         
-        let destURL = safeDestinationURL(in: bookshelfDirectory, originalName: sourceURL.lastPathComponent)
-        // Buat symbolic link (0 MB) agar berkas asli tetap di lokasi asal tanpa menduplikasi ruang disk
+        let fileName = sourceURL.lastPathComponent
+        let isFromCarpet = sourceURL.standardizedFileURL.path.hasPrefix(carpetDirectory.standardizedFileURL.path)
+        let carpetFileURL = carpetDirectory.appendingPathComponent(fileName)
+        let existsOnCarpet = isFromCarpet || FileManager.default.fileExists(atPath: carpetFileURL.path) || (try? FileManager.default.destinationOfSymbolicLink(atPath: carpetFileURL.path)) != nil
+        
+        // Berkas berasal dari lantai atau sudah ada di lantai: pindahkan fisik ke rak
+        if existsOnCarpet {
+            moveFloorItemsToBookshelf(filenames: [fileName])
+            return
+        }
+        
+        let destURL = safeDestinationURL(in: bookshelfDirectory, originalName: fileName)
+        // Berkas eksternal (Desktop/Finder): buat symbolic link (0 MB) agar tidak memakan ruang dobel
         do {
             try FileManager.default.createSymbolicLink(at: destURL, withDestinationURL: sourceURL)
             setOriginAttribute(destURL: destURL, originPath: sourceURL.path)
@@ -451,7 +523,26 @@ public final class StorageManager: ObservableObject {
     public func refreshCarpet() {
         let fileManager = FileManager.default
         if let contents = try? fileManager.contentsOfDirectory(at: carpetDirectory, includingPropertiesForKeys: [.contentModificationDateKey], options: [.skipsHiddenFiles]) {
-            let sorted = contents.sorted(by: { $0.lastPathComponent < $1.lastPathComponent })
+            let shelfNames: Set<String>
+            if let shelfContents = try? fileManager.contentsOfDirectory(at: bookshelfDirectory, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]) {
+                shelfNames = Set(shelfContents.map { $0.lastPathComponent })
+            } else {
+                shelfNames = []
+            }
+            
+            let filtered = contents.filter { url in
+                let name = url.lastPathComponent
+                // Item yang sudah masuk ke rak tidak boleh muncul lagi di lantai
+                if shelfNames.contains(name) { return false }
+                // Saring symlink sirkular atau rusak
+                if let target = try? fileManager.destinationOfSymbolicLink(atPath: url.path) {
+                    if target == url.path { return false }
+                    if !fileManager.fileExists(atPath: target) && !fileManager.fileExists(atPath: url.path) { return false }
+                }
+                return true
+            }
+            
+            let sorted = filtered.sorted(by: { $0.lastPathComponent < $1.lastPathComponent })
             if Thread.isMainThread {
                 self.carpetItems = sorted
             } else {
@@ -638,10 +729,36 @@ public final class StorageManager: ObservableObject {
     }
     
     public func moveFloorItemsToBookshelf(filenames: [String]) {
+        let fm = FileManager.default
         for name in filenames {
             let fileURL = carpetDirectory.appendingPathComponent(name)
-            guard FileManager.default.fileExists(atPath: fileURL.path) else { continue }
-            addBookshelfItem(from: fileURL)
+            let exists = fm.fileExists(atPath: fileURL.path) || (try? fm.destinationOfSymbolicLink(atPath: fileURL.path)) != nil
+            guard exists else { continue }
+            
+            let destURL = bookshelfDirectory.appendingPathComponent(name)
+            // Bersihkan entri lama di rak jika ada (misal broken symlink dengan nama sama)
+            if fm.fileExists(atPath: destURL.path) || (try? fm.destinationOfSymbolicLink(atPath: destURL.path)) != nil {
+                try? fm.removeItem(at: destURL)
+            }
+            
+            // Jika item di lantai adalah symlink ke berkas eksternal (misal Downloads/Desktop), pertahankan pointer eksternal
+            if let symTarget = try? fm.destinationOfSymbolicLink(atPath: fileURL.path), !symTarget.hasPrefix(carpetDirectory.path) {
+                let targetURL = URL(fileURLWithPath: symTarget)
+                try? fm.removeItem(at: fileURL)
+                try? fm.createSymbolicLink(at: destURL, withDestinationURL: targetURL)
+                setOriginAttribute(destURL: destURL, originPath: targetURL.path)
+            } else {
+                // Berkas atau folder fisik: pindahkan langsung dari Karpet ke Rak
+                do {
+                    try fm.moveItem(at: fileURL, to: destURL)
+                    setOriginAttribute(destURL: destURL, originPath: fileURL.path)
+                } catch {
+                    if (try? fm.copyItem(at: fileURL, to: destURL)) != nil {
+                        try? fm.removeItem(at: fileURL)
+                        setOriginAttribute(destURL: destURL, originPath: fileURL.path)
+                    }
+                }
+            }
             floorItemPositions.removeValue(forKey: name)
         }
         saveFloorPositions()

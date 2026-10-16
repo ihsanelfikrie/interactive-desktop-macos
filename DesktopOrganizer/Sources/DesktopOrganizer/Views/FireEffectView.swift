@@ -1,7 +1,7 @@
 import SwiftUI
 import AppKit
 
-// MARK: - Ultra-Lightweight Asset Fire Effect (GPU Metal Canvas, 30 FPS Cap)
+// MARK: - Ultra-Lightweight Batched Asset Fire Effect (GPU Metal Canvas, 30 FPS Cap)
 public struct AssetFireEffectView: View {
     @ObservedObject var appState = AppState.shared
     let flameHeight: CGFloat
@@ -17,7 +17,7 @@ public struct AssetFireEffectView: View {
     public var body: some View {
         TimelineView(.animation(minimumInterval: appState.isLowPower ? 1.0 / 20.0 : 1.0 / 30.0)) { timeline in
             Canvas { context, size in
-                guard appState.isWindowVisible else { return }
+                guard appState.isWindowVisible && appState.isAppActive else { return }
                 let t = timeline.date.timeIntervalSinceReferenceDate
                 let w = size.width
                 let h = size.height
@@ -30,7 +30,7 @@ public struct AssetFireEffectView: View {
                     with: .color(Color(red: 1.0, green: 0.35, blue: 0.05).opacity(0.18))
                 )
                 
-                // 2. Base Flames (Bottom of asset)
+                // 2. Base Flames (Bottom of asset - Batched in 2 GPU Draw Calls)
                 if showBaseFlames {
                     drawFlamesRow(
                         context: &context,
@@ -42,7 +42,7 @@ public struct AssetFireEffectView: View {
                     )
                 }
                 
-                // 3. Top Flames (Top of asset)
+                // 3. Top Flames (Top of asset - Batched in 2 GPU Draw Calls)
                 if showTopFlames {
                     drawFlamesRow(
                         context: &context,
@@ -54,8 +54,9 @@ public struct AssetFireEffectView: View {
                     )
                 }
                 
-                // 4. Subtle Rising Sparks (3-6 embers per asset)
-                let emberCount = min(6, max(3, Int(w / 32)))
+                // 4. Subtle Rising Sparks (Batched in 1 GPU Draw Call)
+                let emberCount = min(5, max(3, Int(w / 36)))
+                var sparksPath = Path()
                 for k in 0..<emberCount {
                     let seed = Double(k) * 1.618
                     let cycle = (t * 0.85 + seed).truncatingRemainder(dividingBy: 1.0)
@@ -63,19 +64,19 @@ public struct AssetFireEffectView: View {
                     
                     let emberX = CGFloat((k * 43) % Int(max(w - 6, 1))) + 3 + sin(CGFloat(t * 3.0 + seed * 3)) * 5
                     let emberY = h - prog * (h + flameHeight + 15)
-                    let alpha = sin(prog * .pi) * 0.80
-                    let r: CGFloat = 1.2 + CGFloat(k % 2) * 0.6
+                    let r: CGFloat = 1.3
                     
-                    context.fill(
-                        Path(ellipseIn: CGRect(x: emberX - r, y: emberY - r, width: r * 2, height: r * 2)),
-                        with: .color(Color(red: 1.0, green: 0.88, blue: 0.30).opacity(Double(alpha)))
-                    )
+                    sparksPath.addEllipse(in: CGRect(x: emberX - r, y: emberY - r, width: r * 2, height: r * 2))
                 }
+                context.fill(
+                    sparksPath,
+                    with: .color(Color(red: 1.0, green: 0.88, blue: 0.30).opacity(0.75))
+                )
             }
         }
     }
     
-    // MARK: - Fast Dual-Layer Flame Painter (Halved Draw Calls)
+    // MARK: - Fast Batched Dual-Layer Flame Painter (Only 2 GPU Draw Calls Total)
     private func drawFlamesRow(
         context: inout GraphicsContext,
         width: CGFloat,
@@ -86,18 +87,19 @@ public struct AssetFireEffectView: View {
     ) {
         let step = max(16.0, min(26.0, width / 5.0))
         let numFlames = max(2, Int(ceil(width / step)))
+        let fw = step * 1.10
+        
+        var outerPath = Path()
+        var corePath = Path()
         
         for i in 0..<numFlames {
             let fx = CGFloat(i) * step + (step * 0.5)
             let phase = time * 7.0 + Double(i) * 1.5 + seedOffset
-            let fw = step * 1.10
-            
             let sinP = sin(phase)
             let currentH = flameH * CGFloat(0.70 + 0.30 * sinP)
             let sway = CGFloat(sin(phase * 0.75)) * (fw * 0.30)
             
-            // Layer 1: Outer Flame (Crimson-Red to Intense Orange)
-            var outerPath = Path()
+            // Outer Flame Tongue
             outerPath.move(to: CGPoint(x: fx - fw * 0.5, y: baseY))
             outerPath.addCurve(
                 to: CGPoint(x: fx + sway, y: baseY - currentH),
@@ -111,22 +113,9 @@ public struct AssetFireEffectView: View {
             )
             outerPath.closeSubpath()
             
-            context.fill(
-                outerPath,
-                with: .linearGradient(
-                    Gradient(colors: [
-                        Color(red: 0.95, green: 0.18, blue: 0.04).opacity(0.88),
-                        Color(red: 1.00, green: 0.48, blue: 0.06).opacity(0.85)
-                    ]),
-                    startPoint: CGPoint(x: fx, y: baseY),
-                    endPoint: CGPoint(x: fx + sway, y: baseY - currentH)
-                )
-            )
-            
-            // Layer 2: Core Flame (Electric Tangerine to White-Hot Gold)
+            // Core Flame Tongue
             let coreH = currentH * 0.55
             let coreW = fw * 0.55
-            var corePath = Path()
             corePath.move(to: CGPoint(x: fx - coreW * 0.5, y: baseY))
             corePath.addCurve(
                 to: CGPoint(x: fx + sway * 0.7, y: baseY - coreH),
@@ -139,23 +128,37 @@ public struct AssetFireEffectView: View {
                 control2: CGPoint(x: fx + coreW * 0.5, y: baseY - coreH * 0.40)
             )
             corePath.closeSubpath()
-            
-            context.fill(
-                corePath,
-                with: .linearGradient(
-                    Gradient(colors: [
-                        Color(red: 1.00, green: 0.65, blue: 0.12),
-                        Color(red: 1.00, green: 0.96, blue: 0.65).opacity(0.95)
-                    ]),
-                    startPoint: CGPoint(x: fx, y: baseY),
-                    endPoint: CGPoint(x: fx + sway * 0.7, y: baseY - coreH)
-                )
-            )
         }
+        
+        // Single Draw Call 1: All Outer Flames
+        context.fill(
+            outerPath,
+            with: .linearGradient(
+                Gradient(colors: [
+                    Color(red: 0.95, green: 0.18, blue: 0.04).opacity(0.88),
+                    Color(red: 1.00, green: 0.48, blue: 0.06).opacity(0.85)
+                ]),
+                startPoint: CGPoint(x: width * 0.5, y: baseY),
+                endPoint: CGPoint(x: width * 0.5, y: baseY - flameH)
+            )
+        )
+        
+        // Single Draw Call 2: All Core Flames
+        context.fill(
+            corePath,
+            with: .linearGradient(
+                Gradient(colors: [
+                    Color(red: 1.00, green: 0.65, blue: 0.12),
+                    Color(red: 1.00, green: 0.96, blue: 0.65).opacity(0.95)
+                ]),
+                startPoint: CGPoint(x: width * 0.5, y: baseY),
+                endPoint: CGPoint(x: width * 0.5, y: baseY - flameH * 0.55)
+            )
+        )
     }
 }
 
-// MARK: - Burning Fire View Modifier (Optimized for 0 Overhead when Inactive)
+// MARK: - Burning Fire View Modifier (Zero Overhead when Inactive)
 public struct BurningFireModifier: ViewModifier {
     let isActive: Bool
     let flameHeight: CGFloat
@@ -169,25 +172,23 @@ public struct BurningFireModifier: ViewModifier {
         self.showTopFlames = showTopFlames
     }
     
+    @ViewBuilder
     public func body(content: Content) -> some View {
-        content
-            .overlay(
-                Group {
-                    if isActive {
-                        AssetFireEffectView(
-                            flameHeight: flameHeight,
-                            showBaseFlames: showBaseFlames,
-                            showTopFlames: showTopFlames
-                        )
-                        .allowsHitTesting(false)
-                        .transition(.opacity)
-                    }
-                }
-            )
-            .shadow(
-                color: isActive ? Color(red: 1.0, green: 0.35, blue: 0.05).opacity(0.70) : Color.clear,
-                radius: isActive ? 10 : 0
-            )
+        if isActive {
+            content
+                .overlay(
+                    AssetFireEffectView(
+                        flameHeight: flameHeight,
+                        showBaseFlames: showBaseFlames,
+                        showTopFlames: showTopFlames
+                    )
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
+                )
+                .shadow(color: Color(red: 1.0, green: 0.35, blue: 0.05).opacity(0.65), radius: 8)
+        } else {
+            content
+        }
     }
 }
 
@@ -219,7 +220,7 @@ public struct RoomFireAtmosphereView: View {
             let h = geo.size.height
             
             ZStack {
-                // 1. Static/Smooth Ambient Glow Layer (Red-Orange Hue Over Whole Room)
+                // 1. Static Ambient Glow Layer (Red-Orange Hue Over Whole Room)
                 LinearGradient(
                     colors: [
                         Color(red: 0.86, green: 0.18, blue: 0.04).opacity(0.34),
@@ -256,54 +257,56 @@ public struct RoomFireAtmosphereView: View {
                     Spacer()
                 }
                 
-                // 2. Single Unified Canvas: Floor Inferno + 28 Room Embers
+                // 2. Single Unified Canvas: Floor Inferno + 25 Room Embers (Batched in 2 GPU Draw Calls)
                 TimelineView(.animation(minimumInterval: appState.isLowPower ? 1.0 / 20.0 : 1.0 / 30.0)) { timeline in
                     Canvas { context, size in
-                        guard appState.isWindowVisible else { return }
+                        guard appState.isWindowVisible && appState.isAppActive else { return }
                         let t = timeline.date.timeIntervalSinceReferenceDate
                         let cw = size.width
                         let ch = size.height
                         
-                        // Floor Inferno Flames across bottom edge
-                        let step: CGFloat = 34
+                        // Floor Inferno: Batch All Flames into 1 Path
+                        let step: CGFloat = 36
                         let flameCount = Int(ceil(cw / step)) + 1
+                        let fw = step * 1.4
+                        var floorFlamesPath = Path()
+                        
                         for i in 0..<flameCount {
                             let fx = CGFloat(i) * step
                             let phase = t * 6.5 + Double(i) * 1.3
                             let currentH: CGFloat = 60 + CGFloat(sin(phase) * 22.0)
                             let sway = CGFloat(sin(phase * 0.75)) * 8
-                            let fw = step * 1.4
                             
-                            var flamePath = Path()
-                            flamePath.move(to: CGPoint(x: fx - fw * 0.5, y: ch))
-                            flamePath.addCurve(
+                            floorFlamesPath.move(to: CGPoint(x: fx - fw * 0.5, y: ch))
+                            floorFlamesPath.addCurve(
                                 to: CGPoint(x: fx + sway, y: ch - currentH),
                                 control1: CGPoint(x: fx - fw * 0.5, y: ch - currentH * 0.45),
                                 control2: CGPoint(x: fx + sway * 0.5, y: ch - currentH * 0.80)
                             )
-                            flamePath.addCurve(
+                            floorFlamesPath.addCurve(
                                 to: CGPoint(x: fx + fw * 0.5, y: ch),
                                 control1: CGPoint(x: fx + sway * 0.5, y: ch - currentH * 0.80),
                                 control2: CGPoint(x: fx + fw * 0.5, y: ch - currentH * 0.45)
                             )
-                            flamePath.closeSubpath()
-                            
-                            context.fill(
-                                flamePath,
-                                with: .linearGradient(
-                                    Gradient(colors: [
-                                        Color(red: 0.95, green: 0.20, blue: 0.04).opacity(0.85),
-                                        Color(red: 1.00, green: 0.58, blue: 0.10).opacity(0.80),
-                                        Color(red: 1.00, green: 0.90, blue: 0.40).opacity(0.60)
-                                    ]),
-                                    startPoint: CGPoint(x: fx, y: ch),
-                                    endPoint: CGPoint(x: fx + sway, y: ch - currentH)
-                                )
-                            )
+                            floorFlamesPath.closeSubpath()
                         }
                         
-                        // 28 Room-Wide Floating Embers
-                        let totalEmbers = 28
+                        context.fill(
+                            floorFlamesPath,
+                            with: .linearGradient(
+                                Gradient(colors: [
+                                    Color(red: 0.95, green: 0.20, blue: 0.04).opacity(0.85),
+                                    Color(red: 1.00, green: 0.58, blue: 0.10).opacity(0.80),
+                                    Color(red: 1.00, green: 0.90, blue: 0.40).opacity(0.60)
+                                ]),
+                                startPoint: CGPoint(x: cw * 0.5, y: ch),
+                                endPoint: CGPoint(x: cw * 0.5, y: ch - 75)
+                            )
+                        )
+                        
+                        // Room Embers: Batch All Embers into 1 Path
+                        let totalEmbers = 25
+                        var embersPath = Path()
                         for k in 0..<totalEmbers {
                             let seed = Double(k) * 2.39996
                             let speed = 0.16 + (Double(k % 6) * 0.035)
@@ -314,19 +317,19 @@ public struct RoomFireAtmosphereView: View {
                             let swayX = CGFloat(sin(Double(prog * 7.0) + seed * 4.0)) * 20.0
                             let emberX = startX + swayX
                             let emberY = ch - (prog * ch)
+                            let r: CGFloat = 1.3
                             
-                            let alpha = sin(prog * .pi) * 0.85
-                            let r: CGFloat = 1.3 + CGFloat(k % 3) * 0.8
-                            
-                            context.fill(
-                                Path(ellipseIn: CGRect(x: emberX - r, y: emberY - r, width: r * 2, height: r * 2)),
-                                with: .color(Color(red: 1.00, green: 0.72, blue: 0.20).opacity(Double(alpha)))
-                            )
+                            embersPath.addEllipse(in: CGRect(x: emberX - r, y: emberY - r, width: r * 2, height: r * 2))
                         }
+                        
+                        context.fill(
+                            embersPath,
+                            with: .color(Color(red: 1.00, green: 0.72, blue: 0.20).opacity(0.75))
+                        )
                     }
                 }
             }
-            .allowsHitTesting(false) // Never blocks clicks to furniture or presidential portraits!
+            .allowsHitTesting(false)
         }
     }
 }
