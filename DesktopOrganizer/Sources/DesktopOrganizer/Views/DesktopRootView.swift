@@ -96,6 +96,7 @@ public struct DesktopRootView: View {
                     .frame(width: wallClockSize, height: wallClockSize)
                     .burningFire(isActive: appState.isFireModeActive, flameHeight: 24)
                     .position(x: clockX, y: clockY)
+                    .zIndex(26)
                 
                 // Foto Resmi Wakil Presiden RI (Gibran Rakabuming Raka) - Right of Clock
                 PresidentialPortraitView(type: .vicePresident)
@@ -194,7 +195,7 @@ public struct DesktopRootView: View {
                 MagicCarpetView(theme: appState.currentTheme, screenSize: geo.size)
                     .frame(width: w, height: h)
                     .position(x: w * 0.5, y: h * 0.5)
-                    .zIndex(FloorInteractionState.shared.draggingFloorFileName != nil ? 25 : 12)
+                    .zIndex(FloorInteractionState.shared.draggingFloorFileName != nil ? 30 : 20)
                 
                 // Fender Stratocaster Guitar on Stand (Standing on lawn beneath photo gallery)
                 let guitarH = h * 0.58
@@ -234,7 +235,7 @@ public struct DesktopRootView: View {
                         .ignoresSafeArea()
                         .allowsHitTesting(false)
                         .transition(.opacity)
-                        .zIndex(20)
+                        .zIndex(22)
                 }
                 
                 // 4. Room Fire Atmosphere & Inferno (When Secret Fire Mode is Active)
@@ -244,7 +245,7 @@ public struct DesktopRootView: View {
                         .ignoresSafeArea()
                         .allowsHitTesting(false)
                         .transition(.opacity)
-                        .zIndex(22)
+                        .zIndex(24)
                 }
                 
 
