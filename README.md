@@ -188,6 +188,13 @@ Custom Desktop Mac/
 
 ---
 
+## 🙏 Kredit & Inspirasi (Credits & Inspiration)
+
+- **Konsep Kreatif**: Konsep visual ruangan desktop interaktif terinspirasi dari karya konsep kreatif oleh **Chelsy Lifardy** ([@chelsylifardy](https://www.instagram.com/chelsylifardy/)).
+- **Rekayasa & Pengembangan Perangkat Lunak**: Seluruh kode sumber dibangun dan direkayasa ulang secara mandiri dari awal (*clean-room engineering*) sebagai aplikasi native macOS 100% menggunakan **SwiftUI, AppKit, dan Metal** dengan efisiensi daya tinggi (0% idle CPU). Ditambah dengan integrasi Spotify lokal, instrumen musik prosedural (Martin D-28 & Fender Stratocaster), mode rahasia kebakaran ruangan, jam analog realtime, kaligrafi Bismillah, serta plakat akrilik oleh **Ihsan Elfikrie & SANS Studio**.
+
+---
+
 ## 📄 Lisensi & Hak Cipta
 
 Copyright © 2026 **Ihsan Elfikrie & SANS Studio**. All rights reserved.  
