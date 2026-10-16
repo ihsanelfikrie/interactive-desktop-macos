@@ -38,6 +38,7 @@ public enum PresidentialPortraitType {
 // MARK: - Native Framed Presidential Portrait View (Flat Stylized Vector Art)
 public struct PresidentialPortraitView: View {
     public let type: PresidentialPortraitType
+    @ObservedObject var appState = AppState.shared
     
     public init(type: PresidentialPortraitType) {
         self.type = type
@@ -187,7 +188,18 @@ public struct PresidentialPortraitView: View {
                 .frame(width: plateW, height: plateH)
                 .position(x: w * 0.5, y: h - 7.5)
             }
-            .help("\(type.title): \(type.name)")
+            .contentShape(Rectangle())
+            .onHover { hovering in
+                if hovering {
+                    NSCursor.pointingHand.push()
+                } else {
+                    NSCursor.pop()
+                }
+            }
+            .onTapGesture {
+                appState.toggleFireMode()
+            }
+            .help(appState.isFireModeActive ? "\(type.title): \(type.name) (Klik untuk memadamkan api)" : "\(type.title): \(type.name) (Klik untuk mengaktifkan rahasia kebakaran!)")
         }
     }
 }

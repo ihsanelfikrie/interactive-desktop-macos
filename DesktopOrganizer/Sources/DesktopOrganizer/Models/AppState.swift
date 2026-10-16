@@ -97,6 +97,15 @@ public final class AppState: ObservableObject {
     @Published public var activeQuickView: ActiveDesktopQuickView? = nil
     @Published public var showRugPeek: Bool = false
     
+    // MARK: - Secret Fire Mode Easter Egg
+    @Published public var isFireModeActive: Bool = false
+    
+    public func toggleFireMode() {
+        withAnimation(.easeInOut(duration: 0.45)) {
+            isFireModeActive.toggle()
+        }
+    }
+    
     // MARK: - Floor & Carpet State (Forwarded to FloorInteractionState for isolated 120 FPS Dragging)
     public var isCarpetLifted: Bool {
         get { FloorInteractionState.shared.isCarpetLifted }

@@ -679,6 +679,25 @@ public struct WorkstationMonitorView: View {
                             )
                             .transition(.opacity)
                         }
+                        
+                        if appState.isFireModeActive {
+                            ZStack {
+                                Color.black.opacity(0.80)
+                                VStack(spacing: 3) {
+                                    Image(systemName: "flame.fill")
+                                        .font(.system(size: 24))
+                                        .foregroundColor(.orange)
+                                    Text("FIRE ALERT")
+                                        .font(.system(size: 8.5, weight: .black))
+                                        .foregroundColor(.red)
+                                    Text("RUANGAN TERBAKAR")
+                                        .font(.system(size: 6.5, weight: .bold))
+                                        .foregroundColor(.yellow)
+                                }
+                            }
+                            .frame(width: 167, height: 104)
+                            .transition(.opacity)
+                        }
                     }
                     .frame(width: 167, height: 104)
                     .clipShape(RoundedRectangle(cornerRadius: 7))

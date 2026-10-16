@@ -1057,6 +1057,7 @@ struct ArabicRugView: View {
                 .frame(width: 12, height: 148)
         }
         .frame(width: rugWidth + 24, height: rugHeight)
+        .burningFire(isActive: AppState.shared.isFireModeActive, flameHeight: 38)
     }
 }
 

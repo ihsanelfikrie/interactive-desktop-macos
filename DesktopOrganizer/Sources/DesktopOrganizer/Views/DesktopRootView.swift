@@ -73,6 +73,7 @@ public struct DesktopRootView: View {
                 // Wall Shelf (Left Wall: centered in left wall boiserie panel)
                 BookshelfView(theme: appState.currentTheme)
                     .frame(width: bookshelfW, height: bookshelfH)
+                    .burningFire(isActive: appState.isFireModeActive, flameHeight: 40)
                     .position(x: bookshelfX, y: bookshelfY)
                 
                 // Live Modern Architectural Wall Clock & Official Presidential Portraits (Mounted above Bookshelf)
@@ -86,21 +87,27 @@ public struct DesktopRootView: View {
                 // Foto Resmi Presiden RI (H. Prabowo Subianto) - Left of Clock
                 PresidentialPortraitView(type: .president)
                     .frame(width: portraitW, height: portraitH)
+                    .burningFire(isActive: appState.isFireModeActive, flameHeight: 22)
                     .position(x: clockX - portraitOffset, y: clockY)
+                    .zIndex(26)
                 
                 // Clock (Center)
                 AnalogWallClockView()
                     .frame(width: wallClockSize, height: wallClockSize)
+                    .burningFire(isActive: appState.isFireModeActive, flameHeight: 24)
                     .position(x: clockX, y: clockY)
                 
                 // Foto Resmi Wakil Presiden RI (Gibran Rakabuming Raka) - Right of Clock
                 PresidentialPortraitView(type: .vicePresident)
                     .frame(width: portraitW, height: portraitH)
+                    .burningFire(isActive: appState.isFireModeActive, flameHeight: 22)
                     .position(x: clockX + portraitOffset, y: clockY)
+                    .zIndex(26)
                 
                 // Corkboard Notes (Center Wall: Sticky notes & Add Memo inside wooden frame)
                 CorkboardView()
                     .frame(width: w * 0.2691, height: h * 0.2935)
+                    .burningFire(isActive: appState.isFireModeActive, flameHeight: 36)
                     .position(x: w * 0.4983, y: h * 0.2357)
                 
                 // Tropical Potted Houseplant (Beside Desk Left Side - Native Vector with Looping Leaf Sway)
@@ -108,6 +115,7 @@ public struct DesktopRootView: View {
                 let plantH = plantW * (310.0 / 140.0)
                 PottedPlantView()
                     .frame(width: plantW, height: plantH)
+                    .burningFire(isActive: appState.isFireModeActive, flameHeight: 34)
                     .position(x: w * 0.296, y: (h * 0.795) - (plantH / 2))
                 
                 // Modern Executive Workstation Desk (Clean, Spacious Dual-Pedestal)
@@ -119,6 +127,7 @@ public struct DesktopRootView: View {
                 
                 WorkstationDeskView()
                     .frame(width: deskW, height: deskH)
+                    .burningFire(isActive: appState.isFireModeActive, flameHeight: 42)
                     .position(x: deskX, y: deskY)
                     .allowsHitTesting(false)
                 
@@ -130,6 +139,7 @@ public struct DesktopRootView: View {
                     .frame(width: 175, height: 170)
                     .scaleEffect(monitorScale)
                     .frame(width: monitorW, height: monitorH)
+                    .burningFire(isActive: appState.isFireModeActive, flameHeight: 30)
                     .position(x: deskX, y: tabletopSurfaceY - (monitorH / 2) - (10.5 * monitorScale))
                 
                 // Vintage Emerald & Brass Boudoir Lamp (Left Pedestal Top - Firmly Grounded)
@@ -138,6 +148,8 @@ public struct DesktopRootView: View {
                         appState.lampOn.toggle()
                     }
                 }
+                .frame(width: 80, height: 110)
+                .burningFire(isActive: appState.isFireModeActive, flameHeight: 28)
                 .position(x: w * 0.358, y: tabletopSurfaceY - 94)
                 
                 // Left Desk Trophy Plaque (Tegoer Sapa - Crystal Acrylic)
@@ -151,6 +163,7 @@ public struct DesktopRootView: View {
                     quickViewType: .tegoerPlaque
                 )
                 .frame(width: plaqueW, height: plaqueH)
+                .burningFire(isActive: appState.isFireModeActive, flameHeight: 24)
                 .position(x: w * 0.412, y: tabletopSurfaceY - (plaqueH / 2) - 6.0)
                 
                 // Right Desk Trophy Plaque (Sans Studio - Crystal Acrylic)
@@ -162,15 +175,19 @@ public struct DesktopRootView: View {
                     quickViewType: .sansPlaque
                 )
                 .frame(width: plaqueW, height: plaqueH)
+                .burningFire(isActive: appState.isFireModeActive, flameHeight: 24)
                 .position(x: w * 0.584, y: tabletopSurfaceY - (plaqueH / 2) - 6.0)
                 
                 // Desk Speaker (Marshall Bluetooth Speaker - Right Pedestal Top)
                 VintageRadioView()
+                    .frame(width: 80, height: 60)
+                    .burningFire(isActive: appState.isFireModeActive, flameHeight: 24)
                     .position(x: w * 0.638, y: tabletopSurfaceY - 26)
                 
                 // Photo Gallery (Right Wall: centered perfectly in right wall boiserie panel)
                 PhotoGalleryView()
                     .frame(width: w * 0.220, height: h * 0.440)
+                    .burningFire(isActive: appState.isFireModeActive, flameHeight: 38)
                     .position(x: w * 0.83125, y: h * 0.320)
                 
                 // Floor Lawn & Movable Carpet (Drop files anywhere on desktop: desk, wall, carpet, lawn)
@@ -184,6 +201,7 @@ public struct DesktopRootView: View {
                 let guitarW = guitarH * 0.3442
                 StratocasterGuitarView()
                     .frame(width: guitarW, height: guitarH)
+                    .burningFire(isActive: appState.isFireModeActive, flameHeight: 38)
                     .position(x: w * 0.87, y: h * 0.67)
                     .zIndex(15)
                 
@@ -192,26 +210,41 @@ public struct DesktopRootView: View {
                 let acousticW = acousticH * 0.44
                 AcousticGuitarView()
                     .frame(width: acousticW, height: acousticH)
+                    .burningFire(isActive: appState.isFireModeActive, flameHeight: 38)
                     .position(x: w * 0.096, y: h * 0.665)
                     .zIndex(15)
                 
                 // Cartoon Wastebasket (Beside Desk on Floor)
                 TrashCanView()
+                    .frame(width: 84, height: 114)
+                    .burningFire(isActive: appState.isFireModeActive, flameHeight: 32)
                     .position(x: w * 0.710, y: h * 0.738)
                     .zIndex(18)
                 
                 // Native Indonesian Swallow Flip-Flops (Sendal Jepit on Left Grass Floor - Click to Open Google Chrome)
                 SandalJepitView()
+                    .frame(width: 70, height: 70)
+                    .burningFire(isActive: appState.isFireModeActive, flameHeight: 22)
                     .position(x: w * 0.190, y: h * 0.815)
                     .zIndex(10)
                 
-                // 3. Ambient Night Dimmer when Lamp is Off
-                if !appState.lampOn {
+                // 3. Ambient Night Dimmer when Lamp is Off (only when fire is not active)
+                if !appState.lampOn && !appState.isFireModeActive {
                     Color.black.opacity(0.65)
                         .ignoresSafeArea()
                         .allowsHitTesting(false)
                         .transition(.opacity)
                         .zIndex(20)
+                }
+                
+                // 4. Room Fire Atmosphere & Inferno (When Secret Fire Mode is Active)
+                if appState.isFireModeActive {
+                    RoomFireAtmosphereView()
+                        .frame(width: w, height: h)
+                        .ignoresSafeArea()
+                        .allowsHitTesting(false)
+                        .transition(.opacity)
+                        .zIndex(22)
                 }
                 
 
