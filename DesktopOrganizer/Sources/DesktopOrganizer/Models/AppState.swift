@@ -17,6 +17,11 @@ public enum ActiveDesktopQuickView: Equatable {
     case sansPlaque
 }
 
+public enum BoardDisplayMode: String, Codable {
+    case chalkboard
+    case stickyNotes
+}
+
 // MARK: - Dedicated High-Performance Floor & Carpet Interaction State (120 FPS Dragging)
 public final class FloorInteractionState: ObservableObject {
     public static let shared = FloorInteractionState()
@@ -164,6 +169,9 @@ public final class AppState: ObservableObject {
     @Published public var hoveredFlyoutURL: URL? = nil
     @Published public var isHoveringSandal: Bool = false
     @Published public var isHoveringDewa19Sticker: Bool = false
+    
+    // Board Display Mode (.chalkboard or .stickyNotes)
+    @Published public var boardDisplayMode: BoardDisplayMode = .chalkboard
     
     // Sticky Notes state
     @Published public var addingTaskForNoteId: UUID? = nil

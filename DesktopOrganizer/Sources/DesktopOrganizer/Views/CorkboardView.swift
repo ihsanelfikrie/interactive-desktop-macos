@@ -3,6 +3,7 @@ import SwiftUI
 public struct CorkboardView: View {
     @ObservedObject var storage = StorageManager.shared
     @ObservedObject var appState = AppState.shared
+    @ObservedObject var reminderManager = DailyReminderManager.shared
     
     public init() {}
     
@@ -12,8 +13,32 @@ public struct CorkboardView: View {
             let boardH = geo.size.height
             
             ZStack(alignment: .topLeading) {
-                // Transparent hit area strictly within corkboard wooden frame
-                Color.clear
+                // Authentic Chalkboard Slate Surface filling the wooden frame
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.12, green: 0.15, blue: 0.14),
+                                Color(red: 0.08, green: 0.11, blue: 0.10)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .overlay(
+                        // Chalk dust & eraser smudge texture
+                        RadialGradient(
+                            colors: [Color.white.opacity(0.04), Color.clear],
+                            center: .center,
+                            startRadius: 20,
+                            endRadius: max(boardW, boardH) * 0.7
+                        )
+                    )
+                    .overlay(
+                        // Inner frame shadow & groove
+                        RoundedRectangle(cornerRadius: 3)
+                            .stroke(Color.black.opacity(0.55), lineWidth: 1.5)
+                    )
                     .contentShape(Rectangle())
                     .onTapGesture {
                         if appState.activeNoteCustomizerId != nil {
@@ -23,62 +48,162 @@ public struct CorkboardView: View {
                         }
                     }
                 
-                // DEWA 19 Band Sticker (Top-Right of Memo Board)
-                Dewa19StickerView()
-                    .position(x: boardW - 38, y: 28)
+                // Top-Right Mode Switcher Pill (Papan Tulis vs Memo - Relocated away from lamp)
+                HStack(spacing: 2) {
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            appState.boardDisplayMode = .chalkboard
+                        }
+                    }) {
+                        HStack(spacing: 3) {
+                            Image(systemName: "pencil.and.scribble")
+                                .font(.system(size: 7.5))
+                            Text("Papan Tulis")
+                                .font(ChalkboardTypography.font(size: 8, weight: appState.boardDisplayMode == .chalkboard ? .bold : .medium))
+                        }
+                        .foregroundColor(appState.boardDisplayMode == .chalkboard ? SANSColors.dark : Color.white.opacity(0.70))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(
+                            Capsule()
+                                .fill(appState.boardDisplayMode == .chalkboard ? Color(white: 0.92) : Color.clear)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            appState.boardDisplayMode = .stickyNotes
+                        }
+                    }) {
+                        HStack(spacing: 3) {
+                            Image(systemName: "note.text")
+                                .font(.system(size: 7.5))
+                            Text("Memo\(storage.stickyNotes.isEmpty ? "" : " (\(storage.stickyNotes.count))")")
+                                .font(ChalkboardTypography.font(size: 8, weight: appState.boardDisplayMode == .stickyNotes ? .bold : .medium))
+                        }
+                        .foregroundColor(appState.boardDisplayMode == .stickyNotes ? SANSColors.dark : Color.white.opacity(0.70))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(
+                            Capsule()
+                                .fill(appState.boardDisplayMode == .stickyNotes ? Color(white: 0.92) : Color.clear)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(2)
+                .background(
+                    Capsule()
+                        .fill(Color.black.opacity(0.55))
+                        .overlay(Capsule().stroke(Color.white.opacity(0.12), lineWidth: 0.8))
+                )
+                .position(x: boardW - 76, y: 22)
                 
-                // Top-Center Bismillah Arabic Calligraphy (Sacred Header)
-                BismillahCalligraphyHeaderView()
+                // Top-Center Bismillah Arabic Calligraphy (Sacred Chalk Header)
+                BismillahCalligraphyHeaderView(isChalkStyle: true)
                     .position(x: boardW / 2, y: 22)
                 
-                // Sticky Notes Container
-                ForEach($storage.stickyNotes) { $note in
-                    DraggableStickyNote(
-                        note: $note,
-                        boardW: boardW,
-                        boardH: boardH,
-                        onDelete: {
-                            if appState.activeNoteCustomizerId == note.id {
-                                appState.activeNoteCustomizerId = nil
-                            }
-                            storage.removeStickyNote(id: note.id)
-                        },
-                        onSave: { storage.saveStickyNotes() }
-                    )
+                // Main Content: Chalkboard Daily Reminder vs Sticky Notes
+                if appState.boardDisplayMode == .chalkboard {
+                    ChalkboardReminderView(boardW: boardW, boardH: boardH)
+                        .transition(.opacity)
+                } else {
+                    // Sticky Notes Container
+                    ForEach($storage.stickyNotes) { $note in
+                        DraggableStickyNote(
+                            note: $note,
+                            boardW: boardW,
+                            boardH: boardH,
+                            onDelete: {
+                                if appState.activeNoteCustomizerId == note.id {
+                                    appState.activeNoteCustomizerId = nil
+                                }
+                                storage.removeStickyNote(id: note.id)
+                            },
+                            onSave: { storage.saveStickyNotes() }
+                        )
+                    }
+                    .transition(.opacity)
                 }
                 
-                // Bottom Toolbar: Add Memo (Right)
+                // Bottom Ledge / Chalk Rail Toolbar (Right Aligned to avoid Lamp obstruction on left)
                 VStack {
                     Spacer()
-                    HStack {
+                    HStack(alignment: .center, spacing: 6) {
                         Spacer()
                         
-                        // Add Note '+' Button
-                        Button(action: {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-                                storage.addStickyNote()
+                        // Mode-specific Controls
+                        if appState.boardDisplayMode == .chalkboard {
+                            // Reload / Sync Button
+                            Button(action: {
+                                reminderManager.reloadManually()
+                            }) {
+                                Image(systemName: "arrow.triangle.2.circlepath")
+                                    .font(.system(size: 8, weight: .bold))
+                                    .foregroundColor(Color.white.opacity(0.85))
+                                    .rotationEffect(.degrees(reminderManager.isReloading ? 360 : 0))
+                                    .animation(reminderManager.isReloading ? Animation.linear(duration: 0.8).repeatForever(autoreverses: false) : .default, value: reminderManager.isReloading)
+                                    .padding(4)
+                                    .background(
+                                        Circle()
+                                            .fill(Color.black.opacity(0.45))
+                                            .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 0.8))
+                                    )
                             }
-                        }) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 12, weight: .bold))
-                                Text("Memo")
-                                    .font(.system(size: 9, weight: .bold))
+                            .buttonStyle(.plain)
+                            .help("Muat ulang pengingat dari asisten")
+                            
+                            // Notion Command Center Link Button
+                            Button(action: {
+                                if let url = URL(string: "https://app.notion.com/p/3fcdeeb4e8a781bca2a1cdbe81c65f22") {
+                                    NSWorkspace.shared.open(url)
+                                }
+                            }) {
+                                HStack(spacing: 3.5) {
+                                    Image(systemName: "arrow.up.right.square")
+                                        .font(.system(size: 7.5, weight: .medium))
+                                    Text("Notion")
+                                        .font(ChalkboardTypography.font(size: 8, weight: .bold))
+                                }
+                                .foregroundColor(Color(white: 0.92))
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 3)
+                                .background(
+                                    Capsule()
+                                        .fill(Color.white.opacity(0.12))
+                                        .overlay(Capsule().stroke(Color.white.opacity(0.20), lineWidth: 0.8))
+                                )
                             }
-                            .foregroundColor(SANSColors.dark)
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 4)
-                            .background(
-                                Capsule()
-                                    .fill(SANSColors.lime)
-                                    .overlay(Capsule().stroke(SANSColors.dark.opacity(0.18), lineWidth: 1))
-                                    .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
-                            )
+                            .buttonStyle(.plain)
+                            .help("Buka Master To-Do List (Command Center) di Notion")
+                        } else {
+                            // Add Note '+' Button
+                            Button(action: {
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                                    storage.addStickyNote()
+                                }
+                            }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 11, weight: .bold))
+                                    Text("Memo")
+                                        .font(.system(size: 8.5, weight: .bold))
+                                }
+                                .foregroundColor(SANSColors.dark)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3.5)
+                                .background(
+                                    Capsule()
+                                        .fill(SANSColors.lime)
+                                        .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .help("Tambah Catatan / To-Do List Baru")
                         }
-                        .buttonStyle(.plain)
-                        .help("Tambah Catatan / To-Do List Baru")
                     }
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, 10)
                     .padding(.bottom, 6)
                 }
             }
@@ -618,13 +743,15 @@ public struct StickyNoteCardView: View {
 
 // MARK: - Native Arabic Bismillah Calligraphy Header
 struct BismillahCalligraphyHeaderView: View {
+    var isChalkStyle: Bool = true
+    
     var body: some View {
         HStack(spacing: 8) {
             // Left ornamental filigree accent
             Rectangle()
                 .fill(
                     LinearGradient(
-                        colors: [Color.clear, Color(red: 0.65, green: 0.52, blue: 0.35).opacity(0.40)],
+                        colors: [Color.clear, isChalkStyle ? Color.white.opacity(0.35) : Color(red: 0.65, green: 0.52, blue: 0.35).opacity(0.40)],
                         startPoint: .leading,
                         endPoint: .trailing
                     )
@@ -634,14 +761,14 @@ struct BismillahCalligraphyHeaderView: View {
             // Sacred Calligraphy Ligature (Geeza Pro / Native macOS Arabic Typography)
             Text("﷽")
                 .font(.custom("Geeza Pro", size: 24).weight(.medium))
-                .foregroundColor(Color(red: 0.24, green: 0.15, blue: 0.09))
-                .shadow(color: Color.black.opacity(0.18), radius: 0.8, x: 0, y: 1.0)
+                .foregroundColor(isChalkStyle ? Color(red: 0.96, green: 0.90, blue: 0.75) : Color(red: 0.24, green: 0.15, blue: 0.09))
+                .shadow(color: isChalkStyle ? Color.white.opacity(0.35) : Color.black.opacity(0.18), radius: 0.8, x: 0, y: 1.0)
             
             // Right ornamental filigree accent
             Rectangle()
                 .fill(
                     LinearGradient(
-                        colors: [Color(red: 0.65, green: 0.52, blue: 0.35).opacity(0.40), Color.clear],
+                        colors: [isChalkStyle ? Color.white.opacity(0.35) : Color(red: 0.65, green: 0.52, blue: 0.35).opacity(0.40), Color.clear],
                         startPoint: .leading,
                         endPoint: .trailing
                     )
